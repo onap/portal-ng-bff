@@ -1,0 +1,25 @@
+apply plugin: 'org.openapi.generator'
+
+dependencies {
+    implementation "org.springframework.boot:spring-boot-starter-webflux"
+    implementation "org.openapitools:openapi-generator:$openapiVersion"
+}
+
+compileJava {
+    createOpenApiGenerateClientTask(project, "portal_history_openapi.yaml", "client_portal_history", "PortalHistoryDto")
+    dependsOn = [':openapi:openApiGenerate_client_portal_history']
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs += file("$buildDir/openapi/src/main/java")
+        }
+    }
+}
+
+idea {
+    module {
+        generatedSourceDirs += file("$buildDir/openapi/src/main/java")
+    }
+}

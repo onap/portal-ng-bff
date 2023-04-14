@@ -1,0 +1,49 @@
+# List of common application properties:
+# https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#common-application-properties
+server:
+  port: 9080
+  address: 0.0.0.0
+
+logging:
+  level:
+    org.springframework.web: TRACE
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+spring:
+  application:
+    name: portal-bff
+  profiles:
+    include:
+      - access-control
+  security:
+    oauth2:
+      client:
+        provider:
+          keycloak:
+            token-uri: ${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token
+            jwk-set-uri: ${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs
+        registration:
+          keycloak:
+            provider: keycloak
+            client-id: ${KEYCLOAK_CLIENT_ID}
+            client-secret: ${KEYCLOAK_CLIENT_SECRET}
+            authorization-grant-type: client_credentials
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs
+  jackson:
+    serialization:
+      FAIL_ON_EMPTY_BEANS: false
+
+portal-bff:
+  realm: ${KEYCLOAK_REALM}
+  portal-prefs-url: ${PORTAL_PREFS_URL}
+  portal-history-url: ${PORTAL_HISTORY_URL}
+  keycloak-url: ${KEYCLOAK_URL}
+  instance-id: PORTAL
+

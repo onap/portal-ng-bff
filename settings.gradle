@@ -1,0 +1,10 @@
+rootProject.name = 'portal-bff'
+
+include 'app'
+
+include 'openapi:server'
+include 'openapi:client-portal-prefs'
+include 'openapi:client-portal-history'
+include 'openapi:client-portal-keycloak'
+include 'lib'
+

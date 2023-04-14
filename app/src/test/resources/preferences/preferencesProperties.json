@@ -1,0 +1,80 @@
+{
+  "dashboard": {
+    "apps": {
+      "availableTiles": [
+        {
+          "type": "ALARM_COUNT_TILE",
+          "displayed": true
+        },
+        {
+          "type": "KPI_GRAPH_TILE",
+          "displayed": true
+        },
+        {
+          "type": "K8S_RESOURCE_STATUS_TILE",
+          "displayed": true
+        },
+        {
+          "type": "USER_LAST_ACTION_TILE",
+          "displayed": true
+        }
+      ],
+      "k8sResourceStatus": "pod",
+      "kpiSettings": {
+        "primaryGraph": "erabDropRatio",
+        "secondaryGraph": "erabDropData",
+        "expanded": false
+      },
+      "alarmTileGraphEnabled": false,
+      "lastUserAction": {
+        "interval": "1H",
+        "filterType": "ALL"
+      }
+    }
+  },
+  "alarms": {
+    "showEmptyProperties": false
+  },
+  "columns": [
+    "id",
+    "baseType",
+    "ackState",
+    "alarmedObjectType",
+    "sourceSystemId",
+    "alarmedObject",
+    "perceivedSeverity",
+    "specificProblem",
+    "eventCategory",
+    "probableCause",
+    "proposedRepairedActions",
+    "comment",
+    "alarmRaisedTime",
+    "alarmReportingTime"
+  ],
+  "columnsOrder": [
+    "id",
+    "baseType",
+    "ackState",
+    "alarmedObjectType",
+    "sourceSystemId",
+    "alarmedObject",
+    "perceivedSeverity",
+    "specificProblem",
+    "eventCategory",
+    "probableCause",
+    "proposedRepairedActions",
+    "comment",
+    "alarmRaisedTime",
+    "alarmReportingTime"
+  ],
+  "refreshInterval": "1",
+  "serviceInstanceSettings": {
+    "showAll": false
+  },
+  "topologySettings": {
+    "showAll": false
+  },
+  "treeViewSettings": {
+    "showAll": false
+  }
+}

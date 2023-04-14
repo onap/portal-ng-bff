@@ -1,0 +1,969 @@
+openapi: 3.0.3
+info:
+  title: Portal BFF
+  version: '1.0'
+  description: Portal BFF API
+  contact:
+    name: Team Tesla
+servers:
+  - url: 'http://localhost:9080'
+tags:
+  - name: users
+  - name: roles
+  - name: tiles
+  - name: keys
+  - name: preferences
+  - name: actions
+paths:
+  /users:
+    get:
+      summary: List users
+      description: List users
+      operationId: listUsers
+      tags:
+        - users
+      parameters:
+        - $ref: '#/components/parameters/pageQueryParam'
+        - $ref: '#/components/parameters/pageSizeQueryParam'
+        - $ref: '#/components/parameters/xRequestIdHeader'
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserListResponse'
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: A <uuid4> in each response
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+    post:
+      summary: Create user
+      description: Create user
+      operationId: createUser
+      tags:
+        - users
+      parameters:
+        - $ref: '#/components/parameters/xRequestIdHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '200':
+          description: Detail of user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: A <uuid4> in each response
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+  '/users/{userId}':
+    get:
+      summary: Retrieve detail of user
+      description: Retrieve detail of user
+      operationId: getUser
+      tags:
+        - users
+      parameters:
+        - $ref: '#/components/parameters/userIdPathParam'
+        - $ref: '#/components/parameters/xRequestIdHeader'
+      responses:
+        '200':
+          description: Detail of user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: A <uuid4> in each response
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+    put:
+      summary: Update user
+      description: Update user
+      operationId: updateUser
+      tags:
+        - users
+      parameters:
+        - $ref: '#/components/parameters/userIdPathParam'
+        - $ref: '#/components/parameters/xRequestIdHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: User updated successfully
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: A <uuid4> in each response
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+    delete:
+      summary: Delete user
+      description: Delete user
+      operationId: deleteUser
+      tags:
+        - users
+      parameters:
+        - $ref: '#/components/parameters/userIdPathParam'
+        - $ref: '#/components/parameters/xRequestIdHeader'
+      responses:
+        '204':
+          description: No Content
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: A <uuid4> in each response
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+  '/users/{userId}/roles':
+    get:
+      summary: List assigned roles
+      description: List assigned roles
+      operationId: listAssignedRoles
+      tags:
+        - users
+      parameters:
+        - $ref: '#/components/parameters/userIdPathParam'
+        - $ref: '#/components/parameters/xRequestIdHeader'
+      responses:
+        '200':
+          description: List of assigned roles
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleListResponse'
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: A <uuid4> in each response
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+    put:
+      summary: Update assigned roles
+      description: Update assigned roles
+      operationId: updateAssignedRoles
+      tags:
+        - users
+      parameters:
+        - $ref: '#/components/parameters/userIdPathParam'
+        - $ref: '#/components/parameters/xRequestIdHeader'
+      requestBody:
+        description: IDs of roles which should be assigned
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAssignedRolesRequest'
+      responses:
+        '200':
+          description: List of assigned roles
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleListResponse'
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: A <uuid4> in each response
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+  '/users/{userId}/roles/available':
+    get:
+      summary: List available roles
+      description: List available roles
+      operationId: listAvailableRoles
+      tags:
+        - users
+      parameters:
+        - $ref: '#/components/parameters/userIdPathParam'
+        - $ref: '#/components/parameters/xRequestIdHeader'
+      responses:
+        '200':
+          description: List of available roles
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleListResponse'
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: A <uuid4> in each response
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+  '/users/{userId}/password':
+    put:
+      summary: Update password
+      description: Update password
+      operationId: updatePassword
+      tags:
+        - users
+      parameters:
+        - $ref: '#/components/parameters/userIdPathParam'
+        - $ref: '#/components/parameters/xRequestIdHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserPasswordRequest'
+      responses:
+        '204':
+          description: Password was changed successfully
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: A <uuid4> in each response
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+  /roles:
+    get:
+      summary: List roles
+      description: List roles
+      operationId: listRoles
+      tags:
+        - roles
+      parameters:
+        - $ref: '#/components/parameters/xRequestIdHeader'
+      responses:
+        '200':
+          description: List of roles
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleListResponse'
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+              description: A <uuid4> in each response
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+  /preferences:
+    get:
+      description: Returns user preferences
+      summary: Get user preferences
+      operationId: getPreferences
+      parameters:
+        - $ref: '#/components/parameters/xRequestIdHeader'
+      tags:
+        - preferences
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreferencesResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+    put:
+      description: Updates user preferences
+      summary: Update user preferences
+      operationId: updatePreferences
+      parameters:
+        - $ref: '#/components/parameters/xRequestIdHeader'
+      tags:
+        - preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePreferencesRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreferencesResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+    post:
+      description: Save user preferences
+      summary: Save user preferences
+      operationId: savePreferences
+      parameters:
+        - $ref: '#/components/parameters/xRequestIdHeader'
+      tags:
+        - preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePreferencesRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreferencesResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+  '/actions/{userId}':
+    get:
+      summary: Retrieve all actions for a specific user
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActionsListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+      operationId: getActions
+      parameters:
+        - $ref: '#/components/parameters/pageQueryParam'
+        - $ref: '#/components/parameters/pageSizeQueryParam'
+        - schema:
+            type: integer
+            format: int32
+          in: query
+          name: showLastHours
+          description: Get all actions within the last X hours.
+        - $ref: '#/components/parameters/xRequestIdHeader'
+      description: Get actions for the given userId
+      tags:
+        - actions
+    parameters:
+      - $ref: '#/components/parameters/userIdPathParam'
+    post:
+      summary: Create an action for a given user
+      operationId: createAction
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActionsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateActionRequest'
+        description: Only one action in each POST request
+      parameters:
+        - $ref: '#/components/parameters/xRequestIdHeader'
+      description: Create a user action
+      tags:
+        - actions
+  /actions:
+    get:
+      summary: Retrieve all actions from the portal with an optional timeframe
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActionsListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+      operationId: listActions
+      parameters:
+        - $ref: '#/components/parameters/pageQueryParam'
+        - $ref: '#/components/parameters/pageSizeQueryParam'
+        - schema:
+            type: integer
+            format: int32
+          in: query
+          name: showLastHours
+          description: Get all actions within the last X hours.
+        - $ref: '#/components/parameters/xRequestIdHeader'
+      description: Get portal actions from all users
+      tags:
+        - actions
+    parameters: []
+components:
+  responses:
+    BadRequest:
+      description: '400: Bad Request'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+      headers:
+        X-Request-Id:
+          schema:
+            type: string
+          description: A <uuid4> in each response
+    Unauthorized:
+      description: '401: Unauthorized'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+      headers:
+        X-Request-Id:
+          schema:
+            type: string
+          description: A <uuid4> in each response
+    Forbidden:
+      description: '403: Forbidden'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+      headers:
+        X-Request-Id:
+          schema:
+            type: string
+          description: A <uuid4> in each response
+    NotFound:
+      description: '404: Not Found'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+      headers:
+        X-Request-Id:
+          schema:
+            type: string
+          description: A <uuid4> in each response
+    NotAllowed:
+      description: '405: Method Not Allowed'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+      headers:
+        X-Request-Id:
+          schema:
+            type: string
+          description: A <uuid4> in each response
+    Conflict:
+      description: '409: Conflict'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+      headers:
+        X-Request-Id:
+          schema:
+            type: string
+          description: A <uuid4> in each response
+    InternalServerError:
+      description: Internal Server Error
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+      headers:
+        X-Request-Id:
+          schema:
+            type: string
+          description: A <uuid4> in each response
+    BadGateway:
+      description: Bad Gateway
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+      headers:
+        X-Request-Id:
+          schema:
+            type: string
+          description: A <uuid4> in each response
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  headers:
+    X-Request-Id:
+      description: The unique identifier of the request
+      schema:
+        type: string
+  parameters:
+    xRequestIdHeader:
+      name: X-Request-Id
+      in: header
+      schema:
+        type: string
+      description: The unique identifier of the request
+      required: false
+    userIdPathParam:
+      name: userId
+      in: path
+      description: User ID
+      required: true
+      schema:
+        $ref: '#/components/schemas/ValidString'
+    tileIdPathParam:
+      name: tileId
+      in: path
+      description: Tile ID
+      required: true
+      schema:
+        type: integer
+        format: int64
+    pageQueryParam:
+      name: page
+      in: query
+      description: Page index (1..N)
+      required: false
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+        default: 1
+    pageSizeQueryParam:
+      name: pageSize
+      in: query
+      description: The size of the page to be returned
+      required: false
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+        maximum: 5000
+        default: 10
+  schemas:
+    CreatePreferencesRequest:
+      type: object
+      required:
+        - keys
+      properties:
+        properties:
+          type: object
+      title: CreatePreferencesRequest
+      x-internal: false
+    PreferencesResponse:
+      type: object
+      title: PreferencesResponse
+      properties:
+        properties:
+          type: object
+      required:
+        - properties
+    ValidString:
+      type: string
+      pattern: '[\w,/!=§#@€:µ.*+?'' \-\u00C0-\u017F]*'
+    Problem:
+      type: object
+      required:
+        - status
+        - title
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: |
+            A URI reference that uniquely identifies the problem type only in the context of the provided API. Opposed to the specification in RFC-7807, it is neither recommended to be dereferencable and point to a human-readable documentation nor globally unique for the problem type.
+          default: 'about:blank'
+          example: /problem/connection-error
+        title:
+          type: string
+          description: |
+            A short summary of the problem type. Written in English and readable for engineers, usually not suited for non technical stakeholders and not localized.
+          example: Service Unavailable
+        status:
+          type: integer
+          format: int32
+          description: |
+            The HTTP status code generated by the origin server for this occurrence of the problem.
+          minimum: 100
+          maximum: 600
+          exclusiveMaximum: true
+          example: 503
+        detail:
+          type: string
+          description: |
+            A human readable explanation specific to this occurrence of the problem that is helpful to locate the problem and give advice on how to proceed. Written in English and readable for engineers, usually not suited for non technical stakeholders and not localized.
+          example: Connection to database timed out
+        downstreamSystem:
+          type: string
+          description: The downstream system that responded with error
+          enum:
+            - KEYCLOAK
+            - PORTAL_SERVICE
+            - PORTAL_PREFS
+            - PORTAL_HISTORY
+        downstreamStatus:
+          type: integer
+          format: int32
+          description: |
+            Response status from the downstream system.
+          example: 401
+        downstreamMessageId:
+          type: string
+          description: |
+            The identifier of the error message from the downstream system.
+          example: SVC3001
+        instance:
+          type: string
+          format: uri-reference
+          description: |
+            A URI reference that identifies the specific occurrence of the problem, e.g. by adding a fragment identifier or sub-path to the problem type. May be used to locate the root of this problem in the source code.
+          example: /problem/connection-error#token-info-read-timed-out
+        violations:
+          type: array
+          externalDocs:
+            url: https://opensource.zalando.com/problem/constraint-violation/
+          items:
+            $ref: '#/components/schemas/ConstraintViolation'
+    ConstraintViolation:
+      type: object
+      properties:
+        field:
+          type: string
+        message:
+          type: string
+      required:
+        - field
+        - message
+    UserResponse:
+      type: object
+      required:
+        - id
+        - username
+        - enabled
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        enabled:
+          type: boolean
+        realmRoles:
+          type: array
+          items:
+            type: string
+    UserListResponse:
+      type: object
+      required:
+        - items
+        - totalCount
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserResponse'
+        totalCount:
+          type: integer
+          format: int32
+    CreateUserRequest:
+      type: object
+      required:
+        - username
+        - enabled
+        - email
+        - roles
+      properties:
+        username:
+          $ref: '#/components/schemas/ValidString'
+        email:
+          $ref: '#/components/schemas/ValidString'
+        firstName:
+          $ref: '#/components/schemas/ValidString'
+        lastName:
+          $ref: '#/components/schemas/ValidString'
+        enabled:
+          type: boolean
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/Role'
+    UpdateUserRequest:
+      type: object
+      required:
+        - enabled
+      properties:
+        email:
+          $ref: '#/components/schemas/ValidString'
+        firstName:
+          $ref: '#/components/schemas/ValidString'
+        lastName:
+          $ref: '#/components/schemas/ValidString'
+        enabled:
+          type: boolean
+    UpdateUserPasswordRequest:
+      type: object
+      required:
+        - value
+        - temporary
+      properties:
+        value:
+          $ref: '#/components/schemas/ValidString'
+        temporary:
+          type: boolean
+    Role:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          $ref: '#/components/schemas/ValidString'
+        name:
+          $ref: '#/components/schemas/ValidString'
+    RoleListResponse:
+      type: object
+      required:
+        - items
+        - totalCount
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Role'
+        totalCount:
+          type: integer
+          format: int32
+    UpdateAssignedRolesRequest:
+      type: array
+      items:
+        $ref: '#/components/schemas/Role'
+    TileListResponse:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/TileResponse'
+    TileResponse:
+      type: object
+      required:
+        - id
+        - title
+        - imageUrl
+        - redirectUrl
+        - groups
+        - roles
+      properties:
+        id:
+          type: integer
+          format: int64
+        title:
+          type: string
+        description:
+          type: string
+        imageUrl:
+          type: string
+        imageAltText:
+          type: string
+        redirectUrl:
+          type: string
+        headers:
+          type: string
+        groups:
+          type: array
+          items:
+            type: string
+        roles:
+          type: array
+          items:
+            type: string
+    ActionsResponse:
+      title: ActionsResponse
+      type: object
+      properties:
+        actionCreatedAt:
+          type: string
+          format: date-time
+        action:
+          type: object
+        saveInterval:
+          type: integer
+          format: int32
+      required:
+        - actionCreatedAt
+        - action
+    CreateActionRequest:
+      title: CreateActionRequest
+      type: object
+      properties:
+        userId:
+          type: string
+        actionCreatedAt:
+          type: string
+          format: date-time
+        action:
+          type: object
+      required:
+        - userId
+        - actionCreatedAt
+        - action
+    ActionsListResponse:
+      title: ActionsListResponse
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActionsResponse'
+        totalCount:
+          type: integer
+          format: int32
+      required:
+        - items
+        - totalCount
+security:
+  - bearerAuth: []

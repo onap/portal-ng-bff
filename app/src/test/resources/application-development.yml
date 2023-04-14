@@ -1,0 +1,33 @@
+logging:
+  level:
+    org.springframework.web: TRACE
+
+spring:
+  profiles:
+    include: access-control
+  security:
+    oauth2:
+      client:
+        provider:
+          keycloak:
+            token-uri: http://localhost:${wiremock.server.port}/auth/realms/ONAP/protocol/openid-connect/token
+            jwk-set-uri: http://localhost:${wiremock.server.port}/auth/realms/ONAP/protocol/openid-connect/certs
+        registration:
+          keycloak:
+            provider: keycloak
+            client-id: test
+            client-secret: test
+            authorization-grant-type: client_credentials
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://localhost:${wiremock.server.port}/auth/realms/ONAP/protocol/openid-connect/certs
+  jackson:
+    serialization:
+      FAIL_ON_EMPTY_BEANS: false
+
+portal-bff:
+  realm: ONAP
+  portal-prefs-url: http://localhost:${wiremock.server.port}
+  portal-history-url: http://localhost:${wiremock.server.port}
+  keycloak-url: http://localhost:${wiremock.server.port}
+  instance-id: PORTAL

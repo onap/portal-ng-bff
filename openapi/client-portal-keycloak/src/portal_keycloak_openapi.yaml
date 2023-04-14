@@ -1,0 +1,651 @@
+openapi: 3.0.2
+info:
+  title: Keycloak API
+  version: '1.0'
+  description: API to provide Keycloak actions
+  contact:
+    name: TNAP Team Tesla
+    url: 'https://www.telekom.de'
+    email: info@telekom.de
+servers:
+  - url: 'http://localhost:9003/{base}/{version}'
+    variables:
+      base:
+        default: 'portal-keycloak'
+        description: Basepath
+      version:
+        default: 'v1'
+        description: Version
+paths:
+  '/roles':
+    get:
+      tags:
+        - keycloak
+      summary: Get all roles
+      description: Retrieves all keycloak roles for the realm or client
+      operationId: getRoles
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: first
+          in: query
+          schema:
+            type: integer
+            format: int32
+        - name: max
+          in: query
+          schema:
+            type: integer
+            format: int32
+        - name: briefRepresentation
+          in: query
+          schema:
+            type: boolean
+      responses:
+        2XX:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Role'
+    post:
+      tags:
+        - keycloak
+      summary: Create a new role
+      description: Creates a new role for the realm or client
+      operationId: createRole
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Role'
+        required: true
+      responses:
+        2XX:
+          description: OK
+  '/roles/{roleName}/users':
+    get:
+      tags:
+        - keycloak
+      summary: Get all users for the role
+      description: Returns a stream of users that have the specified role name
+      operationId: getUsersByRole
+      parameters:
+        - name: first
+          in: query
+          description: 'First result to return. Ignored if negative or {@code null}'
+          schema:
+            type: integer
+            format: int32
+        - name: max
+          in: query
+          description: 'Maximum number of results to return. Ignored if negative or {@code null}'
+          schema:
+            type: integer
+            format: int32
+      responses:
+        2XX:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+    parameters:
+      - name: roleName
+        in: path
+        description: The role name
+        required: true
+        schema:
+          type: string
+  '/users':
+    post:
+      tags:
+        - keycloak
+      summary: Create a new keycloak user
+      description: Creates a new user in keycloak. Username must be unique
+      operationId: createUser
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        2XX:
+          description: Success
+    get:
+      tags:
+        - keycloak
+      summary: Get keycloak users
+      description:  Returns a stream of users, filtered according to query.
+      operationId: getUsers
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: lastName
+          in: query
+          schema:
+            type: string
+        - name: firstName
+          in: query
+          schema:
+            type: string
+        - name: email
+          in: query
+          schema:
+            type: string
+        - name: username
+          in: query
+          schema:
+            type: string
+        - name: emailVerified
+          in: query
+          schema:
+            type: boolean
+        - name: idpAlias
+          in: query
+          schema:
+            type: string
+        - name: idpUserId
+          in: query
+          schema:
+            type: string
+        - name: first
+          in: query
+          schema:
+            type: integer
+            format: int32
+        - name: max
+          in: query
+          schema:
+            type: integer
+            format: int32
+        - name: enabled
+          in: query
+          schema:
+            type: boolean
+        - name: briefRepresentation
+          in: query
+          schema:
+            type: boolean
+        - name: exact
+          in: query
+          schema:
+            type: boolean
+        - name: q
+          in: query
+          schema:
+            type: string
+      responses:
+        2XX:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+  '/users/count':
+    get:
+      tags:
+        - keycloak
+      summary: Get users count
+      description: Returns the number of users that match the given criteria
+      operationId: getUsersCount
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: lastName
+          in: query
+          schema:
+            type: string
+        - name: firstName
+          in: query
+          schema:
+            type: string
+        - name: email
+          in: query
+          schema:
+            type: string
+        - name: emailVerified
+          in: query
+          schema:
+            type: boolean
+        - name: username
+          in: query
+          schema:
+            type: string
+        - name: enabled
+          in: query
+          schema:
+            type: boolean
+      responses:
+        2XX:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: integer
+                format: int32
+  '/users/{id}':
+    put:
+      tags:
+        - keycloak
+      summary: Update user
+      description: Updates the user
+      operationId: updateUser
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        2XX:
+          description: Success
+    get:
+      tags:
+        - keycloak
+      summary: Get user
+      description: Returns representation of the user
+      operationId: getUser
+      responses:
+        2XX:
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+    delete:
+      tags:
+        - keycloak
+      summary: Delete the user
+      description: Deletes the user
+      operationId: deleteUser
+      responses:
+        2XX:
+          description: Success
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+  '/users/{id}/reset-password':
+    put:
+      tags:
+        - keycloak
+      summary: Reset user password
+      description: Sets up a new password for the user
+      operationId: resetUserPassword
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Credential'
+      responses:
+        2XX:
+          description: Success
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+  '/users/{id}/role-mappings/realm':
+    get:
+      tags:
+        - keycloak
+      summary: Get realm role mappings
+      description: Returns realm-level role mappings
+      operationId: getRealmRoleMappingsByUserId
+      responses:
+        2XX:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Role'
+    post:
+      tags:
+        - keycloak
+      summary: Add realm role mappings
+      description: Adds realm-level role mappings to the user
+      operationId: addRealmRoleMappingsToUser
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/Role'
+      responses:
+        2XX:
+          description: Success
+    delete:
+      tags:
+        - keycloak
+      summary: Delete realm role mappings
+      description: Deletes realm-level role mappings
+      operationId: deleteRealmRoleMappingsByUserId
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/Role'
+      responses:
+        2XX:
+          description: Success
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+  '/users/{id}/role-mappings/realm/available':
+    get:
+      tags:
+        - keycloak
+      summary: Get available realm roles
+      description: Returns realm-level roles that can be mapped
+      operationId: getAvailableRealmRoleMappingsByUserId
+      responses:
+        2XX:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Role'
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+  '/users/{id}/execute-actions-email':
+    put:
+      tags:
+        - keycloak
+      summary: Execute actions email
+      description: Send an update account email to the user. An email contains a link the user can click to perform a set of required actions. The redirectUri and clientId parameters are optional. If no redirect is given, then there will be no link back to click after actions have completed.  Redirect uri must be a valid uri for the particular clientId
+      operationId: executeActionsEmail
+      parameters:
+        - name: OIDCLoginProtocol.REDIRECT_URI_PARAM
+          in: query
+          description: Redirect uri
+          schema:
+            type: string
+        - name: OIDCLoginProtocol.CLIENT_ID_PARAM
+          in: query
+          description: Client id
+          schema:
+            type: string
+        - name: lifespan
+          in: query
+          description: Number of seconds after which the generated token expires
+          schema:
+            type: integer
+            format: int32
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/RequiredActions'
+      responses:
+        2XX:
+          description: Success
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+components:
+  schemas:
+    Role:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        scopeParamRequired:
+          type: boolean
+        composites:
+          $ref: '#/components/schemas/Composites'
+        composite:
+          type: boolean
+        clientRole:
+          type: boolean
+        containerId:
+          type: string
+        attributes:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+    Composites:
+      type: object
+      properties:
+        realm:
+          type: array
+          items:
+            type: string
+        client:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+        application:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+    User:
+      type: object
+      properties:
+        self:
+          type: string
+        id:
+          type: string
+        createdTimestamp:
+          type: integer
+          format: int64
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+        username:
+          type: string
+        enabled:
+          type: boolean
+        totp:
+          type: boolean
+        emailVerified:
+          type: boolean
+        attributes:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+        credentials:
+          type: array
+          items:
+            $ref: '#/components/schemas/Credential'
+        requiredActions:
+          type: array
+          items:
+            $ref: '#/components/schemas/RequiredActions'
+        federatedIdentities:
+          type: array
+          items:
+            $ref: '#/components/schemas/FederatedIdentity'
+        socialLinks:
+          type: array
+          items:
+            $ref: '#/components/schemas/SocialLink'
+        realmRoles:
+          type: array
+          items:
+            type: string
+        clientRoles:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+        clientConsents:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserConsent'
+        notBefore:
+          type: integer
+          format: int32
+        applicationRoles:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+        federationLink:
+          type: string
+        serviceAccountClientId:
+          type: string
+        groups:
+          type: array
+          items:
+            type: string
+        origin:
+          type: string
+        disableableCredentialTypes:
+          type: array
+          items:
+            type: string
+        access:
+          type: object
+          additionalProperties:
+            type: boolean
+    Credential:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+        userLabel:
+          type: string
+        secretData:
+          type: string
+        credentialData:
+          type: string
+        priority:
+          type: integer
+          format: int32
+        createdDate:
+          type: integer
+          format: int64
+        value:
+          type: string
+        temporary:
+          type: boolean
+        device:
+          type: string
+        hashedSaltedValue:
+          type: string
+        salt:
+          type: string
+        hashIterations:
+          type: integer
+          format: int32
+        counter:
+          type: integer
+          format: int32
+        algorithm:
+          type: string
+        digits:
+          type: integer
+          format: int32
+        period:
+          type: integer
+          format: int32
+        config:
+          type: object
+          additionalProperties:
+            type: string
+    FederatedIdentity:
+      type: object
+      properties:
+        identityProvider:
+          type: string
+        userId:
+          type: string
+        userName:
+          type: string
+    SocialLink:
+      type: object
+      properties:
+        socialProvider:
+          type: string
+        socialUserId:
+          type: string
+        socialUsername:
+          type: string
+    UserConsent:
+      type: object
+      properties:
+        clientId:
+          type: string
+        grantedClientScopes:
+          type: array
+          items:
+            type: string
+        createdDate:
+          type: integer
+          format: int64
+        lastUpdatedDate:
+          type: integer
+          format: int64
+        grantedRealmRoles:
+          type: array
+          items:
+            type: string
+    RequiredActions:
+      type: string
+      enum:
+        - CONFIGURE_TOTP
+        - TERMS_AND_CONDITIONS
+        - UPDATE_PASSWORD
+        - UPDATE_PROFILE
+        - VERIFY_EMAIL
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        errorMessage:
+          type: string
+

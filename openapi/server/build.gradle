@@ -1,0 +1,48 @@
+apply plugin: 'org.openapi.generator'
+
+dependencies {
+  implementation "org.springframework.boot:spring-boot-starter-webflux"
+  implementation "org.openapitools:openapi-generator:$openapiVersion"
+  implementation "org.webjars:redoc:$redocVersion"
+}
+
+openApiGenerate {
+  generatorName = "spring"
+  library = "spring-boot"
+  inputSpec = "$projectDir/src/main/resources/static/api.yaml"
+  outputDir = "$buildDir/openapi"
+  configOptions = [
+    openApiNullable: "false",
+    skipDefaultInterface: "true",
+    dateLibrary: "java8",
+    interfaceOnly: "true",
+    useTags: "true",
+    reactive: "true",
+  ]
+  generateApiTests = false
+  generateApiDocumentation = true
+  generateModelTests = false
+  generateModelDocumentation = false
+  invokerPackage = "org.onap.portal.bff.openapi.server"
+  apiPackage =     "org.onap.portal.bff.openapi.server.api"
+  modelPackage =   "org.onap.portal.bff.openapi.server.model"
+  modelNameSuffix = "ApiDto"
+}
+
+compileJava {
+  dependsOn tasks.openApiGenerate
+}
+
+sourceSets {
+  main {
+    java {
+      srcDirs += file("$buildDir/openapi/src/main/java")
+    }
+  }
+}
+
+idea {
+  module {
+    generatedSourceDirs += file("$buildDir/openapi/src/main/java")
+  }
+}

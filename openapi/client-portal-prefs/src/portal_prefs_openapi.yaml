@@ -1,0 +1,341 @@
+openapi: 3.0.2
+info:
+  title: Config API
+  version: '1.0'
+servers:
+  - url: 'http://localhost:9001'
+tags:
+  - name: preferences
+paths:
+  '/v1/preferences':
+    get:
+      description: Returns user preferences
+      summary: Get user preferences
+      operationId: getPreferences
+      parameters:
+        - $ref: '#/components/parameters/XRequestIdHeader'
+      tags:
+        - preferences
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Preferences'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+    put:
+      description: Updates user preferences
+      summary: Update user preferences
+      operationId: updatePreferences
+      parameters:
+        - $ref: '#/components/parameters/XRequestIdHeader'
+      tags:
+        - preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Preferences'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Preferences'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+    post:
+      description: Save user preferences
+      summary: Save user preferences
+      operationId: savePreferences
+      parameters:
+        - $ref: '#/components/parameters/XRequestIdHeader'
+      tags:
+        - preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Preferences'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Preferences'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+  '/actuator/info':
+    get:
+      tags:
+        - preferences
+      summary: Retrieve actuator information
+      description: Proxy for actuator info endpoint
+      operationId: getActuatorInfo
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActuatorInfoResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+components:
+  parameters:
+    XRequestIdHeader:
+      name: X-Request-Id
+      in: header
+      description: The unique identifier of the request
+      required: true
+      schema:
+        type: string
+  schemas:
+    Preferences:
+      type: object
+      x-extension-1: null
+      properties:
+        properties:
+          type: object
+      required:
+        - properties
+    ActuatorInfoResponse:
+      title: ActuatorInfoResponse
+      type: object
+      properties:
+        git:
+          $ref: '#/components/schemas/ActuatorGitInfo'
+        build:
+          $ref: '#/components/schemas/ActuatorBuildInfo'
+        java:
+          $ref: '#/components/schemas/ActuatorJavaInfo'
+    ActuatorGitInfo:
+      title: ActuatorGitInfo
+      type: object
+      properties:
+        branch:
+          type: string
+        commit:
+          $ref: '#/components/schemas/GitCommitInfo'
+    ActuatorBuildInfo:
+      title: ActuatorBuildInfo
+      type: object
+      properties:
+        artifact:
+          type: string
+        name:
+          type: string
+        time:
+          type: string
+        version:
+          type: string
+        group:
+          type: string
+    GitCommitInfo:
+      title: GitCommitInfo
+      type: object
+      properties:
+        id:
+          type: string
+        time:
+          type: string
+    ActuatorJavaInfo:
+      title: ActuatorJavaInfo
+      type: object
+      properties:
+        version:
+          type: string
+        vendor:
+          $ref: '#/components/schemas/JavaVendorInfo'
+        runtime:
+          $ref: '#/components/schemas/JavaRuntimeInfo'
+        jvm:
+          $ref: '#/components/schemas/JavaJvmInfo'
+    JavaVendorInfo:
+      title: JavaVendorInfo
+      type: object
+      properties:
+        name:
+          type: string
+        version:
+          type: string
+    JavaRuntimeInfo:
+      title: JavaRuntimeInfo
+      type: object
+      properties:
+        name:
+          type: string
+        version:
+          type: string
+    JavaJvmInfo:
+      title: JavaJvmInfo
+      type: object
+      properties:
+        name:
+          type: string
+        vendor:
+          type: string
+        version:
+          type: string
+    Problem:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: |
+            A URI reference that uniquely identifies the problem type only in the context of the provided API. Opposed to the specification in RFC-7807, it is neither recommended to be dereferencable and point to a human-readable documentation nor globally unique for the problem type.
+          default: 'about:blank'
+          example: /problem/connection-error
+        title:
+          type: string
+          description: |
+            A short summary of the problem type. Written in English and readable for engineers, usually not suited for non technical stakeholders and not localized.
+          example: Service Unavailable
+        status:
+          type: integer
+          format: int32
+          description: |
+            The HTTP status code generated by the origin server for this occurrence of the problem.
+          minimum: 100
+          maximum: 600
+          exclusiveMaximum: true
+          example: 503
+        detail:
+          type: string
+          description: |
+            A human readable explanation specific to this occurrence of the problem that is helpful to locate the problem and give advice on how to proceed. Written in English and readable for engineers, usually not suited for non technical stakeholders and not localized.
+          example: Connection to database timed out
+        instance:
+          type: string
+          format: uri-reference
+          description: |
+            A URI reference that identifies the specific occurrence of the problem, e.g. by adding a fragment identifier or sub-path to the problem type. May be used to locate the root of this problem in the source code.
+          example: /problem/connection-error#token-info-read-timed-out
+  responses:
+    BadRequest:
+      description: '400: Bad Request'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+      headers:
+        X-Request-Id:
+          schema:
+            type: string
+          description: A <uuid4> in each response
+    Unauthorized:
+      description: '401: Unauthorized'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+      headers:
+        X-Request-Id:
+          schema:
+            type: string
+          description: A <uuid4> in each response
+    Forbidden:
+      description: '403: Forbidden'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+      headers:
+        X-Request-Id:
+          schema:
+            type: string
+          description: A <uuid4> in each response
+    NotFound:
+      description: '404: Not Found'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+      headers:
+        X-Request-Id:
+          schema:
+            type: string
+          description: A <uuid4> in each response
+    NotAllowed:
+      description: '405: Method Not Allowed'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+      headers:
+        X-Request-Id:
+          schema:
+            type: string
+          description: A <uuid4> in each response
+    Conflict:
+      description: '409: Conflict'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+      headers:
+        X-Request-Id:
+          schema:
+            type: string
+          description: A <uuid4> in each response
+    InternalServerError:
+      description: Internal Server Error
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+      headers:
+        X-Request-Id:
+          schema:
+            type: string
+          description: A <uuid4> in each response
+    BadGateway:
+      description: Bad Gateway
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+      headers:
+        X-Request-Id:
+          schema:
+            type: string
+          description: A <uuid4> in each response

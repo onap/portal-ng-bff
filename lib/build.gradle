@@ -1,0 +1,91 @@
+apply plugin: 'com.gorylenko.gradle-git-properties'
+apply plugin: 'jacoco'
+apply plugin: 'com.github.johnrengelman.shadow'
+apply plugin: 'maven-publish'
+apply plugin: 'java-library'
+apply plugin: 'com.diffplug.spotless'
+apply plugin: 'com.github.spotbugs'
+apply plugin: 'org.sonarqube'
+
+group 'org.onap'
+version rootProject.file('version').text.trim()
+
+dependencies {
+    implementation project(':openapi:server')
+    implementation project(':openapi:client-portal-prefs')
+    implementation project(':openapi:client-portal-history')
+    implementation project(':openapi:client-portal-keycloak')
+
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+    implementation "org.zalando:problem:$problemVersion"
+    implementation "org.zalando:jackson-datatype-problem:$problemVersion"
+    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml'
+    implementation "org.zalando:problem-spring-webflux:$problemSpringVersion"
+    implementation "org.mapstruct:mapstruct:$mapStructVersion"
+    implementation "org.mapstruct.extensions.spring:mapstruct-spring-annotations:$mapStructExtensionsVersion"
+    implementation "org.mapstruct.extensions.spring:mapstruct-spring-extensions:$mapStructExtensionsVersion"
+
+    annotationProcessor "org.mapstruct:mapstruct-processor:$mapStructVersion"
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+}
+
+shadowJar {
+    archiveBaseName.set('portal-bff')
+    dependencies {
+        include(project(':openapi:server'))
+        include(project(':openapi:client-portal-history'))
+        include(project(':openapi:client-portal-prefs'))
+        include(project(':openapi:client-portal-keycloak'))
+    }
+}
+
+publishing {
+    publications {
+        myLibrary(MavenPublication) {
+            artifactId = rootProject.name
+            groupId = group
+            version = version
+            artifacts = ["build/libs/portal-bff-$version-all.jar"]
+            pom {
+                name = rootProject.name
+                description = 'ONAP community edition of portal-bff'
+            }
+        }
+    }
+    repositories{
+        mavenCentral()
+    }
+}
+
+spotless {
+    java {
+        target project.fileTree(project.projectDir) {
+            include '**/*.java'
+            exclude '**/build/**'
+        }
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        googleJavaFormat('1.15.0')
+    }
+}
+
+spotbugs {
+    ignoreFailures = false
+    effort = "max"
+    reportLevel = "high"
+    excludeFilter = file("$rootProject.projectDir/spotbugs-exclude.xml")
+}
+
+sonarqube {
+    properties {
+        property "sonar.projectKey", "tnap.SONAR.portal.portal-bff-ce"
+        property "sonar.projectName", "portal-bff-ce"
+        property "sonar.projectDescription", "Community edition of the the ONAP portal"
+        property "sonar.exclusions", "**/build**"
+    }
+}

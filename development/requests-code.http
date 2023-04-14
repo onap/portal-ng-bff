@@ -1,0 +1,109 @@
+# Use this with the REST Client extension in VSCode
+###
+# @name login
+@access_token = {{login.response.body.access_token}}
+@id_token = {{login.response.body.id_token}}
+POST http://localhost:8080/auth/realms/ONAP/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+Authorization: Basic admin:password
+
+grant_type=password&scope=openid&client_id=portal-app&username=onap-admin&password=password
+
+###
+# @name userinfo
+@user_id = {{userinfo.response.body.sub}}
+@user_name = {{userinfo.response.body.preferred_username}}
+GET http://localhost:8080/auth/realms/ONAP/protocol/openid-connect/userinfo
+Authorization: Bearer {{access_token}}
+X-Auth-Identity: Bearer {{id_token}}
+
+###
+
+POST http://localhost:9080/preferences
+X-Request-Id: {{$uuid}}
+Accept: application/json
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+X-Auth-Identity: Bearer {{id_token}}
+
+{
+  "properties": {
+    "dashboard": {
+      "apps": {
+        "availableTiles": [
+          {
+            "type": "USER_LAST_ACTION_TILE",
+            "displayed": false
+          }
+        ],
+        "lastUserAction": {
+          "interval": "1H",
+          "filterType": "ALL"
+        }
+      }
+    }
+  }
+}
+
+###
+GET http://localhost:9080/preferences
+Accept: application/json
+Authorization: Bearer {{access_token}}
+X-Auth-Identity: Bearer {{id_token}}
+X-Request-Id: {{$uuid}}
+
+###
+POST http://localhost:9080/actions/{{user_id}}
+X-Request-Id: {{$uuid}}
+Accept: application/json
+Authorization: Bearer {{access_token}}
+X-Auth-Identity: Bearer {{id_token}}
+Content-Type: application/json
+
+{
+  "userId": "{{user_id}}",
+  "actionCreatedAt": "{{$timestamp}}",
+  "action": {
+    "type": "DELETE",
+    "entity": "USERADMINISTRATION",
+    "entityParams": {
+      "userName": "uli",
+      "userId": "{{$randomInt}}"
+    }
+  }
+}
+
+###
+GET http://localhost:9080/actions/{{user_id}}?page=1&pageSize=10&showLastHours=1
+X-Request-Id: {{$uuid}}
+Accept: application/json
+Authorization: Bearer {{access_token}}
+X-Auth-Identity: Bearer {{id_token}}
+
+###
+GET http://localhost:9080/actions?page=1&pageSize=10&showLastHours=1
+X-Request-Id: {{$uuid}}
+Accept: application/json
+Authorization: Bearer {{access_token}}
+X-Auth-Identity: Bearer {{id_token}}
+
+### requests to keycloak
+GET http://localhost:9080/users
+X-Request-Id: {{$uuid}}
+Accept: application/json
+Authorization: Bearer {{access_token}}
+X-Auth-Identity: Bearer {{id_token}}
+
+###
+GET http://localhost:9080/users/{{user_id}}
+X-Request-Id: {{$uuid}}
+Accept: application/json
+Authorization: Bearer {{access_token}}
+X-Auth-Identity: Bearer {{id_token}}
+
+###
+GET http://localhost:9080/users/{{user_id}}/roles
+X-Request-Id: {{$uuid}}
+Accept: application/json
+Authorization: Bearer {{access_token}}
+X-Auth-Identity: Bearer {{id_token}}

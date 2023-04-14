@@ -1,0 +1,77 @@
+version: '3'
+
+volumes:
+  postgres_data:
+      driver: local
+
+services:
+  postgres:
+    container_name: postgres-keycloak
+    image: "${POSTGRES_IMAGE}:${POSTGRES_VERSION}"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+  keycloak:
+    container_name: keycloak-bff
+    image: "quay.io/keycloak/keycloak:18.0.2-legacy"
+    environment:
+      DB_VENDOR: POSTGRES
+      DB_ADDR: postgres-keycloak
+      DB_DATABASE: keycloak
+      DB_USER: keycloak
+      DB_SCHEMA: public
+      DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      KEYCLOAK_USER: ${KEYCLOAK_USER}
+      KEYCLOAK_PASSWORD: ${KEYCLOAK_PASSWORD}
+      KEYCLOAK_IMPORT: /config/onap-realm.json
+    ports:
+      - 8080:8080
+    volumes:
+      - ./config:/config
+    depends_on:
+      - postgres
+  mongo-history:
+    container_name: mongo-history
+    image: "${MONGO_IMAGE}:${MONGO_VERSION}"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${PORTALHISTORY_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${PORTALHISTORY_PASSWORD}
+  portal-history:
+    container_name: portal-history
+    image: "${IMAGE_REPOSITORY}/${PORTAL_HISTORY_IMAGE_NAME}:${PORTAL_HISTORY_IMAGE_TAG}"
+    ports:
+      - 9002:9002
+    environment:
+      PORTALHISTORY_USERNAME: ${PORTALHISTORY_USERNAME}
+      PORTALHISTORY_PASSWORD: ${PORTALHISTORY_PASSWORD}
+      PORTALHISTORY_DATABASE: ${PORTALHISTORY_DATABASE}
+      KEYCLOAK_URL: ${KEYCLOAK_URL}
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM}
+      PORTALHISTORY_HOST: ${PORTALHISTORY_HOST}
+      PORTALHISTORY_PORT: ${PORTALHISTORY_PORT}
+    depends_on:
+      - mongo-history
+  mongo-prefs:
+    container_name: mongo-prefs
+    image: "${MONGO_IMAGE}:${MONGO_VERSION}"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${PORTALPREFS_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${PORTALPREFS_PASSWORD}
+  portal-prefs:
+    container_name: portal-prefs
+    image: "${IMAGE_REPOSITORY}/${PORTAL_PREFS_IMAGE_NAME}:${PORTAL_PREFS_IMAGE_TAG}"
+    ports:
+      - 9001:9001
+    environment:
+      PORTALPREFS_USERNAME: ${PORTALPREFS_USERNAME}
+      PORTALPREFS_PASSWORD: ${PORTALPREFS_PASSWORD}
+      PORTALPREFS_DATABASE: ${PORTALPREFS_DATABASE}
+      KEYCLOAK_URL: ${KEYCLOAK_URL}
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM}
+      PORTALPREFS_HOST: ${PORTALPREFS_HOST}
+      PORTALPREFS_PORT: ${PORTALPREFS_PORT}
+    depends_on:
+      - mongo-prefs
