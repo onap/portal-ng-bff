@@ -78,7 +78,7 @@ class CreateUserIntegrationTest extends BaseIntegrationTest {
         .accept(MediaType.APPLICATION_JSON_VALUE)
         .header(new Header("X-Request-Id", xRequestID))
         .when()
-        .get(String.format("/users/%s/roles", userId))
+        .get("/users/{id}/roles", userId)
         .then()
         .statusCode(HttpStatus.OK.value())
         .extract()

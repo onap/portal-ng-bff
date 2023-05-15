@@ -67,6 +67,7 @@ spotless {
         target project.fileTree(project.projectDir) {
             include '**/*.java'
             exclude '**/build/**'
+            exclude '**/generated-sources/**'
         }
         removeUnusedImports()
         trimTrailingWhitespace()
