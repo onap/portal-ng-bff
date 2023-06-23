@@ -79,7 +79,7 @@ class CreateActionsIntegrationTest extends ActionsMocks {
     assertThat(response.getDownstreamSystem())
         .isEqualTo(ProblemApiDto.DownstreamSystemEnum.PORTAL_HISTORY);
 
-    assertThat(response.getDownstreamStatus()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR.value());
+    assertThat(response.getDownstreamStatus()).isEqualTo(HttpStatus.BAD_GATEWAY.value());
     assertThat(response.getDetail()).isEqualTo(problemPortalHistoryDto.getDetail());
   }
 }
