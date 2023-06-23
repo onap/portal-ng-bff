@@ -9,19 +9,19 @@ buildscript {
     }
 
     ext {
-        springBootVersion = '2.7.3'
-        springCloudVersion = '3.1.3'
+        springBootVersion = '2.7.12'
+        springCloudVersion = '3.1.7'
         vavrVersion = '0.10.4'
         vavrJacksonVersion = '0.10.3'
-        lombokVersion = '1.18.24'
-        openapiVersion = '6.0.1'
-        redocVersion = '2.0.0-rc.65'
-        spotlessVersion = '6.10.0'
-        spotbugsVersion = '5.0.10'
-        sonarqubeVersion = '3.4.0.2513'
+        lombokVersion = '1.18.28'
+        openapiVersion = '6.1.0'
+        redocVersion = '2.0.0'
+        spotlessVersion = '6.19.0'
+        spotbugsVersion = '5.0.14'
+        sonarqubeVersion = '4.2.1.3168'
         problemVersion = '0.27.1'
         problemSpringVersion = '0.27.0'
-        logstashLogbackVersion = '7.2'
+        logstashLogbackVersion = '7.3'
         mapStructVersion = '1.5.2.Final'
         mapStructExtensionsVersion = '0.1.2'
         gorylenkoVersion= '2.4.1'
@@ -42,7 +42,7 @@ buildscript {
 }
 
 group = 'org.onap'
-version = rootProject.file('version').text.trim()
+version = 0.1.0
 
 allprojects {
     apply plugin: 'java'
