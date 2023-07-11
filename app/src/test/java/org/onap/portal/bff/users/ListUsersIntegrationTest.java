@@ -21,13 +21,13 @@
 
 package org.onap.portal.bff.users;
 
-import static io.vavr.API.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.github.tomakehurst.wiremock.client.WireMock;
 import io.restassured.http.Header;
-import io.vavr.collection.List;
-import io.vavr.control.Option;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.onap.portal.bff.BaseIntegrationTest;
 import org.onap.portal.bff.openapi.client_portal_keycloak.model.ErrorResponseKeycloakDto;
@@ -67,9 +67,9 @@ class ListUsersIntegrationTest extends BaseIntegrationTest {
 
     mockGetUserCount(2);
     mockListUsers(List.of(tAdmin, tDesigner), 0, 10);
-    mockListRealmRoles(List(ONAP_ADMIN, OFFLINE_ACCESS));
-    mockListRoleUsers(OFFLINE_ACCESS.getName(), List(tAdmin, tDesigner));
-    mockListRoleUsers(ONAP_ADMIN.getName(), List(tAdmin));
+    mockListRealmRoles(List.of(ONAP_ADMIN, OFFLINE_ACCESS));
+    mockListRoleUsers(OFFLINE_ACCESS.getName(), List.of(tAdmin, tDesigner));
+    mockListRoleUsers(ONAP_ADMIN.getName(), List.of(tAdmin));
 
     final UserResponseApiDto expectedTAdmin =
         new UserResponseApiDto()
@@ -114,9 +114,9 @@ class ListUsersIntegrationTest extends BaseIntegrationTest {
 
     mockGetUserCount(1);
     mockListUsers(List.of(keycloakUser), 60, 30);
-    mockListRealmRoles(List());
+    mockListRealmRoles(Collections.emptyList());
 
-    final UserListResponseApiDto response = listUsers(Some(3), Some(30));
+    final UserListResponseApiDto response = listUsers(Optional.of(3), Optional.of(30));
     assertThat(response).isNotNull();
     assertThat(response.getTotalCount()).isEqualTo(1);
     assertThat(response.getItems())
@@ -138,7 +138,7 @@ class ListUsersIntegrationTest extends BaseIntegrationTest {
 
     mockGetUserCount(55);
     mockListUsersWithProblems(keycloakErrorResponse, 60, 30);
-    mockListRealmRoles(List());
+    mockListRealmRoles(Collections.emptyList());
 
     ProblemApiDto response =
         requestSpecification()
@@ -146,7 +146,7 @@ class ListUsersIntegrationTest extends BaseIntegrationTest {
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .header(new Header("X-Request-Id", "addf6005-3075-4c80-b7bc-2c70b7d42b57"))
             .when()
-            .get(adjustPath("/users", Some(3), Some(30)))
+            .get(adjustPath("/users", Optional.of(3), Optional.of(30)))
             .then()
             .statusCode(HttpStatus.BAD_GATEWAY.value())
             .extract()
@@ -205,10 +205,10 @@ class ListUsersIntegrationTest extends BaseIntegrationTest {
   }
 
   protected UserListResponseApiDto listUsers() {
-    return listUsers(None(), None());
+    return listUsers(Optional.empty(), Optional.empty());
   }
 
-  protected UserListResponseApiDto listUsers(Option<Integer> page, Option<Integer> pageSize) {
+  protected UserListResponseApiDto listUsers(Optional<Integer> page, Optional<Integer> pageSize) {
     return requestSpecification()
         .given()
         .accept(MediaType.APPLICATION_JSON_VALUE)

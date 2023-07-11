@@ -21,7 +21,6 @@
 
 package org.onap.portal.bff.controller;
 
-import io.vavr.collection.List;
 import org.onap.portal.bff.config.PortalBffConfig;
 import org.onap.portal.bff.openapi.server.api.UsersApi;
 import org.onap.portal.bff.openapi.server.model.CreateUserRequestApiDto;
@@ -138,7 +137,6 @@ public class UsersController extends AbstractBffController implements UsersApi {
       String userId, String xRequestId, Flux<RoleApiDto> rolesFlux, ServerWebExchange exchange) {
     return checkRoleAccess(UPDATE_ROLES, exchange)
         .then(rolesFlux.collectList())
-        .map(List::ofAll)
         .flatMap(roles -> keycloakService.updateAssignedRoles(userId, roles, xRequestId))
         .map(ResponseEntity::ok);
   }

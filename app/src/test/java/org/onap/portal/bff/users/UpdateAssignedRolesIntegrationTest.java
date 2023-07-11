@@ -26,7 +26,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import io.restassured.http.Header;
-import io.vavr.collection.List;
+import java.util.Collections;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.onap.portal.bff.BaseIntegrationTest;
 import org.onap.portal.bff.openapi.client_portal_keycloak.model.ErrorResponseKeycloakDto;
@@ -219,7 +220,7 @@ class UpdateAssignedRolesIntegrationTest extends BaseIntegrationTest {
     final RoleKeycloakDto keycloakRole2 = new RoleKeycloakDto().id("2").name("role2");
 
     final List<RoleKeycloakDto> keycloakAvailableRoles = List.of(keycloakRole1, keycloakRole2);
-    final List<RoleKeycloakDto> keycloakAssignedRoles = List.empty();
+    final List<RoleKeycloakDto> keycloakAssignedRoles = Collections.emptyList();
     final List<RoleKeycloakDto> keycloakRolesToRemove = List.of(keycloakRole1, keycloakRole2);
 
     WireMock.stubFor(
@@ -249,7 +250,7 @@ class UpdateAssignedRolesIntegrationTest extends BaseIntegrationTest {
                     .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
                     .withBody(objectMapper.writeValueAsString(keycloakAssignedRoles))));
 
-    final List<RoleApiDto> rolesToAssign = List.empty();
+    final List<RoleApiDto> rolesToAssign = Collections.emptyList();
 
     final RoleListResponseApiDto response =
         requestSpecification()

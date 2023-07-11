@@ -21,7 +21,6 @@
 
 package org.onap.portal.bff.config;
 
-import io.vavr.control.Option;
 import java.util.List;
 import java.util.Map;
 import javax.validation.Valid;
@@ -53,11 +52,12 @@ public class PortalBffConfig {
   @NotNull private final Map<String, List<String>> accessControl;
 
   public Mono<List<String>> getRoles(String method) {
-    return Option.of(accessControl.get(method))
-        .map(Mono::just)
-        .getOrElse(
-            Mono.error(
-                Problem.valueOf(
-                    Status.FORBIDDEN, "The user does not have the necessary access rights")));
+    return Mono.just(accessControl)
+        .map(control -> control.get(method))
+        .onErrorResume(
+            e ->
+                Mono.error(
+                    Problem.valueOf(
+                        Status.FORBIDDEN, "The user does not have the necessary access rights")));
   }
 }

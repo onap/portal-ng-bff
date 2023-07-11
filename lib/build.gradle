@@ -75,6 +75,10 @@ spotless {
     }
 }
 
+tasks.withType(JavaCompile) {
+    dependsOn 'spotlessApply'
+}
+
 spotbugs {
     ignoreFailures = false
     effort = "max"

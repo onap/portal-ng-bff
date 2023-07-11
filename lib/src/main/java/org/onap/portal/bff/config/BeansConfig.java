@@ -28,7 +28,6 @@ import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import io.vavr.jackson.datatype.VavrModule;
 import java.time.Clock;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
@@ -176,7 +175,7 @@ public class BeansConfig {
   @Bean
   public ObjectMapper objectMapper(Jackson2ObjectMapperBuilder builder) {
     return builder
-        .modules(new VavrModule(), new ProblemModule(), new JavaTimeModule())
+        .modules(new ProblemModule(), new JavaTimeModule())
         .build()
         .setSerializationInclusion(JsonInclude.Include.NON_NULL);
   }

@@ -21,7 +21,7 @@
 
 package org.onap.portal.bff.config;
 
-import io.vavr.collection.List;
+import java.util.List;
 import org.onap.portal.bff.mappers.ActionsMapper;
 import org.onap.portal.bff.mappers.PreferencesMapper;
 import org.onap.portal.bff.mappers.RolesMapper;

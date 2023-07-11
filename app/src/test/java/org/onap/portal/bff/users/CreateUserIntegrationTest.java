@@ -21,14 +21,13 @@
 
 package org.onap.portal.bff.users;
 
-import static io.vavr.API.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import io.restassured.http.Header;
-import io.vavr.API;
-import io.vavr.collection.List;
+import java.util.Collections;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.onap.portal.bff.BaseIntegrationTest;
 import org.onap.portal.bff.openapi.client_portal_keycloak.model.ErrorResponseKeycloakDto;
@@ -54,7 +53,7 @@ class CreateUserIntegrationTest extends BaseIntegrationTest {
             .username("user1")
             .email("user1@localhost.com")
             .enabled(true)
-            .requiredActions(List(RequiredActionsKeycloakDto.UPDATE_PASSWORD).toJavaList());
+            .requiredActions(List.of(RequiredActionsKeycloakDto.UPDATE_PASSWORD));
     final String userId = randomUUID();
     mockCreateUser(keycloakRequest, userId);
 
@@ -69,9 +68,9 @@ class CreateUserIntegrationTest extends BaseIntegrationTest {
     mockGetUser(userId, keycloakResponse);
 
     final RoleKeycloakDto onapAdmin = new RoleKeycloakDto().id(randomUUID()).name("onap_admin");
-    mockAddRoles(userId, List(onapAdmin));
-    mockAssignedRoles(userId, List(onapAdmin));
-    mockListRealmRoles(List(onapAdmin));
+    mockAddRoles(userId, List.of(onapAdmin));
+    mockAssignedRoles(userId, List.of(onapAdmin));
+    mockListRealmRoles(List.of(onapAdmin));
 
     requestSpecification()
         .given()
@@ -84,7 +83,7 @@ class CreateUserIntegrationTest extends BaseIntegrationTest {
         .extract()
         .body()
         .as(RoleListResponseApiDto.class);
-    mockSendUpdateEmail(userId, API.List(RequiredActionsKeycloakDto.UPDATE_PASSWORD));
+    mockSendUpdateEmail(userId, List.of(RequiredActionsKeycloakDto.UPDATE_PASSWORD));
 
     final CreateUserRequestApiDto request =
         new CreateUserRequestApiDto()
@@ -127,7 +126,7 @@ class CreateUserIntegrationTest extends BaseIntegrationTest {
             .username("user1")
             .email("user1@localhost.com")
             .enabled(true)
-            .requiredActions(List(RequiredActionsKeycloakDto.UPDATE_PASSWORD).toJavaList());
+            .requiredActions(List.of(RequiredActionsKeycloakDto.UPDATE_PASSWORD));
     final String userId = randomUUID();
     mockCreateUser(keycloakRequest, userId);
 
@@ -142,14 +141,14 @@ class CreateUserIntegrationTest extends BaseIntegrationTest {
     mockGetUser(userId, keycloakResponse);
 
     final RoleKeycloakDto onapAdmin = new RoleKeycloakDto().id(randomUUID()).name("onap_admin");
-    mockAddRoles(userId, List(onapAdmin));
-    mockListRealmRoles(List(onapAdmin));
+    mockAddRoles(userId, List.of(onapAdmin));
+    mockListRealmRoles(List.of(onapAdmin));
 
     final ErrorResponseKeycloakDto keycloakErrorResponse =
         new ErrorResponseKeycloakDto().errorMessage("Some error message");
 
     mockSendUpdateEmailWithProblem(
-        userId, API.List(RequiredActionsKeycloakDto.UPDATE_PASSWORD), keycloakErrorResponse);
+        userId, List.of(RequiredActionsKeycloakDto.UPDATE_PASSWORD), keycloakErrorResponse);
 
     final CreateUserRequestApiDto request =
         new CreateUserRequestApiDto()
@@ -186,7 +185,7 @@ class CreateUserIntegrationTest extends BaseIntegrationTest {
   void userCanNotBeCreatedWithNonexistentRoles() throws Exception {
     String xRequestID = "addf6005-3075-4c80-b7bc-2c70b7d42b57";
 
-    mockListRealmRoles(List());
+    mockListRealmRoles(Collections.emptyList());
 
     final CreateUserRequestApiDto request =
         new CreateUserRequestApiDto()

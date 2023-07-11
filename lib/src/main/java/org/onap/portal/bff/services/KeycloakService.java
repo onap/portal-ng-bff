@@ -24,9 +24,10 @@ package org.onap.portal.bff.services;
 import io.vavr.API;
 import io.vavr.Tuple;
 import io.vavr.Tuple2;
-import io.vavr.collection.List;
-import io.vavr.control.Option;
 import java.net.URI;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.onap.portal.bff.exceptions.DownstreamApiProblemException;
@@ -58,13 +59,13 @@ public class KeycloakService {
     log.debug("Create user in keycloak. request=`{}`", request);
 
     final List<RoleApiDto> rolesToBeAssigned =
-        Option.of(request.getRoles()).fold(List::empty, List::ofAll);
+        request.getRoles().isEmpty() ? Collections.emptyList() : request.getRoles();
     return listRoles(xRequestId)
         .collectList()
         .flatMap(
             realmRoles -> {
               final List<RoleApiDto> absentRoles =
-                  rolesToBeAssigned.filter(role -> !realmRoles.contains(role));
+                  rolesToBeAssigned.stream().filter(role -> !realmRoles.contains(role)).toList();
               if (!absentRoles.isEmpty()) {
                 return Mono.error(
                     DownstreamApiProblemException.builder()
@@ -72,41 +73,27 @@ public class KeycloakService {
                         .detail(
                             String.format(
                                 "Roles not found in the realm: %s",
-                                absentRoles.map(RoleApiDto::getName).asJava()))
+                                absentRoles.stream().map(RoleApiDto::getName).toList()))
                         .downstreamSystem(ProblemApiDto.DownstreamSystemEnum.KEYCLOAK.toString())
                         .title(HttpStatus.NOT_FOUND.toString())
                         .build());
               }
               return Mono.just(rolesToBeAssigned);
             })
-        .flatMap(roles -> createUserWithRoles(request, xRequestId, List.ofAll(roles)));
+        .flatMap(roles -> createUserWithRoles(request, xRequestId, roles));
   }
 
   private Mono<UserResponseApiDto> createUserWithRoles(
       CreateUserRequestApiDto request, String xRequestId, List<RoleApiDto> roles) {
     return keycloakApi
         .createUserWithHttpInfo(
-            usersMapper.convert(
-                request, List.of(RequiredActionsKeycloakDto.UPDATE_PASSWORD).asJava()))
+            usersMapper.convert(request, List.of(RequiredActionsKeycloakDto.UPDATE_PASSWORD)))
+        .map(responseEntit -> responseEntit.getHeaders().getLocation())
+        .map(URI::toString)
+        .map(location -> location.substring(location.lastIndexOf("/") + 1))
+        .flatMap(userId -> !roles.isEmpty() ? assignRoles(userId, roles) : Mono.just(userId))
         .flatMap(
-            responseEntity ->
-                Option.of(responseEntity.getHeaders().getLocation())
-                    .map(URI::toString)
-                    .map(location -> location.substring(location.lastIndexOf("/") + 1))
-                    .fold(
-                        () -> Mono.error(DownstreamApiProblemException.builder().build()),
-                        Mono::just))
-        .flatMap(
-            userId -> {
-              if (!roles.isEmpty()) {
-                return assignRoles(userId, roles);
-              }
-              return Mono.just(userId);
-            })
-        .flatMap(
-            userId ->
-                sendActionEmail(
-                    userId, API.List(RequiredActionsKeycloakDto.UPDATE_PASSWORD).toJavaList()))
+            userId -> sendActionEmail(userId, List.of(RequiredActionsKeycloakDto.UPDATE_PASSWORD)))
         .onErrorResume(
             DownstreamApiProblemException.class,
             ex -> {
@@ -167,20 +154,24 @@ public class KeycloakService {
                         listUsersByRole(role.getName(), xRequestId)
                             .map(user -> Tuple.of(user.getId(), role.getName())))
                 .collectList()
-                .map(List::ofAll)
+                .map(io.vavr.collection.List::ofAll)
                 .map(list -> list.groupBy(t -> t._1).map((k, v) -> Tuple.of(k, v.map(Tuple2::_2)))))
         .map(
             tuple -> {
               final UserListResponseApiDto result = new UserListResponseApiDto();
               result.setTotalCount(tuple.getT1());
               result.setItems(
-                  List.ofAll(tuple.getT2())
+                  io.vavr.collection.List.ofAll(tuple.getT2())
                       .map(
                           user ->
                               usersMapper.convert(
                                   user,
                                   tuple.getT3().getOrElse(user.getId(), API.List()).toJavaList()))
                       .toJavaList());
+              // result.setItems(
+              //     tuple.getT2().stream()
+              //         .map(user -> usersMapper.convert(user,tuple.getT3()))
+              //         .toList());
 
               return result;
             })
@@ -242,10 +233,10 @@ public class KeycloakService {
     log.debug(
         "Assign roles to user in keycloak. userId=`{}`, roleIds=`{}`",
         userId,
-        roles.map(RoleApiDto::getId).mkString(", "));
+        roles.stream().map(RoleApiDto::getId).collect(Collectors.joining(", ")));
 
     return keycloakApi
-        .addRealmRoleMappingsToUser(userId, roles.map(rolesMapper::convert).toJavaList())
+        .addRealmRoleMappingsToUser(userId, roles.stream().map(rolesMapper::convert).toList())
         .thenReturn(userId);
   }
 
@@ -254,10 +245,10 @@ public class KeycloakService {
     log.debug(
         "Update assigned roles for user in keycloak. userId=`{}`, roleIds=`{}`",
         userId,
-        roles.map(RoleApiDto::getId).mkString(", "));
+        roles.stream().map(RoleApiDto::getId).collect(Collectors.joining(", ")));
 
     return getAssignedRoles(userId, xRequestId)
-        .map(response -> List.ofAll(response.getItems()))
+        .map(response -> response.getItems())
         .flatMap(
             assignedRoles -> {
               if (assignedRoles.isEmpty()) {
@@ -290,10 +281,10 @@ public class KeycloakService {
     log.debug(
         "Unassign roles from user in keycloak. userId=`{}`, roleIds=`{}`",
         userId,
-        roles.map(RoleApiDto::getId).mkString(", "));
+        roles.stream().map(RoleApiDto::getId).collect(Collectors.joining(", ")));
 
     return keycloakApi.deleteRealmRoleMappingsByUserId(
-        userId, roles.map(rolesMapper::convert).toJavaList());
+        userId, roles.stream().map(rolesMapper::convert).toList());
   }
 
   public Mono<String> sendActionEmail(
@@ -310,7 +301,6 @@ public class KeycloakService {
   public Flux<RoleApiDto> listRoles(String xRequestId) {
     return keycloakApi
         .getRoles(null, null, null, null)
-        .log()
         .map(role -> conversionService.convert(role, RoleApiDto.class))
         .onErrorResume(
             DownstreamApiProblemException.class,

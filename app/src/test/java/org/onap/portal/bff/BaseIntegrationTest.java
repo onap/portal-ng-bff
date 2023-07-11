@@ -21,9 +21,6 @@
 
 package org.onap.portal.bff;
 
-import static io.vavr.API.None;
-import static io.vavr.API.Some;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.extension.responsetemplating.ResponseTemplateTransformer;
@@ -32,11 +29,14 @@ import io.restassured.RestAssured;
 import io.restassured.filter.log.RequestLoggingFilter;
 import io.restassured.filter.log.ResponseLoggingFilter;
 import io.restassured.specification.RequestSpecification;
-import io.vavr.collection.List;
-import io.vavr.control.Option;
+import java.net.URISyntaxException;
 import java.time.Clock;
 import java.time.OffsetDateTime;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import org.apache.http.client.utils.URIBuilder;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.onap.portal.bff.config.IdTokenExchangeFilterFunction;
@@ -45,7 +45,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.web.server.LocalServerPort;
+import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.cloud.contract.wiremock.AutoConfigureWireMock;
 import org.springframework.cloud.contract.wiremock.WireMockConfigurationCustomizer;
 import org.springframework.context.annotation.Bean;
@@ -183,7 +183,7 @@ public abstract class BaseIntegrationTest {
     return TokenGenerator.TokenGeneratorConfig.builder()
         .port(port)
         .realm(realm)
-        .roles(List.of(role))
+        .roles(Collections.singletonList(role))
         .build();
   }
 
@@ -210,19 +210,32 @@ public abstract class BaseIntegrationTest {
     return UUID.randomUUID().toString();
   }
 
-  public static String adjustPath(String basePath, Option<Integer> page, Option<Integer> pageSize) {
-    return adjustPath(basePath, page, pageSize, None());
+  public static String adjustPath(
+      String basePath, Optional<Integer> page, Optional<Integer> pageSize) {
+    return adjustPath(basePath, page, pageSize, Optional.empty());
   }
 
   public static String adjustPath(
-      String basePath, Option<Integer> page, Option<Integer> pageSize, Option<String> filter) {
-    return page.map(pg -> basePath + "?page=" + pg)
-        .fold(
-            () -> pageSize.map(pgs -> basePath + "?pageSize=" + pgs),
-            pth -> pageSize.map(pgs -> pth + "&pageSize=" + pgs).orElse(Some(pth)))
-        .fold(
-            () -> filter.map(f -> basePath + "?filter=" + f),
-            pth -> filter.map(f -> pth + "&filter=" + f).orElse(Some(pth)))
-        .getOrElse(basePath);
+      String basePath,
+      Optional<Integer> page,
+      Optional<Integer> pageSize,
+      Optional<String> filter) {
+    URIBuilder builder;
+    try {
+      builder = new URIBuilder(basePath);
+      if (page.isPresent()) {
+        builder.addParameter("page", String.valueOf(page.get()));
+      }
+      if (pageSize.isPresent()) {
+        builder.addParameter("pageSize", String.valueOf(pageSize.get()));
+      }
+      if (filter.isPresent()) {
+        builder.addParameter("filter", filter.get());
+      }
+      return builder.build().toString();
+    } catch (URISyntaxException e) {
+      e.printStackTrace();
+    }
+    return basePath;
   }
 }

@@ -39,18 +39,17 @@ class XRequestIdHeaderTest extends BaseIntegrationTest {
   @Test
   void xRequestIdHeaderIsCorrectlySetInResponse() throws Exception {
     // use preferences endpoint for testing the header
-    final PreferencesPortalPrefsDto preferencesPortalPrefsDto =
-        new PreferencesPortalPrefsDto();
+    final PreferencesPortalPrefsDto preferencesPortalPrefsDto = new PreferencesPortalPrefsDto();
 
-    //mockGetTile(tileDetailResponsePortalServiceDto, X_REQUEST_ID);
+    // mockGetTile(tileDetailResponsePortalServiceDto, X_REQUEST_ID);
     mockGetPreferences(preferencesPortalPrefsDto, X_REQUEST_ID);
 
     final String response = getPreferencesExtractHeader(X_REQUEST_ID);
     assertThat(response).isEqualTo(X_REQUEST_ID);
   }
 
-  protected void mockGetPreferences(PreferencesPortalPrefsDto preferencesPortalPrefsDto, String xRequestId)
-      throws Exception {
+  protected void mockGetPreferences(
+      PreferencesPortalPrefsDto preferencesPortalPrefsDto, String xRequestId) throws Exception {
     WireMock.stubFor(
         WireMock.get(WireMock.urlEqualTo("/v1/preferences"))
             .withHeader("X-Request-Id", new EqualToPattern(X_REQUEST_ID))

@@ -25,7 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.github.tomakehurst.wiremock.client.WireMock;
 import io.restassured.http.Header;
-import io.vavr.collection.List;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.onap.portal.bff.BaseIntegrationTest;
 import org.onap.portal.bff.openapi.client_portal_keycloak.model.ErrorResponseKeycloakDto;
