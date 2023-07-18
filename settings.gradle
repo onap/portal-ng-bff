@@ -1,4 +1,4 @@
-rootProject.name = 'portal-bff'
+rootProject.name = 'bff'
 
 include 'app'
 

@@ -1,11 +1,11 @@
 FROM eclipse-temurin:17 as builder
-COPY . ./portalbff
-WORKDIR /portalbff
+COPY . ./bff
+WORKDIR /bff
 
-RUN ./gradlew build
+RUN ./gradlew assemble
 
 FROM eclipse-temurin:17-jre-alpine
-ARG JAR_FILE=/portalbff/app/build/libs/app.jar
+ARG JAR_FILE=/bff/app/build/libs/app.jar
 COPY --from=builder ${JAR_FILE} app.jar
 EXPOSE 9080
 ENTRYPOINT [ "java","-jar","app.jar" ]

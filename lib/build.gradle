@@ -7,7 +7,7 @@ apply plugin: 'com.diffplug.spotless'
 apply plugin: 'com.github.spotbugs'
 apply plugin: 'org.sonarqube'
 
-group 'org.onap'
+group 'org.onap.portal-ng'
 version rootProject.file('version').text.trim()
 
 dependencies {
@@ -35,7 +35,7 @@ dependencies {
 }
 
 shadowJar {
-    archiveBaseName.set('portal-bff')
+    archiveBaseName.set('bff')
     dependencies {
         include(project(':openapi:server'))
         include(project(':openapi:client-portal-history'))
@@ -46,14 +46,14 @@ shadowJar {
 
 publishing {
     publications {
-        myLibrary(MavenPublication) {
+        bffLibrary(MavenPublication) {
             artifactId = rootProject.name
             groupId = group
             version = version
-            artifacts = ["build/libs/portal-bff-$version-all.jar"]
+            artifacts = ["build/libs/bff-$version-all.jar"]
             pom {
                 name = rootProject.name
-                description = 'ONAP community edition of portal-bff'
+                description = 'ONAP community edition of bff'
             }
         }
     }
