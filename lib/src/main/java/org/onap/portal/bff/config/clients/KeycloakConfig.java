@@ -24,7 +24,6 @@ package org.onap.portal.bff.config.clients;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.function.Function;
-import lombok.extern.slf4j.Slf4j;
 import org.onap.portal.bff.config.BeansConfig;
 import org.onap.portal.bff.config.PortalBffConfig;
 import org.onap.portal.bff.exceptions.DownstreamApiProblemException;
@@ -32,7 +31,6 @@ import org.onap.portal.bff.openapi.client_portal_keycloak.ApiClient;
 import org.onap.portal.bff.openapi.client_portal_keycloak.api.KeycloakApi;
 import org.onap.portal.bff.openapi.client_portal_keycloak.model.ErrorResponseKeycloakDto;
 import org.onap.portal.bff.openapi.server.model.ProblemApiDto;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -41,14 +39,12 @@ import org.springframework.http.client.reactive.ClientHttpConnector;
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
 
-@Slf4j
 @Configuration
 public class KeycloakConfig extends AbstractClientConfig<ErrorResponseKeycloakDto> {
   private final ObjectMapper objectMapper;
   private final PortalBffConfig bffConfig;
   private final ExchangeFilterFunction oauth2ExchangeFilterFunction;
 
-  @Autowired
   public KeycloakConfig(
       @Qualifier(BeansConfig.OAUTH2_EXCHANGE_FILTER_FUNCTION)
           ExchangeFilterFunction oauth2ExchangeFilterFunction,
