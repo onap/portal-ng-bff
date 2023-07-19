@@ -22,9 +22,10 @@
 package org.onap.portal.bff.config;
 
 import com.nimbusds.jwt.JWTParser;
-import io.vavr.control.Option;
-import io.vavr.control.Try;
+import java.text.ParseException;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.reactive.function.client.ClientRequest;
 import org.springframework.web.reactive.function.client.ClientResponse;
@@ -33,6 +34,7 @@ import org.springframework.web.reactive.function.client.ExchangeFunction;
 import org.springframework.web.server.ServerWebExchange;
 import org.zalando.problem.Problem;
 import org.zalando.problem.Status;
+import reactor.core.Exceptions;
 import reactor.core.publisher.Mono;
 
 public class IdTokenExchangeFilterFunction implements ExchangeFilterFunction {
@@ -61,13 +63,8 @@ public class IdTokenExchangeFilterFunction implements ExchangeFilterFunction {
     }
     return extractServerWebExchange(request)
         .flatMap(IdTokenExchangeFilterFunction::extractIdentityHeader)
-        .flatMap(
-            idToken -> {
-              final ClientRequest requestWithIdToken =
-                  ClientRequest.from(request).header(X_AUTH_IDENTITY_HEADER, idToken).build();
-
-              return next.exchange(requestWithIdToken);
-            })
+        .map(idToken -> ClientRequest.from(request).header(X_AUTH_IDENTITY_HEADER, idToken).build())
+        .flatMap(requestWithIdToken -> next.exchange(requestWithIdToken))
         .switchIfEmpty(Mono.defer(() -> next.exchange(request)));
   }
 
@@ -78,11 +75,9 @@ public class IdTokenExchangeFilterFunction implements ExchangeFilterFunction {
   }
 
   private static Mono<String> extractIdentityHeader(ServerWebExchange exchange) {
-    return io.vavr.collection.List.ofAll(
-            exchange.getRequest().getHeaders().getOrEmpty(X_AUTH_IDENTITY_HEADER))
-        .headOption()
-        .map(Mono::just)
-        .getOrElse(Mono.error(Problem.valueOf(Status.FORBIDDEN, "ID token is missing")));
+    return Mono.just(exchange)
+        .map(exch -> exch.getRequest().getHeaders().getOrEmpty(X_AUTH_IDENTITY_HEADER).get(0))
+        .onErrorResume(ex -> Mono.error(Problem.valueOf(Status.FORBIDDEN, "ID token is missing")));
   }
 
   private static Mono<String> extractIdToken(ServerWebExchange exchange) {
@@ -96,30 +91,35 @@ public class IdTokenExchangeFilterFunction implements ExchangeFilterFunction {
     return extractRoles(exchange)
         .map(roles -> roles.stream().anyMatch(rolesListForMethod::contains))
         .flatMap(
-            match -> {
-              if (Boolean.TRUE.equals(match)) {
-                return Mono.empty();
-              } else {
-                return Mono.error(Problem.valueOf(Status.FORBIDDEN));
-              }
-            });
+            match ->
+                Boolean.TRUE.equals(match)
+                    ? Mono.empty()
+                    : Mono.error(Problem.valueOf(Status.FORBIDDEN)));
   }
 
   private static Mono<List<String>> extractRoles(ServerWebExchange exchange) {
     return extractIdToken(exchange)
-        .flatMap(
-            token ->
-                Try.of(() -> JWTParser.parse(token))
-                    .mapTry(jwt -> Option.of(jwt.getJWTClaimsSet()))
-                    .map(
-                        optionJwtClaimSet ->
-                            optionJwtClaimSet
-                                .flatMap(
-                                    jwtClaimSet ->
-                                        Option.of(jwtClaimSet.getClaim(CLAIM_NAME_ROLES)))
-                                .map(obj -> (List<String>) obj))
-                    .map(Mono::just)
-                    .getOrElseGet(Mono::error))
-        .map(optionRoles -> optionRoles.getOrElse(List.of()));
+        .map(
+            token -> {
+              try {
+                return JWTParser.parse(token);
+              } catch (ParseException e) {
+                throw Exceptions.propagate(e);
+              }
+            })
+        .map(
+            jwt -> {
+              try {
+                return Optional.of(jwt.getJWTClaimsSet());
+              } catch (ParseException e) {
+                throw Exceptions.propagate(e);
+              }
+            })
+        .map(
+            optionalClaimsSet ->
+                optionalClaimsSet
+                    .map(claimsSet -> claimsSet.getClaim(CLAIM_NAME_ROLES))
+                    .map(obj -> (List<String>) obj))
+        .map(roles -> roles.orElse(Collections.emptyList()));
   }
 }

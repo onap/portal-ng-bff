@@ -21,12 +21,11 @@
 
 package org.onap.portal.bff.services;
 
-import io.vavr.API;
-import io.vavr.Tuple;
-import io.vavr.Tuple2;
 import java.net.URI;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,6 +43,7 @@ import org.springframework.stereotype.Service;
 import org.zalando.problem.Status;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuples;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -141,6 +141,21 @@ public class KeycloakService {
     log.debug("Get users from keycloak. page=`{}`, pageSize=`{}`", page, pageSize);
     final int first = (page - 1) * pageSize;
 
+    var userIdRoleMap =
+        listRoles(xRequestId)
+            .flatMap(
+                role ->
+                    listUsersByRole(role.getName(), xRequestId)
+                        .map(userResponse -> Tuples.of(role.getName(), userResponse)))
+            .collectList()
+            .map(
+                tupleList ->
+                    tupleList.stream()
+                        .collect(
+                            Collectors.groupingBy(
+                                tuple -> tuple.getT2().getId(),
+                                Collectors.mapping(tuple -> tuple.getT1(), Collectors.toList()))));
+
     return Mono.zip(
             keycloakApi.getUsersCount(null, null, null, null, null, null, null),
             keycloakApi
@@ -148,31 +163,22 @@ public class KeycloakService {
                     null, null, null, null, null, null, null, null, first, pageSize, null, null,
                     null, null)
                 .collectList(),
-            listRoles(xRequestId)
-                .flatMap(
-                    role ->
-                        listUsersByRole(role.getName(), xRequestId)
-                            .map(user -> Tuple.of(user.getId(), role.getName())))
-                .collectList()
-                .map(io.vavr.collection.List::ofAll)
-                .map(list -> list.groupBy(t -> t._1).map((k, v) -> Tuple.of(k, v.map(Tuple2::_2)))))
+            userIdRoleMap)
         .map(
             tuple -> {
               final UserListResponseApiDto result = new UserListResponseApiDto();
+              Map<String, List<String>> userRoleMap = tuple.getT3();
               result.setTotalCount(tuple.getT1());
-              result.setItems(
-                  io.vavr.collection.List.ofAll(tuple.getT2())
+              var roleList =
+                  tuple.getT2().stream()
                       .map(
                           user ->
                               usersMapper.convert(
                                   user,
-                                  tuple.getT3().getOrElse(user.getId(), API.List()).toJavaList()))
-                      .toJavaList());
-              // result.setItems(
-              //     tuple.getT2().stream()
-              //         .map(user -> usersMapper.convert(user,tuple.getT3()))
-              //         .toList());
-
+                                  Optional.ofNullable(userRoleMap.get(user.getId()))
+                                      .orElse(Collections.emptyList())))
+                      .toList();
+              result.setItems(roleList);
               return result;
             })
         .onErrorResume(

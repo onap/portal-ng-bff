@@ -68,8 +68,6 @@ allprojects {
     }
 
     dependencies {
-        implementation "io.vavr:vavr:$vavrVersion"
-        implementation "io.vavr:vavr-jackson:$vavrJacksonVersion"
         implementation "org.springframework.boot:spring-boot-starter-logging"
         implementation "net.logstash.logback:logstash-logback-encoder:$logstashLogbackVersion"
 
