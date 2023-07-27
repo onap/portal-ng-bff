@@ -40,8 +40,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 
 class ListUsersIntegrationTest extends BaseIntegrationTest {
-  private final RoleKeycloakDto ONAP_ADMIN =
-      new RoleKeycloakDto().id(randomUUID()).name("onap_admin");
+  private final RoleKeycloakDto PORTAL_ADMIN =
+      new RoleKeycloakDto().id(randomUUID()).name("portal_admin");
   private final RoleKeycloakDto OFFLINE_ACCESS =
       new RoleKeycloakDto().id(randomUUID()).name("offline_access");
 
@@ -67,9 +67,9 @@ class ListUsersIntegrationTest extends BaseIntegrationTest {
 
     mockGetUserCount(2);
     mockListUsers(List.of(tAdmin, tDesigner), 0, 10);
-    mockListRealmRoles(List.of(ONAP_ADMIN, OFFLINE_ACCESS));
+    mockListRealmRoles(List.of(PORTAL_ADMIN, OFFLINE_ACCESS));
     mockListRoleUsers(OFFLINE_ACCESS.getName(), List.of(tAdmin, tDesigner));
-    mockListRoleUsers(ONAP_ADMIN.getName(), List.of(tAdmin));
+    mockListRoleUsers(PORTAL_ADMIN.getName(), List.of(tAdmin));
 
     final UserResponseApiDto expectedTAdmin =
         new UserResponseApiDto()
@@ -79,7 +79,7 @@ class ListUsersIntegrationTest extends BaseIntegrationTest {
             .firstName("FirstName4t-admin")
             .lastName("LastName4t-admin")
             .enabled(true)
-            .addRealmRolesItem("onap_admin")
+            .addRealmRolesItem("portal_admin")
             .addRealmRolesItem("offline_access");
     final UserResponseApiDto expectedTDesigner =
         new UserResponseApiDto()

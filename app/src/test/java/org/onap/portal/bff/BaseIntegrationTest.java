@@ -121,10 +121,10 @@ public abstract class BaseIntegrationTest {
 
   /**
    * Object to store common attributes of requests that are going to be made. Adds an Identity
-   * header for the <code>onap_admin</code> role to the request.
+   * header for the <code>portal_admin</code> role to the request.
    */
   protected RequestSpecification requestSpecification() {
-    final String idToken = tokenGenerator.generateToken(getTokenGeneratorConfig("onap_admin"));
+    final String idToken = tokenGenerator.generateToken(getTokenGeneratorConfig("portal_admin"));
 
     return unauthenticatedRequestSpecification()
         .auth()
