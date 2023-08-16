@@ -30,9 +30,9 @@ openApiGenerate {
   generateApiDocumentation = true
   generateModelTests = false
   generateModelDocumentation = false
-  invokerPackage = "org.onap.portal.bff.openapi.server"
-  apiPackage =     "org.onap.portal.bff.openapi.server.api"
-  modelPackage =   "org.onap.portal.bff.openapi.server.model"
+  invokerPackage = "org.onap.portalng.bff.openapi.server"
+  apiPackage =     "org.onap.portalng.bff.openapi.server.api"
+  modelPackage =   "org.onap.portalng.bff.openapi.server.model"
   modelNameSuffix = "ApiDto"
 }
 

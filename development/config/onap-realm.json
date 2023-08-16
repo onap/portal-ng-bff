@@ -71,7 +71,7 @@
         "microprofile-jwt"
       ]
     }, {
-      "clientId" : "portal-bff",
+      "clientId" : "bff",
       "surrogateAuthRequired" : false,
       "enabled" : true,
       "alwaysDisplayInConsole" : false,
@@ -202,11 +202,11 @@
       "groups" : [ ]
     }, {
       "createdTimestamp" : 1665048112458,
-      "username" : "service-account-portal-bff",
+      "username" : "service-account-bff",
       "enabled" : true,
       "totp" : false,
       "emailVerified" : false,
-      "serviceAccountClientId" : "portal-bff",
+      "serviceAccountClientId" : "bff",
       "credentials" : [ ],
       "disableableCredentialTypes" : [ ],
       "requiredActions" : [ ],

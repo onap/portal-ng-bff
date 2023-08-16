@@ -19,9 +19,9 @@ void createOpenApiGenerateClientTask(Project project, String apiDefinition, Stri
     generateApiDocumentation = false
     generateModelTests = false
     generateModelDocumentation = false
-    invokerPackage = "org.onap.portal.bff.openapi.$packageName"
-    apiPackage = "org.onap.portal.bff.openapi.${packageName}.api"
-    modelPackage = "org.onap.portal.bff.openapi.${packageName}.model"
+    invokerPackage = "org.onap.portalng.bff.openapi.$packageName"
+    apiPackage = "org.onap.portalng.bff.openapi.${packageName}.api"
+    modelPackage = "org.onap.portalng.bff.openapi.${packageName}.model"
     modelNameSuffix = dtoSuffix
   }
 }

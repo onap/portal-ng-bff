@@ -19,7 +19,7 @@
  *
  */
 
-package org.onap.portal.bff;
+package org.onap.portalng.bff;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.client.WireMock;
@@ -39,8 +39,8 @@ import java.util.UUID;
 import org.apache.http.client.utils.URIBuilder;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.onap.portal.bff.config.IdTokenExchangeFilterFunction;
-import org.onap.portal.bff.config.PortalBffConfig;
+import org.onap.portalng.bff.config.IdTokenExchangeFilterFunction;
+import org.onap.portalng.bff.config.PortalBffConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -66,7 +66,7 @@ public abstract class BaseIntegrationTest {
 
   @LocalServerPort protected int port;
 
-  @Value("${portal-bff.realm}")
+  @Value("${bff.realm}")
   protected String realm;
 
   @Autowired protected ObjectMapper objectMapper;

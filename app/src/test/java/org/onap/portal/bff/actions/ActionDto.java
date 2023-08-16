@@ -19,7 +19,7 @@
  *
  */
 
-package org.onap.portal.bff.actions;
+package org.onap.portalng.bff.actions;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

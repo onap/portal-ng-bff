@@ -16,7 +16,6 @@ buildscript {
         redocVersion = '2.0.0-rc.65'
         spotlessVersion = '6.10.0'
         spotbugsVersion = '5.0.10'
-        sonarqubeVersion = '3.4.0.2513'
         problemVersion = '0.27.1'
         problemSpringVersion = '0.27.0'
         logstashLogbackVersion = '7.2'
@@ -32,7 +31,6 @@ buildscript {
         classpath "com.github.spotbugs.snom:spotbugs-gradle-plugin:$spotbugsVersion"
         classpath "org.springframework.boot:spring-boot-gradle-plugin:$springBootVersion"
         classpath "org.openapitools:openapi-generator-gradle-plugin:$openapiVersion"
-        classpath "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:$sonarqubeVersion"
         classpath "com.gorylenko.gradle-git-properties:gradle-git-properties:$gorylenkoVersion"
         classpath "gradle.plugin.com.hierynomus.gradle.plugins:license-gradle-plugin:$licenseVersion"
         classpath "gradle.plugin.com.github.johnrengelman:shadow:$shadowVersion"

@@ -19,21 +19,21 @@
  *
  */
 
-package org.onap.portal.bff.actions;
+package org.onap.portalng.bff.actions;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.matching.EqualToPattern;
 import io.restassured.http.Header;
 import org.apache.http.HttpHeaders;
-import org.onap.portal.bff.BaseIntegrationTest;
-import org.onap.portal.bff.openapi.client_portal_history.model.ActionResponsePortalHistoryDto;
-import org.onap.portal.bff.openapi.client_portal_history.model.ActionsListResponsePortalHistoryDto;
-import org.onap.portal.bff.openapi.client_portal_history.model.ProblemPortalHistoryDto;
-import org.onap.portal.bff.openapi.server.model.ActionsListResponseApiDto;
-import org.onap.portal.bff.openapi.server.model.ActionsResponseApiDto;
-import org.onap.portal.bff.openapi.server.model.CreateActionRequestApiDto;
-import org.onap.portal.bff.openapi.server.model.ProblemApiDto;
+import org.onap.portalng.bff.BaseIntegrationTest;
+import org.onap.portalng.bff.openapi.client_portal_history.model.ActionResponsePortalHistoryDto;
+import org.onap.portalng.bff.openapi.client_portal_history.model.ActionsListResponsePortalHistoryDto;
+import org.onap.portalng.bff.openapi.client_portal_history.model.ProblemPortalHistoryDto;
+import org.onap.portalng.bff.openapi.server.model.ActionsListResponseApiDto;
+import org.onap.portalng.bff.openapi.server.model.ActionsResponseApiDto;
+import org.onap.portalng.bff.openapi.server.model.CreateActionRequestApiDto;
+import org.onap.portalng.bff.openapi.server.model.ProblemApiDto;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 

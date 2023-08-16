@@ -19,7 +19,7 @@
  *
  */
 
-package org.onap.portal.bff.users;
+package org.onap.portalng.bff.users;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -29,12 +29,12 @@ import io.restassured.http.Header;
 import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.Test;
-import org.onap.portal.bff.BaseIntegrationTest;
-import org.onap.portal.bff.openapi.client_portal_keycloak.model.ErrorResponseKeycloakDto;
-import org.onap.portal.bff.openapi.client_portal_keycloak.model.RoleKeycloakDto;
-import org.onap.portal.bff.openapi.server.model.ProblemApiDto;
-import org.onap.portal.bff.openapi.server.model.RoleApiDto;
-import org.onap.portal.bff.openapi.server.model.RoleListResponseApiDto;
+import org.onap.portalng.bff.BaseIntegrationTest;
+import org.onap.portalng.bff.openapi.client_portal_keycloak.model.ErrorResponseKeycloakDto;
+import org.onap.portalng.bff.openapi.client_portal_keycloak.model.RoleKeycloakDto;
+import org.onap.portalng.bff.openapi.server.model.ProblemApiDto;
+import org.onap.portalng.bff.openapi.server.model.RoleApiDto;
+import org.onap.portalng.bff.openapi.server.model.RoleListResponseApiDto;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 

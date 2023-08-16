@@ -19,7 +19,7 @@
  *
  */
 
-package org.onap.portal.bff.idtoken;
+package org.onap.portalng.bff.idtoken;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -28,8 +28,8 @@ import static org.mockito.Mockito.mock;
 import java.net.URI;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
-import org.onap.portal.bff.BaseIntegrationTest;
-import org.onap.portal.bff.config.IdTokenExchangeFilterFunction;
+import org.onap.portalng.bff.BaseIntegrationTest;
+import org.onap.portalng.bff.config.IdTokenExchangeFilterFunction;
 import org.springframework.http.HttpMethod;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;

@@ -19,7 +19,7 @@
  *
  */
 
-package org.onap.portal.bff;
+package org.onap.portalng.bff;
 
 import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSAlgorithm;

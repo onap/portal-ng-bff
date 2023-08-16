@@ -19,17 +19,17 @@
  *
  */
 
-package org.onap.portal.bff.actions;
+package org.onap.portalng.bff.actions;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.OffsetDateTime;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.onap.portal.bff.openapi.client_portal_history.model.ActionsListResponsePortalHistoryDto;
-import org.onap.portal.bff.openapi.client_portal_history.model.ProblemPortalHistoryDto;
-import org.onap.portal.bff.openapi.server.model.ActionsListResponseApiDto;
-import org.onap.portal.bff.openapi.server.model.ProblemApiDto;
+import org.onap.portalng.bff.openapi.client_portal_history.model.ActionsListResponsePortalHistoryDto;
+import org.onap.portalng.bff.openapi.client_portal_history.model.ProblemPortalHistoryDto;
+import org.onap.portalng.bff.openapi.server.model.ActionsListResponseApiDto;
+import org.onap.portalng.bff.openapi.server.model.ProblemApiDto;
 import org.springframework.http.HttpStatus;
 
 class ListActionsIntegrationTest extends ActionsMocks {

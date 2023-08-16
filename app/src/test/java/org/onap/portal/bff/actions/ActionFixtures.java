@@ -19,14 +19,14 @@
  *
  */
 
-package org.onap.portal.bff.actions;
+package org.onap.portalng.bff.actions;
 
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
-import org.onap.portal.bff.openapi.client_portal_history.model.ActionResponsePortalHistoryDto;
-import org.onap.portal.bff.openapi.client_portal_history.model.ActionsListResponsePortalHistoryDto;
-import org.onap.portal.bff.openapi.client_portal_history.model.CreateActionRequestPortalHistoryDto;
-import org.onap.portal.bff.openapi.server.model.CreateActionRequestApiDto;
+import org.onap.portalng.bff.openapi.client_portal_history.model.ActionResponsePortalHistoryDto;
+import org.onap.portalng.bff.openapi.client_portal_history.model.ActionsListResponsePortalHistoryDto;
+import org.onap.portalng.bff.openapi.client_portal_history.model.CreateActionRequestPortalHistoryDto;
+import org.onap.portalng.bff.openapi.server.model.CreateActionRequestApiDto;
 
 public class ActionFixtures {
 

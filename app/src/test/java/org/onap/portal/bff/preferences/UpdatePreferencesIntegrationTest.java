@@ -19,17 +19,17 @@
  *
  */
 
-package org.onap.portal.bff.preferences;
+package org.onap.portalng.bff.preferences;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 import io.restassured.http.Header;
 import org.junit.jupiter.api.Test;
-import org.onap.portal.bff.openapi.client_portal_prefs.model.PreferencesPortalPrefsDto;
-import org.onap.portal.bff.openapi.client_portal_prefs.model.ProblemPortalPrefsDto;
-import org.onap.portal.bff.openapi.server.model.CreatePreferencesRequestApiDto;
-import org.onap.portal.bff.openapi.server.model.PreferencesResponseApiDto;
-import org.onap.portal.bff.openapi.server.model.ProblemApiDto;
+import org.onap.portalng.bff.openapi.client_portal_prefs.model.PreferencesPortalPrefsDto;
+import org.onap.portalng.bff.openapi.client_portal_prefs.model.ProblemPortalPrefsDto;
+import org.onap.portalng.bff.openapi.server.model.CreatePreferencesRequestApiDto;
+import org.onap.portalng.bff.openapi.server.model.PreferencesResponseApiDto;
+import org.onap.portalng.bff.openapi.server.model.ProblemApiDto;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 

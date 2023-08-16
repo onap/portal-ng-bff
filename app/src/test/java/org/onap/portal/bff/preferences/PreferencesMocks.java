@@ -19,7 +19,7 @@
  *
  */
 
-package org.onap.portal.bff.preferences;
+package org.onap.portalng.bff.preferences;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,11 +29,11 @@ import io.restassured.http.Header;
 import java.io.File;
 import java.io.IOException;
 import org.apache.http.HttpHeaders;
-import org.onap.portal.bff.BaseIntegrationTest;
-import org.onap.portal.bff.openapi.client_portal_prefs.model.PreferencesPortalPrefsDto;
-import org.onap.portal.bff.openapi.client_portal_prefs.model.ProblemPortalPrefsDto;
-import org.onap.portal.bff.openapi.server.model.CreatePreferencesRequestApiDto;
-import org.onap.portal.bff.openapi.server.model.PreferencesResponseApiDto;
+import org.onap.portalng.bff.BaseIntegrationTest;
+import org.onap.portalng.bff.openapi.client_portal_prefs.model.PreferencesPortalPrefsDto;
+import org.onap.portalng.bff.openapi.client_portal_prefs.model.ProblemPortalPrefsDto;
+import org.onap.portalng.bff.openapi.server.model.CreatePreferencesRequestApiDto;
+import org.onap.portalng.bff.openapi.server.model.PreferencesResponseApiDto;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 

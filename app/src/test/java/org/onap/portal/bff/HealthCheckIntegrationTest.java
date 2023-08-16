@@ -19,7 +19,7 @@
  *
  */
 
-package org.onap.portal.bff;
+package org.onap.portalng.bff;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

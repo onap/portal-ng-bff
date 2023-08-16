@@ -19,7 +19,7 @@
  *
  */
 
-package org.onap.portal.bff;
+package org.onap.portalng.bff;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;

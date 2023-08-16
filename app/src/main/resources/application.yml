@@ -16,7 +16,7 @@ management:
 
 spring:
   application:
-    name: portal-bff
+    name: bff
   profiles:
     include:
       - access-control
@@ -40,7 +40,7 @@ spring:
     serialization:
       FAIL_ON_EMPTY_BEANS: false
 
-portal-bff:
+bff:
   realm: ${KEYCLOAK_REALM}
   portal-prefs-url: ${PORTAL_PREFS_URL}
   portal-history-url: ${PORTAL_HISTORY_URL}
