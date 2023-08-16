@@ -40,7 +40,7 @@ dependencies {
     testImplementation 'io.rest-assured:rest-assured'
 }
 
-mainClassName = 'org.onap.portal.bff.Application'
+mainClassName = 'org.onap.portalng.bff.Application'
 
 bootJar {
     launchScript()
@@ -51,10 +51,10 @@ bootJar {
 springBoot {
     buildInfo {
         properties {
-            artifact = 'org-onap-portal-bff'
+            artifact = 'org-onap-portalng-bff'
             version = getVersion()
             group = rootProject.group
-            name = 'ONAP portal backend for frontend community edition'
+            name = 'portal-ng backend for frontend'
         }
     }
 }

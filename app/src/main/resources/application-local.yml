@@ -9,7 +9,7 @@ spring:
         registration:
           keycloak:
             provider: keycloak
-            client-id: portal-bff
+            client-id: bff
             client-secret: pKOuVH1bwRZoNzp5P5t4GV8CqcCJYVtr
             authorization-grant-type: client_credentials
       resourceserver:
@@ -22,7 +22,7 @@ management:
       exposure:
         include: "*"
 
-portal-bff:
+bff:
   realm: ONAP
   portal-prefs-url: http://localhost:9001
   portal-history-url: http://localhost:9002

@@ -1,10 +1,8 @@
 openapi: 3.0.3
 info:
-  title: Portal BFF
+  title: bff api
   version: '1.0'
-  description: Portal BFF API
-  contact:
-    name: Team Tesla
+  description: bff api
 servers:
   - url: 'http://localhost:9080'
 tags:

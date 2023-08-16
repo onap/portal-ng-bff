@@ -1,4 +1,4 @@
-portal-bff.access-control:
+bff.access-control:
   ACTIONS_CREATE: [ onap_admin, onap_designer, onap_operator ]
   ACTIONS_GET: [ onap_admin, onap_designer, onap_operator ]
   ACTIONS_LIST: [ onap_admin, onap_designer, onap_operator ]
