@@ -1,10 +1,12 @@
-apply plugin: 'com.gorylenko.gradle-git-properties'
-apply plugin: 'jacoco'
-apply plugin: 'com.github.johnrengelman.shadow'
-apply plugin: 'maven-publish'
-apply plugin: 'java-library'
-apply plugin: 'com.diffplug.spotless'
-apply plugin: 'com.github.spotbugs'
+plugins {
+    id 'com.gorylenko.gradle-git-properties'
+    id 'jacoco'
+    id 'com.github.johnrengelman.shadow'
+    id 'maven-publish'
+    id 'java-library'
+    id 'com.diffplug.spotless'
+    id 'com.github.spotbugs'
+}
 
 group 'org.onap.portalng'
 version rootProject.file('version').text.trim()

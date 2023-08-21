@@ -1,8 +1,11 @@
-apply plugin: 'application'
-apply plugin: 'org.springframework.boot'
-apply plugin: 'com.gorylenko.gradle-git-properties'
-apply plugin: 'jacoco'
-apply plugin: 'com.diffplug.spotless'
+plugins {
+    id 'application'
+    id 'org.springframework.boot'
+    id 'io.spring.dependency-management'
+    id 'com.gorylenko.gradle-git-properties'
+    id 'jacoco'
+    id 'com.diffplug.spotless'
+}
 
 dependencyManagement {
     imports {
