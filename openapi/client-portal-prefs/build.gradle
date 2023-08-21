@@ -1,4 +1,6 @@
-apply plugin: 'org.openapi.generator'
+plugins {
+  id 'org.openapi.generator'
+}
 
 dependencies {
     implementation "org.springframework.boot:spring-boot-starter-webflux"
@@ -6,8 +8,7 @@ dependencies {
 }
 
 compileJava {
-    createOpenApiGenerateClientTask(project, "portal_prefs_openapi.yaml", "client_portal_prefs", "PortalPrefsDto")
-    dependsOn = [':openapi:openApiGenerate_client_portal_prefs']
+    dependsOn = ['openApiGenerate_preferences']
 }
 
 sourceSets {
@@ -22,4 +23,27 @@ idea {
     module {
         generatedSourceDirs += file("$buildDir/openapi/src/main/java")
     }
+}
+
+tasks.register('openApiGenerate_preferences', org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+    generatorName = "java"
+    library = "webclient"
+    inputSpec = "${project.projectDir}/src/portal_prefs_openapi.yaml"
+    outputDir = "${project.buildDir}/openapi"
+    configOptions = [
+      openApiNullable     : "false",
+      dateLibrary         : "java8",
+      serializationLibrary: "jackson"
+    ]
+    typeMappings = [
+            "File": "org.springframework.core.io.buffer.DataBuffer"
+    ]
+    generateApiTests = false
+    generateApiDocumentation = false
+    generateModelTests = false
+    generateModelDocumentation = false
+    invokerPackage = "org.onap.portalng.bff.openapi.client_portal_prefs"
+    apiPackage = "org.onap.portalng.bff.openapi.client_portal_prefs.api"
+    modelPackage = "org.onap.portalng.bff.openapi.client_portal_prefs.model"
+    modelNameSuffix = "PortalPrefsDto"
 }

@@ -1,4 +1,6 @@
-apply plugin: 'org.openapi.generator'
+plugins {
+  id 'org.openapi.generator'
+}
 
 dependencies {
   implementation "org.springframework.boot:spring-boot-starter-webflux"

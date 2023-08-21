@@ -1,4 +1,6 @@
-apply plugin: 'org.openapi.generator'
+plugins {
+  id 'org.openapi.generator'
+}
 
 dependencies {
     implementation "org.springframework.boot:spring-boot-starter-webflux"
@@ -6,8 +8,7 @@ dependencies {
 }
 
 compileJava {
-    createOpenApiGenerateClientTask(project, "portal_history_openapi.yaml", "client_portal_history", "PortalHistoryDto")
-    dependsOn = [':openapi:openApiGenerate_client_portal_history']
+    dependsOn = ['openApiGenerate_history']
 }
 
 sourceSets {
@@ -22,4 +23,27 @@ idea {
     module {
         generatedSourceDirs += file("$buildDir/openapi/src/main/java")
     }
+}
+
+tasks.register('openApiGenerate_history', org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+    generatorName = "java"
+    library = "webclient"
+    inputSpec = "${project.projectDir}/src/portal_history_openapi.yaml"
+    outputDir = "${project.buildDir}/openapi"
+    configOptions = [
+      openApiNullable     : "false",
+      dateLibrary         : "java8",
+      serializationLibrary: "jackson"
+    ]
+    typeMappings = [
+            "File": "org.springframework.core.io.buffer.DataBuffer"
+    ]
+    generateApiTests = false
+    generateApiDocumentation = false
+    generateModelTests = false
+    generateModelDocumentation = false
+    invokerPackage = "org.onap.portalng.bff.openapi.client_portal_history"
+    apiPackage = "org.onap.portalng.bff.openapi.client_portal_history.api"
+    modelPackage = "org.onap.portalng.bff.openapi.client_portal_history.model"
+    modelNameSuffix = "PortalHistoryDto"
 }
