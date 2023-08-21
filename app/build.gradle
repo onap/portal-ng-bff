@@ -64,7 +64,7 @@ springBoot {
 
 jacocoTestReport {
     reports {
-        xml.enabled true
+        xml.required = true
     }
 }
 test.finalizedBy jacocoTestReport
