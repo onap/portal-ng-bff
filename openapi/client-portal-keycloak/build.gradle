@@ -1,35 +1,21 @@
 plugins {
+  id 'java'
+  id 'idea'
+  id 'org.springframework.boot'
+  id 'io.spring.dependency-management'
   id 'org.openapi.generator'
 }
 
 dependencies {
-    implementation "org.springframework.boot:spring-boot-starter-webflux"
-    implementation "org.openapitools:openapi-generator:$openapiVersion"
+  implementation 'org.springframework.boot:spring-boot-starter-webflux'
+  implementation "org.openapitools:openapi-generator:$openapiVersion"
 }
 
-compileJava {
-    dependsOn = ['openApiGenerate_keycloak']
-}
-
-sourceSets {
-    main {
-        java {
-            srcDirs += file("$buildDir/openapi/src/main/java")
-        }
-    }
-}
-
-idea {
-    module {
-        generatedSourceDirs += file("$buildDir/openapi/src/main/java")
-    }
-}
-
-tasks.register('openApiGenerate_keycloak', org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+openApiGenerate {
     generatorName = "java"
     library = "webclient"
     inputSpec = "${project.projectDir}/src/portal_keycloak_openapi.yaml"
-    outputDir = "${buildDir}/openapi"
+    outputDir = "${project.buildDir}/openapi"
     configOptions = [
       openApiNullable     : "false",
       dateLibrary         : "java8",
@@ -46,4 +32,30 @@ tasks.register('openApiGenerate_keycloak', org.openapitools.generator.gradle.plu
     apiPackage = "org.onap.portalng.bff.openapi.client_portal_keycloak.api"
     modelPackage = "org.onap.portalng.bff.openapi.client_portal_keycloak.model"
     modelNameSuffix = "KeycloakDto"
+}
+
+compileJava {
+  dependsOn tasks.openApiGenerate
+}
+
+sourceSets {
+  main {
+    java {
+      srcDirs += file("$buildDir/openapi/src/main/java")
+    }
+  }
+}
+
+idea {
+  module {
+    generatedSourceDirs += file("$buildDir/openapi/src/main/java")
+  }
+}
+
+bootJar {
+    enabled = false
+}
+
+jar {
+    enabled = true
 }

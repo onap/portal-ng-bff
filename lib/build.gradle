@@ -1,11 +1,11 @@
 plugins {
-    id 'com.gorylenko.gradle-git-properties'
-    id 'jacoco'
-    id 'com.github.johnrengelman.shadow'
-    id 'maven-publish'
-    id 'java-library'
-    id 'com.diffplug.spotless'
-    id 'com.github.spotbugs'
+    id 'java'
+	id 'org.springframework.boot'
+	id 'io.spring.dependency-management'
+	id 'com.github.johnrengelman.shadow'    // 
+	id 'maven-publish'                      // publish lib jar to artifact repository
+    id 'com.diffplug.spotless'              // code formatting
+    id 'com.github.spotbugs'                // bug linting that can be picked up by IDE
 }
 
 group 'org.onap.portalng'
@@ -33,6 +33,18 @@ dependencies {
 
     annotationProcessor "org.mapstruct:mapstruct-processor:$mapStructVersion"
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+
+    compileOnly             "org.projectlombok:lombok:$lombokVersion"
+    annotationProcessor     "org.projectlombok:lombok:$lombokVersion"
+    testCompileOnly         "org.projectlombok:lombok:$lombokVersion"
+    testAnnotationProcessor "org.projectlombok:lombok:$lombokVersion"
+}
+
+bootJar {
+    enabled = false
+}
+jar {
+    enabled = true
 }
 
 shadowJar {
@@ -84,14 +96,12 @@ spotless {
         googleJavaFormat('1.15.0')
     }
 }
-
 tasks.withType(JavaCompile) {
     dependsOn 'spotlessApply'
 }
 
 spotbugs {
     ignoreFailures = false
-    effort = "max"
     reportLevel = "high"
     excludeFilter = file("$rootProject.projectDir/spotbugs-exclude.xml")
 }
