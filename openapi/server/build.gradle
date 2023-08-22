@@ -1,11 +1,15 @@
 plugins {
+  id 'java'
+  id 'idea'
+  id 'org.springframework.boot'
+	id 'io.spring.dependency-management'
   id 'org.openapi.generator'
 }
 
 dependencies {
-  implementation "org.springframework.boot:spring-boot-starter-webflux"
+  implementation 'org.springframework.boot:spring-boot-starter-webflux'
   implementation "org.openapitools:openapi-generator:$openapiVersion"
-  implementation "org.webjars:redoc:$redocVersion"
+  // implementation 'jakarta.validation:jakarta.validation-api:3.0.2'
 
   constraints {
     implementation('io.swagger.core.v3:swagger-annotations:2.2.5') {
@@ -54,4 +58,12 @@ idea {
   module {
     generatedSourceDirs += file("$buildDir/openapi/src/main/java")
   }
+}
+
+bootJar {
+    enabled = false
+}
+
+jar {
+    enabled = true
 }
