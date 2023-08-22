@@ -8,7 +8,7 @@ plugins {
     id 'com.github.spotbugs'                // bug linting that can be picked up by IDE
 }
 
-group 'org.onap.portalng'
+group 'org.onap.portal-ng'
 version rootProject.file('version').text.trim()
 
 dependencies {
@@ -23,7 +23,6 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
-    implementation "org.zalando:problem:$problemVersion"
     implementation "org.zalando:jackson-datatype-problem:$problemVersion"
     implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml'
     implementation "org.zalando:problem-spring-webflux:$problemSpringVersion"

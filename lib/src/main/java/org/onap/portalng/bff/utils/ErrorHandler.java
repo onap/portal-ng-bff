@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Objects;
 import org.onap.portalng.bff.exceptions.DownstreamApiProblemException;
 import org.onap.portalng.bff.openapi.server.model.ProblemApiDto;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 
 public class ErrorHandler {
   /**
@@ -44,7 +44,7 @@ public class ErrorHandler {
   }
 
   public static DownstreamApiProblemException getDownstreamApiProblemException(
-      HttpStatus httpStatus,
+      HttpStatusCode httpStatusCode,
       List<String> variables,
       String text,
       String messageId,
@@ -55,11 +55,11 @@ public class ErrorHandler {
             : null;
 
     return DownstreamApiProblemException.builder()
-        .title(httpStatus.toString())
+        .title(httpStatusCode.toString())
         .detail(errorDetail)
         .downstreamMessageId(Objects.requireNonNullElse(messageId, "not set by downstream system"))
         .downstreamSystem(downStreamSystem.toString())
-        .downstreamStatus(httpStatus.value())
+        .downstreamStatus(httpStatusCode.value())
         .build();
   }
 }

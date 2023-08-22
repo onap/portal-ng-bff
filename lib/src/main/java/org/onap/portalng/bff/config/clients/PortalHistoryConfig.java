@@ -38,7 +38,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -85,13 +85,13 @@ public class PortalHistoryConfig extends AbstractClientConfig<ProblemPortalHisto
 
   @Override
   protected DownstreamApiProblemException mapException(
-      ProblemPortalHistoryDto errorResponse, HttpStatus httpStatus) {
+      ProblemPortalHistoryDto errorResponse, HttpStatusCode httpStatusCode) {
     return DownstreamApiProblemException.builder()
-        .title(httpStatus.toString())
+        .title(httpStatusCode.toString())
         .detail(errorResponse.getDetail())
         .downstreamMessageId(errorResponse.getType())
         .downstreamSystem(ProblemApiDto.DownstreamSystemEnum.PORTAL_HISTORY.toString())
-        .downstreamStatus(httpStatus.value())
+        .downstreamStatus(httpStatusCode.value())
         .build();
   }
 }

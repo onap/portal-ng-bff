@@ -21,14 +21,13 @@
 
 package org.onap.portalng.bff.config;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import java.util.Map;
-import javax.validation.Valid;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.ConstructorBinding;
 import org.zalando.problem.Problem;
 import org.zalando.problem.Status;
 import reactor.core.publisher.Mono;
@@ -38,7 +37,6 @@ import reactor.core.publisher.Mono;
  * urls.
  */
 @Valid
-@ConstructorBinding
 @ConfigurationProperties("bff")
 @Data
 public class BffConfig {

@@ -26,7 +26,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.onap.portalng.bff.exceptions.DownstreamApiProblemException;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.client.reactive.ClientHttpConnector;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
@@ -56,7 +56,7 @@ public abstract class AbstractClientConfig<E> {
   }
 
   protected abstract DownstreamApiProblemException mapException(
-      E errorResponse, HttpStatus httpStatus);
+      E errorResponse, HttpStatusCode httpStatusCode);
 
   protected ClientHttpConnector getClientHttpConnector() {
     // ConnectionTimeouts introduced due to

@@ -21,7 +21,7 @@
 
 package org.onap.portalng.bff.controller;
 
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 import org.onap.portalng.bff.config.BffConfig;
 import org.onap.portalng.bff.openapi.server.api.PreferencesApi;
 import org.onap.portalng.bff.openapi.server.model.CreatePreferencesRequestApiDto;

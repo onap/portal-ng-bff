@@ -7,12 +7,12 @@ allprojects {
 ext {
     // app + lib
     problemVersion = '0.27.1'
-    problemSpringVersion = '0.27.0'
-    mapStructVersion = '1.5.2.Final'
-    mapStructExtensionsVersion = '0.1.2'
-    logbackVersion = '7.2'
+    problemSpringVersion = '0.29.1'
+    mapStructVersion = '1.5.5.Final'
+    mapStructExtensionsVersion = '1.0.2'
+    logbackVersion = '7.4'
     lombokVersion = '1.18.28'
 
     // app
-    wiremockVersion = '3.1.3'
+    wiremockVersion = '4.0.4'
 }
