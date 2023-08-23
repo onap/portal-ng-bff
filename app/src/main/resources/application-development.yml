@@ -24,7 +24,6 @@ management:
 
 bff:
   realm: ONAP
-  portal-prefs-url: ${PORTAL_PREFS_URL}
-  portal-history-url: ${PORTAL_HISTORY_URL}
+  preferences-url: ${PREFERENCES_URL}
+  history-url: ${PORTAL_HISTORY_URL}
   keycloak-url: ${KEYCLOAK_URL}
-  instance-id: PORTAL

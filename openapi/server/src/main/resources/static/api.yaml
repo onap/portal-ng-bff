@@ -734,7 +734,7 @@ components:
           enum:
             - KEYCLOAK
             - PORTAL_SERVICE
-            - PORTAL_PREFS
+            - PREFERENCES
             - PORTAL_HISTORY
         downstreamStatus:
           type: integer

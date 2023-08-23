@@ -20,9 +20,9 @@ pluginManagement {
 rootProject.name = 'bff'
 
 include 'openapi:server'
-include 'openapi:client-portal-prefs'
-include 'openapi:client-portal-history'
-include 'openapi:client-portal-keycloak'
+include 'openapi:client-preferences'
+include 'openapi:client-history'
+include 'openapi:client-keycloak'
 include 'lib'
 include 'app'
 

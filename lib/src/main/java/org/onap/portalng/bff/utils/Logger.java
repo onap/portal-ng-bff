@@ -35,8 +35,8 @@ public class Logger {
    */
   private Logger() {}
 
-  public static void requestLog(String xRequestId, HttpMethod methode, URI path) {
-    log.info("bff - request - X-Request-Id {} {} {}", xRequestId, methode, path);
+  public static void requestLog(String xRequestId, HttpMethod method, URI path) {
+    log.info("bff - request - X-Request-Id {} {} {}", xRequestId, method, path);
   }
 
   public static void responseLog(String xRequestId, HttpStatusCode httpStatusCode) {

@@ -28,7 +28,7 @@ import com.github.tomakehurst.wiremock.matching.EqualToPattern;
 import io.restassured.http.Header;
 import org.junit.jupiter.api.Test;
 import org.onap.portalng.bff.BaseIntegrationTest;
-import org.onap.portalng.bff.openapi.client_portal_prefs.model.PreferencesPortalPrefsDto;
+import org.onap.portalng.bff.openapi.client_preferences.model.PreferencesPreferencesDto;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -39,17 +39,17 @@ class XRequestIdHeaderTest extends BaseIntegrationTest {
   @Test
   void xRequestIdHeaderIsCorrectlySetInResponse() throws Exception {
     // use preferences endpoint for testing the header
-    final PreferencesPortalPrefsDto preferencesPortalPrefsDto = new PreferencesPortalPrefsDto();
+    final PreferencesPreferencesDto preferencesPreferencesDto = new PreferencesPreferencesDto();
 
     // mockGetTile(tileDetailResponsePortalServiceDto, X_REQUEST_ID);
-    mockGetPreferences(preferencesPortalPrefsDto, X_REQUEST_ID);
+    mockGetPreferences(preferencesPreferencesDto, X_REQUEST_ID);
 
     final String response = getPreferencesExtractHeader(X_REQUEST_ID);
     assertThat(response).isEqualTo(X_REQUEST_ID);
   }
 
   protected void mockGetPreferences(
-      PreferencesPortalPrefsDto preferencesPortalPrefsDto, String xRequestId) throws Exception {
+      PreferencesPreferencesDto preferencesPreferencesDto, String xRequestId) throws Exception {
     WireMock.stubFor(
         WireMock.get(WireMock.urlEqualTo("/v1/preferences"))
             .withHeader("X-Request-Id", new EqualToPattern(X_REQUEST_ID))
@@ -57,7 +57,7 @@ class XRequestIdHeaderTest extends BaseIntegrationTest {
                 WireMock.aResponse()
                     .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                     .withHeader("X-Request-Id", xRequestId)
-                    .withBody(objectMapper.writeValueAsString(preferencesPortalPrefsDto))));
+                    .withBody(objectMapper.writeValueAsString(preferencesPreferencesDto))));
   }
 
   protected String getPreferencesExtractHeader(String xRequestId) {

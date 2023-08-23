@@ -24,7 +24,7 @@ openApiGenerate {
   inputSpec = "$projectDir/src/main/resources/static/api.yaml"
   outputDir = "$buildDir/openapi"
   configOptions = [
-    hideGenerationTimestamps: "true",
+    hideGenerationTimestamp: "true",
     openApiNullable: "false",
     skipDefaultInterface: "true",
     dateLibrary: "java8",

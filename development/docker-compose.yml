@@ -39,8 +39,8 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${PORTALHISTORY_USERNAME}
       MONGO_INITDB_ROOT_PASSWORD: ${PORTALHISTORY_PASSWORD}
-  portal-history:
-    container_name: portal-history
+  history:
+    container_name: history
     image: "${IMAGE_REPOSITORY}/${PORTAL_HISTORY_IMAGE_NAME}:${PORTAL_HISTORY_IMAGE_TAG}"
     ports:
       - 9002:9002
@@ -54,15 +54,15 @@ services:
       PORTALHISTORY_PORT: ${PORTALHISTORY_PORT}
     depends_on:
       - mongo-history
-  mongo-prefs:
-    container_name: mongo-prefs
+  mongo-preferences:
+    container_name: mongo-preferences
     image: "${MONGO_IMAGE}:${MONGO_VERSION}"
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${PORTALPREFS_USERNAME}
       MONGO_INITDB_ROOT_PASSWORD: ${PORTALPREFS_PASSWORD}
-  portal-prefs:
-    container_name: portal-prefs
-    image: "${IMAGE_REPOSITORY}/${PORTAL_PREFS_IMAGE_NAME}:${PORTAL_PREFS_IMAGE_TAG}"
+  preferences:
+    container_name: preferences
+    image: "${IMAGE_REPOSITORY}/${PREFERENCES_IMAGE_NAME}:${PREFERENCES_IMAGE_TAG}"
     ports:
       - 9001:9001
     environment:
@@ -74,4 +74,4 @@ services:
       PORTALPREFS_HOST: ${PORTALPREFS_HOST}
       PORTALPREFS_PORT: ${PORTALPREFS_PORT}
     depends_on:
-      - mongo-prefs
+      - mongo-preferences

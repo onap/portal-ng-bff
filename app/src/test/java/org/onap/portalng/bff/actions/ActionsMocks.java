@@ -27,9 +27,9 @@ import com.github.tomakehurst.wiremock.matching.EqualToPattern;
 import io.restassured.http.Header;
 import org.apache.http.HttpHeaders;
 import org.onap.portalng.bff.BaseIntegrationTest;
-import org.onap.portalng.bff.openapi.client_portal_history.model.ActionResponsePortalHistoryDto;
-import org.onap.portalng.bff.openapi.client_portal_history.model.ActionsListResponsePortalHistoryDto;
-import org.onap.portalng.bff.openapi.client_portal_history.model.ProblemPortalHistoryDto;
+import org.onap.portalng.bff.openapi.client_history.model.ActionResponseHistoryDto;
+import org.onap.portalng.bff.openapi.client_history.model.ActionsListResponseHistoryDto;
+import org.onap.portalng.bff.openapi.client_history.model.ProblemHistoryDto;
 import org.onap.portalng.bff.openapi.server.model.ActionsListResponseApiDto;
 import org.onap.portalng.bff.openapi.server.model.ActionsResponseApiDto;
 import org.onap.portalng.bff.openapi.server.model.CreateActionRequestApiDto;
@@ -56,16 +56,15 @@ public class ActionsMocks extends BaseIntegrationTest {
   }
 
   // used for test thatActionsListCanBeRetrieved
-  protected void mockListActions(
-      ActionsListResponsePortalHistoryDto actionsListResponsePortalHistoryDto) throws Exception {
+  protected void mockListActions(ActionsListResponseHistoryDto actionsListResponseHistoryDto)
+      throws Exception {
     WireMock.stubFor(
         WireMock.get(WireMock.urlEqualTo("/v1/actions?page=1&pageSize=10"))
             .withHeader("X-Request-Id", new EqualToPattern(X_REQUEST_ID))
             .willReturn(
                 WireMock.aResponse()
                     .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                    .withBody(
-                        objectMapper.writeValueAsString(actionsListResponsePortalHistoryDto))));
+                    .withBody(objectMapper.writeValueAsString(actionsListResponseHistoryDto))));
   }
 
   // used for test thatActionsListCanNotBeRetrieved
@@ -84,8 +83,7 @@ public class ActionsMocks extends BaseIntegrationTest {
   }
 
   // used for test thatActionsListCanNotBeRetrieved
-  protected void mockListActionsProblem(ProblemPortalHistoryDto problemPortalHistoryDto)
-      throws Exception {
+  protected void mockListActionsProblem(ProblemHistoryDto problemHistoryDto) throws Exception {
     WireMock.stubFor(
         WireMock.get(WireMock.urlEqualTo("/v1/actions?page=1&pageSize=10"))
             .withHeader("X-Request-Id", new EqualToPattern(X_REQUEST_ID))
@@ -93,12 +91,12 @@ public class ActionsMocks extends BaseIntegrationTest {
                 WireMock.aResponse()
                     .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_PROBLEM_JSON_VALUE)
                     .withStatus(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                    .withBody(objectMapper.writeValueAsString(problemPortalHistoryDto))));
+                    .withBody(objectMapper.writeValueAsString(problemHistoryDto))));
   }
 
   // used for test thatActionCanBeRetrieved
   protected void mockGetActions(
-      ActionsListResponsePortalHistoryDto actionsListResponsePortalHistoryDto,
+      ActionsListResponseHistoryDto actionsListResponseHistoryDto,
       String userId,
       Integer showLastHours)
       throws Exception {
@@ -114,8 +112,7 @@ public class ActionsMocks extends BaseIntegrationTest {
             .willReturn(
                 WireMock.aResponse()
                     .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                    .withBody(
-                        objectMapper.writeValueAsString(actionsListResponsePortalHistoryDto))));
+                    .withBody(objectMapper.writeValueAsString(actionsListResponseHistoryDto))));
   }
   // used for test thatActionCanBeRetrieved
   protected ActionsListResponseApiDto getActions(String userId) {
@@ -134,16 +131,14 @@ public class ActionsMocks extends BaseIntegrationTest {
 
   // used for test thatActionCanBeRetrievedWithoutParameterShowLastHours
   protected void mockGetActionsWithoutParameterShowLastHours(
-      ActionsListResponsePortalHistoryDto actionsListResponsePortalHistoryDto, String userId)
-      throws Exception {
+      ActionsListResponseHistoryDto actionsListResponseHistoryDto, String userId) throws Exception {
     WireMock.stubFor(
         WireMock.get(WireMock.urlEqualTo("/v1/actions/" + userId + "?page=1&pageSize=10"))
             .withHeader("X-Request-Id", new EqualToPattern(X_REQUEST_ID))
             .willReturn(
                 WireMock.aResponse()
                     .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                    .withBody(
-                        objectMapper.writeValueAsString(actionsListResponsePortalHistoryDto))));
+                    .withBody(objectMapper.writeValueAsString(actionsListResponseHistoryDto))));
   }
   // used for test thatActionCanBeRetrievedWithoutParameterShowLastHours
   protected ActionsListResponseApiDto getActionsWithoutParameterShowLastHours(String userId) {
@@ -161,8 +156,7 @@ public class ActionsMocks extends BaseIntegrationTest {
   }
 
   // Used for thatActionCanBeCreated
-  protected void mockCreateActions(
-      String userId, ActionResponsePortalHistoryDto actionResponsePortalHistoryDto)
+  protected void mockCreateActions(String userId, ActionResponseHistoryDto actionResponseHistoryDto)
       throws Exception {
     WireMock.stubFor(
         WireMock.post(WireMock.urlEqualTo("/v1/actions/" + userId))
@@ -172,7 +166,7 @@ public class ActionsMocks extends BaseIntegrationTest {
                 WireMock.aResponse()
                     .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                     .withStatus(200)
-                    .withBody(objectMapper.writeValueAsString(actionResponsePortalHistoryDto))));
+                    .withBody(objectMapper.writeValueAsString(actionResponseHistoryDto))));
   }
 
   // Used for thatActionCanBeCreated
@@ -194,8 +188,7 @@ public class ActionsMocks extends BaseIntegrationTest {
   }
 
   // Used for thatActionCanNotBeCreated
-  protected void mockCreateActionsProblem(
-      String userId, ProblemPortalHistoryDto problemPortalHistoryDto)
+  protected void mockCreateActionsProblem(String userId, ProblemHistoryDto problemHistoryDto)
       throws JsonProcessingException {
     WireMock.stubFor(
         WireMock.post(WireMock.urlEqualTo("/v1/actions/" + userId))
@@ -205,7 +198,7 @@ public class ActionsMocks extends BaseIntegrationTest {
                 WireMock.aResponse()
                     .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_PROBLEM_JSON_VALUE)
                     .withStatus(500)
-                    .withBody(objectMapper.writeValueAsString(problemPortalHistoryDto))));
+                    .withBody(objectMapper.writeValueAsString(problemHistoryDto))));
   }
   // Used for thatActionCanNotBeCreated
   protected ProblemApiDto createActionProblem(

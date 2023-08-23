@@ -30,8 +30,8 @@ import java.io.File;
 import java.io.IOException;
 import org.apache.http.HttpHeaders;
 import org.onap.portalng.bff.BaseIntegrationTest;
-import org.onap.portalng.bff.openapi.client_portal_prefs.model.PreferencesPortalPrefsDto;
-import org.onap.portalng.bff.openapi.client_portal_prefs.model.ProblemPortalPrefsDto;
+import org.onap.portalng.bff.openapi.client_preferences.model.PreferencesPreferencesDto;
+import org.onap.portalng.bff.openapi.client_preferences.model.ProblemPreferencesDto;
 import org.onap.portalng.bff.openapi.server.model.CreatePreferencesRequestApiDto;
 import org.onap.portalng.bff.openapi.server.model.PreferencesResponseApiDto;
 import org.springframework.http.HttpStatus;
@@ -65,7 +65,7 @@ public class PreferencesMocks extends BaseIntegrationTest {
         .as(PreferencesResponseApiDto.class);
   }
 
-  protected void mockGetPreferences(PreferencesPortalPrefsDto preferencesPortalPrefsDto)
+  protected void mockGetPreferences(PreferencesPreferencesDto preferencesPreferencesDto)
       throws Exception {
     WireMock.stubFor(
         WireMock.get(WireMock.urlEqualTo("/v1/preferences"))
@@ -73,10 +73,10 @@ public class PreferencesMocks extends BaseIntegrationTest {
             .willReturn(
                 WireMock.aResponse()
                     .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                    .withBody(objectMapper.writeValueAsString(preferencesPortalPrefsDto))));
+                    .withBody(objectMapper.writeValueAsString(preferencesPreferencesDto))));
   }
 
-  protected void mockGetPreferencesError(ProblemPortalPrefsDto problem) throws Exception {
+  protected void mockGetPreferencesError(ProblemPreferencesDto problem) throws Exception {
     WireMock.stubFor(
         WireMock.get(WireMock.urlEqualTo("/v1/preferences"))
             .withHeader("X-Request-Id", new EqualToPattern(X_REQUEST_ID))
@@ -104,35 +104,35 @@ public class PreferencesMocks extends BaseIntegrationTest {
         .as(PreferencesResponseApiDto.class);
   }
 
-  protected void mockCreatePreferences(PreferencesPortalPrefsDto preferencesPortalPrefsDto)
+  protected void mockCreatePreferences(PreferencesPreferencesDto preferencesPreferencesDto)
       throws Exception {
     WireMock.stubFor(
         WireMock.post(WireMock.urlEqualTo("/v1/preferences"))
             .withHeader("X-Request-Id", new EqualToPattern(X_REQUEST_ID))
             .withRequestBody(
                 WireMock.equalToJson(
-                    objectMapper.writeValueAsString(preferencesPortalPrefsDto), true, false))
+                    objectMapper.writeValueAsString(preferencesPreferencesDto), true, false))
             .willReturn(
                 WireMock.aResponse()
                     .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                    .withBody(objectMapper.writeValueAsString(preferencesPortalPrefsDto))));
+                    .withBody(objectMapper.writeValueAsString(preferencesPreferencesDto))));
   }
 
   protected void mockCreatePreferencesError(
-      PreferencesPortalPrefsDto preferencesPortalPrefsDto,
-      ProblemPortalPrefsDto problemPortalPrefsDto)
+      PreferencesPreferencesDto preferencesPreferencesDto,
+      ProblemPreferencesDto problemPreferencesDto)
       throws Exception {
     WireMock.stubFor(
         WireMock.post(WireMock.urlEqualTo("/v1/preferences"))
             .withHeader("X-Request-Id", new EqualToPattern(X_REQUEST_ID))
             .withRequestBody(
                 WireMock.equalToJson(
-                    objectMapper.writeValueAsString(preferencesPortalPrefsDto), true, false))
+                    objectMapper.writeValueAsString(preferencesPreferencesDto), true, false))
             .willReturn(
                 WireMock.aResponse()
                     .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                     .withStatus(HttpStatus.BAD_REQUEST.value())
-                    .withBody(objectMapper.writeValueAsString(problemPortalPrefsDto))));
+                    .withBody(objectMapper.writeValueAsString(problemPreferencesDto))));
   }
 
   protected PreferencesResponseApiDto updatePreferences(CreatePreferencesRequestApiDto request) {
@@ -150,33 +150,33 @@ public class PreferencesMocks extends BaseIntegrationTest {
         .as(PreferencesResponseApiDto.class);
   }
 
-  protected void mockUpdatePreferences(PreferencesPortalPrefsDto preferencesPortalPrefsDto)
+  protected void mockUpdatePreferences(PreferencesPreferencesDto preferencesPreferencesDto)
       throws Exception {
     WireMock.stubFor(
         WireMock.put(WireMock.urlEqualTo("/v1/preferences"))
             .withHeader("X-Request-Id", new EqualToPattern(X_REQUEST_ID))
             .withRequestBody(
                 WireMock.equalToJson(
-                    objectMapper.writeValueAsString(preferencesPortalPrefsDto), true, false))
+                    objectMapper.writeValueAsString(preferencesPreferencesDto), true, false))
             .willReturn(
                 WireMock.aResponse()
                     .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                    .withBody(objectMapper.writeValueAsString(preferencesPortalPrefsDto))));
+                    .withBody(objectMapper.writeValueAsString(preferencesPreferencesDto))));
   }
 
   protected void mockUpdatePreferencesError(
-      PreferencesPortalPrefsDto preferencesPortalPrefsDto,
-      ProblemPortalPrefsDto problemPortalPrefsDto)
+      PreferencesPreferencesDto preferencesPreferencesDto,
+      ProblemPreferencesDto problemPreferencesDto)
       throws Exception {
     WireMock.stubFor(
         WireMock.put(WireMock.urlEqualTo("/v1/preferences"))
             .withRequestBody(
                 WireMock.equalToJson(
-                    objectMapper.writeValueAsString(preferencesPortalPrefsDto), true, false))
+                    objectMapper.writeValueAsString(preferencesPreferencesDto), true, false))
             .willReturn(
                 WireMock.aResponse()
                     .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                     .withStatus(HttpStatus.BAD_REQUEST.value())
-                    .withBody(objectMapper.writeValueAsString(problemPortalPrefsDto))));
+                    .withBody(objectMapper.writeValueAsString(problemPreferencesDto))));
   }
 }

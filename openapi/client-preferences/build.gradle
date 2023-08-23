@@ -14,7 +14,7 @@ dependencies {
 openApiGenerate {
     generatorName = "java"
     library = "webclient"
-    inputSpec = "${project.projectDir}/src/portal_keycloak_openapi.yaml"
+    inputSpec = "${project.projectDir}/src/api.yaml"
     outputDir = "${project.buildDir}/openapi"
     configOptions = [
       openApiNullable     : "false",
@@ -23,16 +23,20 @@ openApiGenerate {
       useJakartaEe        : "true",
     ]
     typeMappings = [
-            "File": "org.springframework.core.io.buffer.DataBuffer"
+            "File": "org.springframework.core.io.buffer.DataBuffer",
+            "mapOfObjects": "Map<String,Object>"
+    ]
+    importMappings = [
+            "Map<String,Object>": "java.util.Map"
     ]
     generateApiTests = false
     generateApiDocumentation = false
     generateModelTests = false
     generateModelDocumentation = false
-    invokerPackage = "org.onap.portalng.bff.openapi.client_portal_keycloak"
-    apiPackage = "org.onap.portalng.bff.openapi.client_portal_keycloak.api"
-    modelPackage = "org.onap.portalng.bff.openapi.client_portal_keycloak.model"
-    modelNameSuffix = "KeycloakDto"
+    invokerPackage = "org.onap.portalng.bff.openapi.client_preferences"
+    apiPackage = "org.onap.portalng.bff.openapi.client_preferences.api"
+    modelPackage = "org.onap.portalng.bff.openapi.client_preferences.model"
+    modelNameSuffix = "PreferencesDto"
 }
 
 compileJava {

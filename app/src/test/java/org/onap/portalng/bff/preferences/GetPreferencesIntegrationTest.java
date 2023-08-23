@@ -25,8 +25,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.restassured.http.Header;
 import org.junit.jupiter.api.Test;
-import org.onap.portalng.bff.openapi.client_portal_prefs.model.PreferencesPortalPrefsDto;
-import org.onap.portalng.bff.openapi.client_portal_prefs.model.ProblemPortalPrefsDto;
+import org.onap.portalng.bff.openapi.client_preferences.model.PreferencesPreferencesDto;
+import org.onap.portalng.bff.openapi.client_preferences.model.ProblemPreferencesDto;
 import org.onap.portalng.bff.openapi.server.model.PreferencesResponseApiDto;
 import org.onap.portalng.bff.openapi.server.model.ProblemApiDto;
 import org.springframework.http.HttpStatus;
@@ -36,9 +36,9 @@ class GetPreferencesIntegrationTest extends PreferencesMocks {
 
   @Test
   void thatPreferencesCanBeRetrieved() throws Exception {
-    PreferencesPortalPrefsDto preferencesPortalPrefsDto = new PreferencesPortalPrefsDto();
-    preferencesPortalPrefsDto.setProperties(getFixture(PREF_PROPERTIES_FILE, Object.class));
-    mockGetPreferences(preferencesPortalPrefsDto);
+    PreferencesPreferencesDto preferencesPreferencesDto = new PreferencesPreferencesDto();
+    preferencesPreferencesDto.setProperties(getFixture(PREF_PROPERTIES_FILE, Object.class));
+    mockGetPreferences(preferencesPreferencesDto);
 
     final PreferencesResponseApiDto response = getPreferences();
     assertThat(response).isNotNull();
@@ -46,8 +46,8 @@ class GetPreferencesIntegrationTest extends PreferencesMocks {
 
   @Test
   void thatPreferencesCanNotBeRetrieved() throws Exception {
-    final ProblemPortalPrefsDto problemResponse =
-        new ProblemPortalPrefsDto()
+    final ProblemPreferencesDto problemResponse =
+        new ProblemPreferencesDto()
             .title("Unauthorized")
             .status(HttpStatus.UNAUTHORIZED.value())
             .detail("Unauthorized error detail")

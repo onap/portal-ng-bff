@@ -14,7 +14,7 @@ dependencies {
 openApiGenerate {
     generatorName = "java"
     library = "webclient"
-    inputSpec = "${project.projectDir}/src/portal_history_openapi.yaml"
+    inputSpec = "${project.projectDir}/src/api.yaml"
     outputDir = "${project.buildDir}/openapi"
     configOptions = [
       openApiNullable     : "false",
@@ -29,10 +29,10 @@ openApiGenerate {
     generateApiDocumentation = false
     generateModelTests = false
     generateModelDocumentation = false
-    invokerPackage = "org.onap.portalng.bff.openapi.client_portal_history"
-    apiPackage = "org.onap.portalng.bff.openapi.client_portal_history.api"
-    modelPackage = "org.onap.portalng.bff.openapi.client_portal_history.model"
-    modelNameSuffix = "PortalHistoryDto"
+    invokerPackage = "org.onap.portalng.bff.openapi.client_keycloak"
+    apiPackage = "org.onap.portalng.bff.openapi.client_keycloak.api"
+    modelPackage = "org.onap.portalng.bff.openapi.client_keycloak.model"
+    modelNameSuffix = "KeycloakDto"
 }
 
 compileJava {

@@ -25,7 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.OffsetDateTime;
 import org.junit.jupiter.api.Test;
-import org.onap.portalng.bff.openapi.client_portal_history.model.ActionsListResponsePortalHistoryDto;
+import org.onap.portalng.bff.openapi.client_history.model.ActionsListResponseHistoryDto;
 import org.onap.portalng.bff.openapi.server.model.ActionsListResponseApiDto;
 
 class GetActionsIntegrationTest extends ActionsMocks {
@@ -36,22 +36,21 @@ class GetActionsIntegrationTest extends ActionsMocks {
     Integer showLastHours = 2;
     String userId = "22-33-44-55";
     OffsetDateTime createdAt = OffsetDateTime.now();
-    ActionsListResponsePortalHistoryDto actionsListResponsePortalHistoryDto =
+    ActionsListResponseHistoryDto actionsListResponseHistoryDto =
         ActionFixtures.generateActionsListResponse(numberOfActions, 30, createdAt);
 
-    mockGetActions(actionsListResponsePortalHistoryDto, userId, showLastHours);
+    mockGetActions(actionsListResponseHistoryDto, userId, showLastHours);
 
     final ActionsListResponseApiDto response = getActions(userId);
 
     assertThat(response.getTotalCount()).isEqualTo(30);
     assertThat(response.getItems()).hasSize(numberOfActions);
     assertThat(response.getItems().get(0).getActionCreatedAt())
-        .isEqualTo(
-            actionsListResponsePortalHistoryDto.getActionsList().get(0).getActionCreatedAt());
+        .isEqualTo(actionsListResponseHistoryDto.getActionsList().get(0).getActionCreatedAt());
     assertThat(objectMapper.writeValueAsString(response.getItems().get(0).getAction()))
         .isEqualTo(
             objectMapper.writeValueAsString(
-                actionsListResponsePortalHistoryDto.getActionsList().get(0).getAction()));
+                actionsListResponseHistoryDto.getActionsList().get(0).getAction()));
   }
 
   @Test
@@ -59,21 +58,20 @@ class GetActionsIntegrationTest extends ActionsMocks {
     int numberOfActions = 10;
     String userId = "22-33-44-55";
     OffsetDateTime createdAt = OffsetDateTime.now();
-    ActionsListResponsePortalHistoryDto actionsListResponsePortalHistoryDto =
+    ActionsListResponseHistoryDto actionsListResponseHistoryDto =
         ActionFixtures.generateActionsListResponse(numberOfActions, 30, createdAt);
 
-    mockGetActionsWithoutParameterShowLastHours(actionsListResponsePortalHistoryDto, userId);
+    mockGetActionsWithoutParameterShowLastHours(actionsListResponseHistoryDto, userId);
 
     final ActionsListResponseApiDto response = getActionsWithoutParameterShowLastHours(userId);
 
     assertThat(response.getTotalCount()).isEqualTo(30);
     assertThat(response.getItems()).hasSize(numberOfActions);
     assertThat(response.getItems().get(0).getActionCreatedAt())
-        .isEqualTo(
-            actionsListResponsePortalHistoryDto.getActionsList().get(0).getActionCreatedAt());
+        .isEqualTo(actionsListResponseHistoryDto.getActionsList().get(0).getActionCreatedAt());
     assertThat(objectMapper.writeValueAsString(response.getItems().get(0).getAction()))
         .isEqualTo(
             objectMapper.writeValueAsString(
-                actionsListResponsePortalHistoryDto.getActionsList().get(0).getAction()));
+                actionsListResponseHistoryDto.getActionsList().get(0).getAction()));
   }
 }

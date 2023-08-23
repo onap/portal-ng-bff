@@ -23,8 +23,8 @@ package org.onap.portalng.bff.services;
 
 import lombok.RequiredArgsConstructor;
 import org.onap.portalng.bff.exceptions.DownstreamApiProblemException;
-import org.onap.portalng.bff.openapi.client_portal_prefs.api.PreferencesApi;
-import org.onap.portalng.bff.openapi.client_portal_prefs.model.PreferencesPortalPrefsDto;
+import org.onap.portalng.bff.openapi.client_preferences.api.PreferencesApi;
+import org.onap.portalng.bff.openapi.client_preferences.model.PreferencesPreferencesDto;
 import org.onap.portalng.bff.openapi.server.model.CreatePreferencesRequestApiDto;
 import org.onap.portalng.bff.openapi.server.model.PreferencesResponseApiDto;
 import org.onap.portalng.bff.utils.Logger;
@@ -36,17 +36,17 @@ import reactor.core.publisher.Mono;
 @Service
 public class PreferencesService {
 
-  private static final String PREFERENCES_APPLICATION_NAME = "PORTAL_PREFS";
+  private static final String PREFERENCES_APPLICATION_NAME = "PREFERENCES";
 
   private final PreferencesApi preferencesApi;
   private final ConfigurableConversionService conversionService;
 
   public Mono<PreferencesResponseApiDto> createPreferences(
       String xRequestId, CreatePreferencesRequestApiDto request) {
-    PreferencesPortalPrefsDto preferencesPortalPrefsDto = new PreferencesPortalPrefsDto();
-    preferencesPortalPrefsDto.setProperties(request.getProperties());
+    PreferencesPreferencesDto preferencesPreferencesDto = new PreferencesPreferencesDto();
+    preferencesPreferencesDto.setProperties(request.getProperties());
     return preferencesApi
-        .savePreferences(xRequestId, preferencesPortalPrefsDto)
+        .savePreferences(xRequestId, preferencesPreferencesDto)
         .map(resp -> conversionService.convert(resp, PreferencesResponseApiDto.class))
         .onErrorResume(
             DownstreamApiProblemException.class,
@@ -59,10 +59,10 @@ public class PreferencesService {
 
   public Mono<PreferencesResponseApiDto> updatePreferences(
       String xRequestId, CreatePreferencesRequestApiDto request) {
-    PreferencesPortalPrefsDto preferencesPortalPrefsDto = new PreferencesPortalPrefsDto();
-    preferencesPortalPrefsDto.setProperties(request.getProperties());
+    PreferencesPreferencesDto preferencesPreferencesDto = new PreferencesPreferencesDto();
+    preferencesPreferencesDto.setProperties(request.getProperties());
     return preferencesApi
-        .updatePreferences(xRequestId, preferencesPortalPrefsDto)
+        .updatePreferences(xRequestId, preferencesPreferencesDto)
         .map(resp -> conversionService.convert(resp, PreferencesResponseApiDto.class))
         .onErrorResume(
             DownstreamApiProblemException.class,

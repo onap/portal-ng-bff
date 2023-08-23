@@ -14,7 +14,7 @@ dependencies {
 openApiGenerate {
     generatorName = "java"
     library = "webclient"
-    inputSpec = "${project.projectDir}/src/portal_prefs_openapi.yaml"
+    inputSpec = "${project.projectDir}/src/api.yaml"
     outputDir = "${project.buildDir}/openapi"
     configOptions = [
       openApiNullable     : "false",
@@ -29,10 +29,10 @@ openApiGenerate {
     generateApiDocumentation = false
     generateModelTests = false
     generateModelDocumentation = false
-    invokerPackage = "org.onap.portalng.bff.openapi.client_portal_prefs"
-    apiPackage = "org.onap.portalng.bff.openapi.client_portal_prefs.api"
-    modelPackage = "org.onap.portalng.bff.openapi.client_portal_prefs.model"
-    modelNameSuffix = "PortalPrefsDto"
+    invokerPackage = "org.onap.portalng.bff.openapi.client_history"
+    apiPackage = "org.onap.portalng.bff.openapi.client_history.api"
+    modelPackage = "org.onap.portalng.bff.openapi.client_history.model"
+    modelNameSuffix = "HistoryDto"
 }
 
 compileJava {

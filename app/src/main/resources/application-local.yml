@@ -24,10 +24,9 @@ management:
 
 bff:
   realm: ONAP
-  portal-prefs-url: http://localhost:9001
-  portal-history-url: http://localhost:9002
+  preferences-url: http://localhost:9001
+  history-url: http://localhost:9002
   keycloak-url: http://localhost:8080/
-  instance-id: PORTAL
 
 logging:
   level:

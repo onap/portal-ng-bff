@@ -23,27 +23,27 @@ package org.onap.portalng.bff.actions;
 
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
-import org.onap.portalng.bff.openapi.client_portal_history.model.ActionResponsePortalHistoryDto;
-import org.onap.portalng.bff.openapi.client_portal_history.model.ActionsListResponsePortalHistoryDto;
-import org.onap.portalng.bff.openapi.client_portal_history.model.CreateActionRequestPortalHistoryDto;
+import org.onap.portalng.bff.openapi.client_history.model.ActionResponseHistoryDto;
+import org.onap.portalng.bff.openapi.client_history.model.ActionsListResponseHistoryDto;
+import org.onap.portalng.bff.openapi.client_history.model.CreateActionRequestHistoryDto;
 import org.onap.portalng.bff.openapi.server.model.CreateActionRequestApiDto;
 
 public class ActionFixtures {
 
-  public static ActionsListResponsePortalHistoryDto generateActionsListResponse(
+  public static ActionsListResponseHistoryDto generateActionsListResponse(
       Integer numberOfActions, Integer totalCount, OffsetDateTime createdAt) {
-    ActionsListResponsePortalHistoryDto actionsListResponsePortalHistoryDto =
-        new ActionsListResponsePortalHistoryDto();
+    ActionsListResponseHistoryDto actionsListResponseHistoryDto =
+        new ActionsListResponseHistoryDto();
     for (Integer i = 0; i < numberOfActions; i++) {
-      actionsListResponsePortalHistoryDto.addActionsListItem(
+      actionsListResponseHistoryDto.addActionsListItem(
           generateActionResponse(
               "Instantiation", "create", null, i.toString(), "SO", i, createdAt));
     }
-    actionsListResponsePortalHistoryDto.setTotalCount(totalCount);
-    return actionsListResponsePortalHistoryDto;
+    actionsListResponseHistoryDto.setTotalCount(totalCount);
+    return actionsListResponseHistoryDto;
   }
 
-  public static ActionResponsePortalHistoryDto generateActionResponse(
+  public static ActionResponseHistoryDto generateActionResponse(
       String type,
       String action,
       String message,
@@ -58,12 +58,12 @@ public class ActionFixtures {
     actionDto.setDownStreamSystem(downStreamSystem);
     actionDto.setDownStreamId(id);
 
-    return new ActionResponsePortalHistoryDto()
+    return new ActionResponseHistoryDto()
         .action(actionDto)
         .actionCreatedAt(createdAt.minus(deltaHours, ChronoUnit.HOURS));
   }
 
-  public static CreateActionRequestPortalHistoryDto generateActionRequestPortalHistoryDto(
+  public static CreateActionRequestHistoryDto generateActionRequestHistoryDto(
       String type,
       String action,
       String message,
@@ -77,7 +77,7 @@ public class ActionFixtures {
     actionDto.setMessage(message);
     actionDto.setDownStreamSystem(downStreamSystem);
     actionDto.setDownStreamId(id);
-    return new CreateActionRequestPortalHistoryDto()
+    return new CreateActionRequestHistoryDto()
         .action(actionDto)
         .actionCreatedAt(createdAt)
         .userId(userId);

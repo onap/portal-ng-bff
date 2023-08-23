@@ -42,9 +42,8 @@ import reactor.core.publisher.Mono;
 public class BffConfig {
 
   @NotBlank private final String realm;
-  @NotBlank private final String portalServiceUrl;
-  @NotBlank private final String portalPrefsUrl;
-  @NotBlank private final String portalHistoryUrl;
+  @NotBlank private final String preferencesUrl;
+  @NotBlank private final String historyUrl;
   @NotBlank private final String keycloakUrl;
 
   @NotNull private final Map<String, List<String>> accessControl;

@@ -13,9 +13,9 @@ version rootProject.file('version').text.trim()
 
 dependencies {
     implementation project(':openapi:server')
-    implementation project(':openapi:client-portal-prefs')
-    implementation project(':openapi:client-portal-history')
-    implementation project(':openapi:client-portal-keycloak')
+    implementation project(':openapi:client-preferences')
+    implementation project(':openapi:client-history')
+    implementation project(':openapi:client-keycloak')
 
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
@@ -50,9 +50,9 @@ shadowJar {
     archiveBaseName.set('bff')
     dependencies {
         include(project(':openapi:server'))
-        include(project(':openapi:client-portal-history'))
-        include(project(':openapi:client-portal-prefs'))
-        include(project(':openapi:client-portal-keycloak'))
+        include(project(':openapi:client-history'))
+        include(project(':openapi:client-preferences'))
+        include(project(':openapi:client-keycloak'))
     }
 }
 

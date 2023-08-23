@@ -24,14 +24,14 @@ package org.onap.portalng.bff.mappers;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.onap.portalng.bff.config.MapperSpringConfig;
-import org.onap.portalng.bff.openapi.client_portal_prefs.model.PreferencesPortalPrefsDto;
+import org.onap.portalng.bff.openapi.client_preferences.model.PreferencesPreferencesDto;
 import org.onap.portalng.bff.openapi.server.model.PreferencesResponseApiDto;
 import org.springframework.core.convert.converter.Converter;
 
 @Mapper(config = MapperSpringConfig.class)
 public interface PreferencesMapper
-    extends Converter<PreferencesPortalPrefsDto, PreferencesResponseApiDto> {
+    extends Converter<PreferencesPreferencesDto, PreferencesResponseApiDto> {
 
   @Mapping(source = "properties", target = "properties")
-  PreferencesResponseApiDto convert(PreferencesPortalPrefsDto source);
+  PreferencesResponseApiDto convert(PreferencesPreferencesDto source);
 }
