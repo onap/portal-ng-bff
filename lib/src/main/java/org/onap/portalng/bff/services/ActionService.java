@@ -23,8 +23,8 @@ package org.onap.portalng.bff.services;
 
 import lombok.RequiredArgsConstructor;
 import org.onap.portalng.bff.exceptions.DownstreamApiProblemException;
-import org.onap.portalng.bff.openapi.client_portal_history.api.ActionsApi;
-import org.onap.portalng.bff.openapi.client_portal_history.model.CreateActionRequestPortalHistoryDto;
+import org.onap.portalng.bff.openapi.client_history.api.ActionsApi;
+import org.onap.portalng.bff.openapi.client_history.model.CreateActionRequestHistoryDto;
 import org.onap.portalng.bff.openapi.server.model.ActionsListResponseApiDto;
 import org.onap.portalng.bff.openapi.server.model.ActionsResponseApiDto;
 import org.onap.portalng.bff.openapi.server.model.CreateActionRequestApiDto;
@@ -43,15 +43,15 @@ public class ActionService {
   public Mono<ActionsResponseApiDto> createAction(
       String userId, String xRequestId, CreateActionRequestApiDto createActionRequestApiDto) {
     // First map from server API model to client API model
-    CreateActionRequestPortalHistoryDto createActionRequestPortalHistoryDto =
-        new CreateActionRequestPortalHistoryDto();
-    createActionRequestPortalHistoryDto.setUserId(createActionRequestApiDto.getUserId());
-    createActionRequestPortalHistoryDto.setAction(createActionRequestApiDto.getAction());
-    createActionRequestPortalHistoryDto.setActionCreatedAt(
+    CreateActionRequestHistoryDto createActionRequestHistoryDto =
+        new CreateActionRequestHistoryDto();
+    createActionRequestHistoryDto.setUserId(createActionRequestApiDto.getUserId());
+    createActionRequestHistoryDto.setAction(createActionRequestApiDto.getAction());
+    createActionRequestHistoryDto.setActionCreatedAt(
         createActionRequestApiDto.getActionCreatedAt());
 
     return actionsApi
-        .createAction(userId, xRequestId, createActionRequestPortalHistoryDto)
+        .createAction(userId, xRequestId, createActionRequestHistoryDto)
         .map(
             action ->
                 new ActionsResponseApiDto()

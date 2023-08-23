@@ -28,7 +28,6 @@ spring:
 
 bff:
   realm: ONAP
-  portal-prefs-url: http://localhost:${wiremock.server.port}
-  portal-history-url: http://localhost:${wiremock.server.port}
+  preferences-url: http://localhost:${wiremock.server.port}
+  history-url: http://localhost:${wiremock.server.port}
   keycloak-url: http://localhost:${wiremock.server.port}
-  instance-id: PORTAL

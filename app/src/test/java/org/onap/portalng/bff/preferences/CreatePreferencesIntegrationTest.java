@@ -25,8 +25,8 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 import io.restassured.http.Header;
 import org.junit.jupiter.api.Test;
-import org.onap.portalng.bff.openapi.client_portal_prefs.model.PreferencesPortalPrefsDto;
-import org.onap.portalng.bff.openapi.client_portal_prefs.model.ProblemPortalPrefsDto;
+import org.onap.portalng.bff.openapi.client_preferences.model.PreferencesPreferencesDto;
+import org.onap.portalng.bff.openapi.client_preferences.model.ProblemPreferencesDto;
 import org.onap.portalng.bff.openapi.server.model.CreatePreferencesRequestApiDto;
 import org.onap.portalng.bff.openapi.server.model.PreferencesResponseApiDto;
 import org.onap.portalng.bff.openapi.server.model.ProblemApiDto;
@@ -36,8 +36,8 @@ import org.springframework.http.MediaType;
 class CreatePreferencesIntegrationTest extends PreferencesMocks {
   @Test
   void thatPreferencesCanBeCreated() throws Exception {
-    PreferencesPortalPrefsDto preferencesPortalPrefsDto = new PreferencesPortalPrefsDto();
-    preferencesPortalPrefsDto.setProperties(
+    PreferencesPreferencesDto preferencesPreferencesDto = new PreferencesPreferencesDto();
+    preferencesPreferencesDto.setProperties(
         "{\n"
             + "\"properties\": {\n"
             + "\"appStarter\": \"value1\",\n"
@@ -45,7 +45,7 @@ class CreatePreferencesIntegrationTest extends PreferencesMocks {
             + "}\n"
             + "\n"
             + "}");
-    mockCreatePreferences(preferencesPortalPrefsDto);
+    mockCreatePreferences(preferencesPreferencesDto);
 
     final CreatePreferencesRequestApiDto request =
         new CreatePreferencesRequestApiDto()
@@ -59,18 +59,18 @@ class CreatePreferencesIntegrationTest extends PreferencesMocks {
                     + "}");
     final PreferencesResponseApiDto response = createPreferences(request);
     assertThat(response).isNotNull();
-    assertThat(response.getProperties()).isEqualTo(preferencesPortalPrefsDto.getProperties());
+    assertThat(response.getProperties()).isEqualTo(preferencesPreferencesDto.getProperties());
   }
 
   @Test
   void thatPreferencesCanNotBeCreated() throws Exception {
-    final var problemPortalPrefsDto = new ProblemPortalPrefsDto();
-    problemPortalPrefsDto.setStatus(HttpStatus.BAD_REQUEST.value());
-    problemPortalPrefsDto.setTitle(HttpStatus.BAD_REQUEST.toString());
-    problemPortalPrefsDto.setDetail("Some details");
+    final var problemPreferencesDto = new ProblemPreferencesDto();
+    problemPreferencesDto.setStatus(HttpStatus.BAD_REQUEST.value());
+    problemPreferencesDto.setTitle(HttpStatus.BAD_REQUEST.toString());
+    problemPreferencesDto.setDetail("Some details");
 
-    final PreferencesPortalPrefsDto preferencesPortalPrefsDto =
-        new PreferencesPortalPrefsDto()
+    final PreferencesPreferencesDto preferencesPreferencesDto =
+        new PreferencesPreferencesDto()
             .properties(
                 "{\n"
                     + "\"properties\": {\n"
@@ -79,7 +79,7 @@ class CreatePreferencesIntegrationTest extends PreferencesMocks {
                     + "}\n"
                     + "\n"
                     + "}");
-    mockCreatePreferencesError(preferencesPortalPrefsDto, problemPortalPrefsDto);
+    mockCreatePreferencesError(preferencesPreferencesDto, problemPreferencesDto);
 
     CreatePreferencesRequestApiDto responseBody =
         new CreatePreferencesRequestApiDto()
@@ -107,9 +107,9 @@ class CreatePreferencesIntegrationTest extends PreferencesMocks {
             .as(ProblemApiDto.class);
 
     assertThat(response.getStatus()).isEqualTo(HttpStatus.BAD_GATEWAY.value());
-    assertThat(response.getDetail()).isEqualTo(problemPortalPrefsDto.getDetail());
+    assertThat(response.getDetail()).isEqualTo(problemPreferencesDto.getDetail());
     assertThat(response.getDownstreamSystem())
-        .isEqualTo(ProblemApiDto.DownstreamSystemEnum.PORTAL_PREFS);
+        .isEqualTo(ProblemApiDto.DownstreamSystemEnum.PREFERENCES);
     assertThat(response.getDownstreamStatus()).isEqualTo(HttpStatus.BAD_REQUEST.value());
   }
 }

@@ -30,9 +30,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.onap.portalng.bff.config.BeansConfig;
 import org.onap.portalng.bff.config.BffConfig;
 import org.onap.portalng.bff.exceptions.DownstreamApiProblemException;
-import org.onap.portalng.bff.openapi.client_portal_prefs.ApiClient;
-import org.onap.portalng.bff.openapi.client_portal_prefs.api.PreferencesApi;
-import org.onap.portalng.bff.openapi.client_portal_prefs.model.ProblemPortalPrefsDto;
+import org.onap.portalng.bff.openapi.client_history.ApiClient;
+import org.onap.portalng.bff.openapi.client_history.api.ActionsApi;
+import org.onap.portalng.bff.openapi.client_history.model.ProblemHistoryDto;
 import org.onap.portalng.bff.openapi.server.model.ProblemApiDto;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
@@ -43,25 +43,25 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 @Slf4j
 @Configuration
-public class PortalPrefsConfig extends AbstractClientConfig<ProblemPortalPrefsDto> {
+public class HistoryConfig extends AbstractClientConfig<ProblemHistoryDto> {
   private final ObjectMapper objectMapper;
   private final BffConfig bffConfig;
   private final ExchangeFilterFunction oauth2ExchangeFilterFunction;
 
-  public PortalPrefsConfig(
+  public HistoryConfig(
       @Qualifier(BeansConfig.OAUTH2_EXCHANGE_FILTER_FUNCTION)
           ExchangeFilterFunction oauth2ExchangeFilterFunction,
       ObjectMapper objectMapper,
       BffConfig bffConfig) {
-    super(ProblemPortalPrefsDto.class);
+    super(ProblemHistoryDto.class);
     this.objectMapper = objectMapper;
     this.bffConfig = bffConfig;
     this.oauth2ExchangeFilterFunction = oauth2ExchangeFilterFunction;
   }
 
   @Bean
-  public PreferencesApi portalPrefsApi(WebClient.Builder webClientBuilder) {
-    return constructApiClient(webClientBuilder, PreferencesApi::new);
+  public ActionsApi portalHistoryActionApi(WebClient.Builder webClientBuilder) {
+    return constructApiClient(webClientBuilder, ActionsApi::new);
   }
 
   private <T> T constructApiClient(
@@ -71,11 +71,10 @@ public class PortalPrefsConfig extends AbstractClientConfig<ProblemPortalPrefsDt
             getWebClient(webClientBuilder, List.of(oauth2ExchangeFilterFunction)),
             objectMapper,
             objectMapper.getDateFormat());
-
     final String generatedBasePath = apiClient.getBasePath();
     String basePath = "";
     try {
-      basePath = bffConfig.getPortalPrefsUrl() + new URL(generatedBasePath).getPath();
+      basePath = bffConfig.getHistoryUrl() + new URL(generatedBasePath).getPath();
     } catch (MalformedURLException e) {
       log.error(e.getLocalizedMessage());
     }
@@ -84,12 +83,12 @@ public class PortalPrefsConfig extends AbstractClientConfig<ProblemPortalPrefsDt
 
   @Override
   protected DownstreamApiProblemException mapException(
-      ProblemPortalPrefsDto errorResponse, HttpStatusCode httpStatusCode) {
+      ProblemHistoryDto errorResponse, HttpStatusCode httpStatusCode) {
     return DownstreamApiProblemException.builder()
         .title(httpStatusCode.toString())
         .detail(errorResponse.getDetail())
         .downstreamMessageId(errorResponse.getType())
-        .downstreamSystem(ProblemApiDto.DownstreamSystemEnum.PORTAL_PREFS.toString())
+        .downstreamSystem(ProblemApiDto.DownstreamSystemEnum.PORTAL_HISTORY.toString())
         .downstreamStatus(httpStatusCode.value())
         .build();
   }

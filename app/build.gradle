@@ -19,15 +19,11 @@ configurations {
 	}
 }
 
-// repositories {
-// 	mavenCentral()
-// }
-
 dependencies {
 	implementation project(':openapi:server')
-    implementation project(':openapi:client-portal-history')
-    implementation project(':openapi:client-portal-prefs')
-    implementation project(':openapi:client-portal-keycloak')
+    implementation project(':openapi:client-history')
+    implementation project(':openapi:client-preferences')
+    implementation project(':openapi:client-keycloak')
 	implementation project(':lib')
 	
 	implementation 'org.springframework.boot:spring-boot-starter-webflux'

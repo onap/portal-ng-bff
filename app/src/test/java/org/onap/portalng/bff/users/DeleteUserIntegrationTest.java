@@ -27,7 +27,7 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import io.restassured.http.Header;
 import org.junit.jupiter.api.Test;
 import org.onap.portalng.bff.BaseIntegrationTest;
-import org.onap.portalng.bff.openapi.client_portal_keycloak.model.ErrorResponseKeycloakDto;
+import org.onap.portalng.bff.openapi.client_keycloak.model.ErrorResponseKeycloakDto;
 import org.onap.portalng.bff.openapi.server.model.ProblemApiDto;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;

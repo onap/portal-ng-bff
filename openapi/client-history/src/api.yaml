@@ -2,7 +2,7 @@ openapi: 3.0.2
 info:
   title: Config API
   version: '1.0'
-  description: API to provide actions for portal-history
+  description: API to provide actions for history
   contact:
     name: TNAP Team Tesla
     url: 'https://www.telekom.de'

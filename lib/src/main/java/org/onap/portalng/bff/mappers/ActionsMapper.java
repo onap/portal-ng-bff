@@ -24,14 +24,14 @@ package org.onap.portalng.bff.mappers;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.onap.portalng.bff.config.MapperSpringConfig;
-import org.onap.portalng.bff.openapi.client_portal_history.model.ActionsListResponsePortalHistoryDto;
+import org.onap.portalng.bff.openapi.client_history.model.ActionsListResponseHistoryDto;
 import org.onap.portalng.bff.openapi.server.model.ActionsListResponseApiDto;
 import org.springframework.core.convert.converter.Converter;
 
 @Mapper(config = MapperSpringConfig.class)
 public interface ActionsMapper
-    extends Converter<ActionsListResponsePortalHistoryDto, ActionsListResponseApiDto> {
+    extends Converter<ActionsListResponseHistoryDto, ActionsListResponseApiDto> {
 
   @Mapping(source = "actionsList", target = "items")
-  ActionsListResponseApiDto convert(ActionsListResponsePortalHistoryDto source);
+  ActionsListResponseApiDto convert(ActionsListResponseHistoryDto source);
 }

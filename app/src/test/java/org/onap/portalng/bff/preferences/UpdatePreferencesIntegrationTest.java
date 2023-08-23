@@ -25,8 +25,8 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 import io.restassured.http.Header;
 import org.junit.jupiter.api.Test;
-import org.onap.portalng.bff.openapi.client_portal_prefs.model.PreferencesPortalPrefsDto;
-import org.onap.portalng.bff.openapi.client_portal_prefs.model.ProblemPortalPrefsDto;
+import org.onap.portalng.bff.openapi.client_preferences.model.PreferencesPreferencesDto;
+import org.onap.portalng.bff.openapi.client_preferences.model.ProblemPreferencesDto;
 import org.onap.portalng.bff.openapi.server.model.CreatePreferencesRequestApiDto;
 import org.onap.portalng.bff.openapi.server.model.PreferencesResponseApiDto;
 import org.onap.portalng.bff.openapi.server.model.ProblemApiDto;
@@ -36,8 +36,8 @@ import org.springframework.http.MediaType;
 class UpdatePreferencesIntegrationTest extends PreferencesMocks {
   @Test
   void thatPreferencesCanBeUpdated() throws Exception {
-    PreferencesPortalPrefsDto preferencesPortalPrefsDto = new PreferencesPortalPrefsDto();
-    preferencesPortalPrefsDto.setProperties(
+    PreferencesPreferencesDto preferencesPreferencesDto = new PreferencesPreferencesDto();
+    preferencesPreferencesDto.setProperties(
         "{\n"
             + "\"properties\": {\n"
             + "\"appStarter\": \"value1\",\n"
@@ -45,7 +45,7 @@ class UpdatePreferencesIntegrationTest extends PreferencesMocks {
             + "}\n"
             + "\n"
             + "}");
-    mockUpdatePreferences(preferencesPortalPrefsDto);
+    mockUpdatePreferences(preferencesPreferencesDto);
 
     final CreatePreferencesRequestApiDto requestApiDto =
         new CreatePreferencesRequestApiDto()
@@ -59,18 +59,18 @@ class UpdatePreferencesIntegrationTest extends PreferencesMocks {
                     + "}");
     final PreferencesResponseApiDto response = updatePreferences(requestApiDto);
     assertThat(response).isNotNull();
-    assertThat(response.getProperties()).isEqualTo(preferencesPortalPrefsDto.getProperties());
+    assertThat(response.getProperties()).isEqualTo(preferencesPreferencesDto.getProperties());
   }
 
   @Test
   void thatPreferencesCanNotBeUpdated() throws Exception {
-    final var problemPortalPrefsDto = new ProblemPortalPrefsDto();
-    problemPortalPrefsDto.setStatus(HttpStatus.BAD_REQUEST.value());
-    problemPortalPrefsDto.setTitle(HttpStatus.BAD_REQUEST.toString());
-    problemPortalPrefsDto.setDetail("Some details");
+    final var problemPreferencesDto = new ProblemPreferencesDto();
+    problemPreferencesDto.setStatus(HttpStatus.BAD_REQUEST.value());
+    problemPreferencesDto.setTitle(HttpStatus.BAD_REQUEST.toString());
+    problemPreferencesDto.setDetail("Some details");
 
-    final PreferencesPortalPrefsDto preferencesPortalPrefsDto =
-        new PreferencesPortalPrefsDto()
+    final PreferencesPreferencesDto preferencesPreferencesDto =
+        new PreferencesPreferencesDto()
             .properties(
                 "{\n"
                     + "\"properties\": {\n"
@@ -79,7 +79,7 @@ class UpdatePreferencesIntegrationTest extends PreferencesMocks {
                     + "}\n"
                     + "\n"
                     + "}");
-    mockUpdatePreferencesError(preferencesPortalPrefsDto, problemPortalPrefsDto);
+    mockUpdatePreferencesError(preferencesPreferencesDto, problemPreferencesDto);
 
     CreatePreferencesRequestApiDto requestApiDto =
         new CreatePreferencesRequestApiDto()
@@ -108,7 +108,7 @@ class UpdatePreferencesIntegrationTest extends PreferencesMocks {
 
     assertThat(response.getStatus()).isEqualTo(HttpStatus.BAD_GATEWAY.value());
     assertThat(response.getDownstreamSystem())
-        .isEqualTo(ProblemApiDto.DownstreamSystemEnum.PORTAL_PREFS);
+        .isEqualTo(ProblemApiDto.DownstreamSystemEnum.PREFERENCES);
     assertThat(response.getDownstreamStatus()).isEqualTo(HttpStatus.BAD_REQUEST.value());
   }
 }

@@ -9,8 +9,6 @@ bff.access-control:
   PREFERENCES_GET: [onap_admin, onap_designer, onap_operator]
   PREFERENCES_UPDATE: [onap_admin, onap_designer, onap_operator]
   ROLE_LIST: ["*"]
-  TILE_GET: [onap_admin, onap_designer, onap_operator]
-  TILE_LIST: [onap_admin, onap_designer, onap_operator]
   USER_CREATE: [onap_admin, onap_designer, onap_operator]
   USER_DELETE: [onap_admin, onap_designer, onap_operator]
   USER_GET: [onap_admin, onap_designer, onap_operator]

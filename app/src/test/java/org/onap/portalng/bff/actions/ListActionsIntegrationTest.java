@@ -26,8 +26,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.time.OffsetDateTime;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.onap.portalng.bff.openapi.client_portal_history.model.ActionsListResponsePortalHistoryDto;
-import org.onap.portalng.bff.openapi.client_portal_history.model.ProblemPortalHistoryDto;
+import org.onap.portalng.bff.openapi.client_history.model.ActionsListResponseHistoryDto;
+import org.onap.portalng.bff.openapi.client_history.model.ProblemHistoryDto;
 import org.onap.portalng.bff.openapi.server.model.ActionsListResponseApiDto;
 import org.onap.portalng.bff.openapi.server.model.ProblemApiDto;
 import org.springframework.http.HttpStatus;
@@ -38,41 +38,40 @@ class ListActionsIntegrationTest extends ActionsMocks {
   void thatActionsListCanBeRetrieved() throws Exception {
     int numberOfActions = 10;
     OffsetDateTime createdAt = OffsetDateTime.now();
-    ActionsListResponsePortalHistoryDto actionsListResponsePortalHistoryDto =
+    ActionsListResponseHistoryDto actionsListResponseHistoryDto =
         ActionFixtures.generateActionsListResponse(numberOfActions, 1000, createdAt);
 
-    mockListActions(actionsListResponsePortalHistoryDto);
+    mockListActions(actionsListResponseHistoryDto);
 
     final ActionsListResponseApiDto response = listActions();
 
     assertThat(response.getTotalCount()).isEqualTo(1000);
     assertThat(response.getItems()).hasSize(numberOfActions);
     assertThat(response.getItems().get(0).getActionCreatedAt())
-        .isEqualTo(
-            actionsListResponsePortalHistoryDto.getActionsList().get(0).getActionCreatedAt());
+        .isEqualTo(actionsListResponseHistoryDto.getActionsList().get(0).getActionCreatedAt());
     Assertions.assertThat(objectMapper.writeValueAsString(response.getItems().get(0).getAction()))
         .isEqualTo(
             objectMapper.writeValueAsString(
-                actionsListResponsePortalHistoryDto.getActionsList().get(0).getAction()));
+                actionsListResponseHistoryDto.getActionsList().get(0).getAction()));
   }
 
   @Test
   void thatActionsListCanNotBeRetrieved() throws Exception {
 
-    ProblemPortalHistoryDto problemPortalHistoryDto =
-        new ProblemPortalHistoryDto()
+    ProblemHistoryDto problemHistoryDto =
+        new ProblemHistoryDto()
             .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
             .detail("Internal database error")
             .title("Internal Server Error")
-            .instance("portal-history");
+            .instance("history");
 
-    mockListActionsProblem(problemPortalHistoryDto);
+    mockListActionsProblem(problemHistoryDto);
 
     final ProblemApiDto response = listActionsProblem();
 
     assertThat(response.getDownstreamSystem())
         .isEqualTo(ProblemApiDto.DownstreamSystemEnum.PORTAL_HISTORY);
     assertThat(response.getDownstreamStatus()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR.value());
-    assertThat(response.getDetail()).isEqualTo(problemPortalHistoryDto.getDetail());
+    assertThat(response.getDetail()).isEqualTo(problemHistoryDto.getDetail());
   }
 }

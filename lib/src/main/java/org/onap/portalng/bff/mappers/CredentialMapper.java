@@ -24,7 +24,7 @@ package org.onap.portalng.bff.mappers;
 import org.mapstruct.Mapper;
 import org.mapstruct.ReportingPolicy;
 import org.onap.portalng.bff.config.MapperSpringConfig;
-import org.onap.portalng.bff.openapi.client_portal_keycloak.model.CredentialKeycloakDto;
+import org.onap.portalng.bff.openapi.client_keycloak.model.CredentialKeycloakDto;
 import org.onap.portalng.bff.openapi.server.model.UpdateUserPasswordRequestApiDto;
 
 @Mapper(config = MapperSpringConfig.class, unmappedTargetPolicy = ReportingPolicy.IGNORE)

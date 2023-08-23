@@ -26,8 +26,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.time.OffsetDateTime;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.onap.portalng.bff.openapi.client_portal_history.model.ActionResponsePortalHistoryDto;
-import org.onap.portalng.bff.openapi.client_portal_history.model.ProblemPortalHistoryDto;
+import org.onap.portalng.bff.openapi.client_history.model.ActionResponseHistoryDto;
+import org.onap.portalng.bff.openapi.client_history.model.ProblemHistoryDto;
 import org.onap.portalng.bff.openapi.server.model.ActionsResponseApiDto;
 import org.onap.portalng.bff.openapi.server.model.CreateActionRequestApiDto;
 import org.onap.portalng.bff.openapi.server.model.ProblemApiDto;
@@ -39,21 +39,21 @@ class CreateActionsIntegrationTest extends ActionsMocks {
   void thatActionCanBeCreated() throws Exception {
     String userId = "22-33-44-55";
     OffsetDateTime createdAt = OffsetDateTime.now();
-    ActionResponsePortalHistoryDto actionResponsePortalHistoryDto =
+    ActionResponseHistoryDto actionResponseHistoryDto =
         ActionFixtures.generateActionResponse(
             "Instantiation", "create", "no detail message", "223344", "SO", 0, createdAt);
     CreateActionRequestApiDto createActionDto =
         ActionFixtures.generateCreateActionRequestApiDto(
             "Instantiation", "create", "no detail message", "223344", "SO", userId, createdAt);
 
-    mockCreateActions(userId, actionResponsePortalHistoryDto);
+    mockCreateActions(userId, actionResponseHistoryDto);
 
     final ActionsResponseApiDto response = createAction(createActionDto, userId);
 
     assertThat(response.getActionCreatedAt())
-        .isEqualTo(actionResponsePortalHistoryDto.getActionCreatedAt());
+        .isEqualTo(actionResponseHistoryDto.getActionCreatedAt());
     Assertions.assertThat(objectMapper.writeValueAsString(response.getAction()))
-        .isEqualTo(objectMapper.writeValueAsString(actionResponsePortalHistoryDto.getAction()));
+        .isEqualTo(objectMapper.writeValueAsString(actionResponseHistoryDto.getAction()));
   }
 
   @Test
@@ -61,18 +61,18 @@ class CreateActionsIntegrationTest extends ActionsMocks {
     String userId = "22-33-44-55";
     OffsetDateTime createdAt = OffsetDateTime.now();
 
-    ProblemPortalHistoryDto problemPortalHistoryDto =
-        new ProblemPortalHistoryDto()
+    ProblemHistoryDto problemHistoryDto =
+        new ProblemHistoryDto()
             .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
             .detail("Internal database error")
             .title("Internal Server Error")
-            .instance("portal-history");
+            .instance("history");
 
     CreateActionRequestApiDto createActionDto =
         ActionFixtures.generateCreateActionRequestApiDto(
             "Instantiation", "create", "no detail message", "223344", "SO", userId, createdAt);
 
-    mockCreateActionsProblem(userId, problemPortalHistoryDto);
+    mockCreateActionsProblem(userId, problemHistoryDto);
 
     final ProblemApiDto response = createActionProblem(createActionDto, userId);
 
@@ -80,6 +80,6 @@ class CreateActionsIntegrationTest extends ActionsMocks {
         .isEqualTo(ProblemApiDto.DownstreamSystemEnum.PORTAL_HISTORY);
 
     assertThat(response.getDownstreamStatus()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR.value());
-    assertThat(response.getDetail()).isEqualTo(problemPortalHistoryDto.getDetail());
+    assertThat(response.getDetail()).isEqualTo(problemHistoryDto.getDetail());
   }
 }

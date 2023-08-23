@@ -5,15 +5,11 @@ plugins {
 
 dependencies {
   implementation project('server')
-  implementation project('client-portal-history')
-  implementation project('client-portal-keycloak')
-  implementation project('client-portal-prefs')
+  implementation project('client-history')
+  implementation project('client-keycloak')
+  implementation project('client-preferences')
 }
+
 ext {
   openapiVersion = '7.0.0-beta'
-}
-subprojects {
-  repositories {
-    mavenCentral()
-  }
 }
