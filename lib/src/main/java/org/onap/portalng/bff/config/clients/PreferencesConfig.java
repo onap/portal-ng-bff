@@ -60,7 +60,7 @@ public class PreferencesConfig extends AbstractClientConfig<ProblemPreferencesDt
   }
 
   @Bean
-  public PreferencesApi portalPrefsApi(WebClient.Builder webClientBuilder) {
+  public PreferencesApi preferencesApi(WebClient.Builder webClientBuilder) {
     return constructApiClient(webClientBuilder, PreferencesApi::new);
   }
 
