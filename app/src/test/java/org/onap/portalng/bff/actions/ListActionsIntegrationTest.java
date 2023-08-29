@@ -70,7 +70,7 @@ class ListActionsIntegrationTest extends ActionsMocks {
     final ProblemApiDto response = listActionsProblem();
 
     assertThat(response.getDownstreamSystem())
-        .isEqualTo(ProblemApiDto.DownstreamSystemEnum.PORTAL_HISTORY);
+        .isEqualTo(ProblemApiDto.DownstreamSystemEnum.HISTORY);
     assertThat(response.getDownstreamStatus()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR.value());
     assertThat(response.getDetail()).isEqualTo(problemHistoryDto.getDetail());
   }

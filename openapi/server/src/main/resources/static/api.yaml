@@ -733,9 +733,8 @@ components:
           description: The downstream system that responded with error
           enum:
             - KEYCLOAK
-            - PORTAL_SERVICE
             - PREFERENCES
-            - PORTAL_HISTORY
+            - HISTORY
         downstreamStatus:
           type: integer
           format: int32

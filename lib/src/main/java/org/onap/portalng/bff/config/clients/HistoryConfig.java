@@ -60,7 +60,7 @@ public class HistoryConfig extends AbstractClientConfig<ProblemHistoryDto> {
   }
 
   @Bean
-  public ActionsApi portalHistoryActionApi(WebClient.Builder webClientBuilder) {
+  public ActionsApi historyActionApi(WebClient.Builder webClientBuilder) {
     return constructApiClient(webClientBuilder, ActionsApi::new);
   }
 
@@ -88,7 +88,7 @@ public class HistoryConfig extends AbstractClientConfig<ProblemHistoryDto> {
         .title(httpStatusCode.toString())
         .detail(errorResponse.getDetail())
         .downstreamMessageId(errorResponse.getType())
-        .downstreamSystem(ProblemApiDto.DownstreamSystemEnum.PORTAL_HISTORY.toString())
+        .downstreamSystem(ProblemApiDto.DownstreamSystemEnum.HISTORY.toString())
         .downstreamStatus(httpStatusCode.value())
         .build();
   }

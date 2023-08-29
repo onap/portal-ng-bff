@@ -64,7 +64,7 @@ public class ActionService {
                   xRequestId,
                   "Create actions failed for userId",
                   userId,
-                  ProblemApiDto.DownstreamSystemEnum.PORTAL_HISTORY.toString());
+                  ProblemApiDto.DownstreamSystemEnum.HISTORY.toString());
               return Mono.error(ex);
             });
   }
@@ -82,7 +82,7 @@ public class ActionService {
                   xRequestId,
                   "Get actions failed for userId",
                   userId,
-                  ProblemApiDto.DownstreamSystemEnum.PORTAL_HISTORY.toString());
+                  ProblemApiDto.DownstreamSystemEnum.HISTORY.toString());
               return Mono.error(ex);
             });
   }
@@ -101,7 +101,7 @@ public class ActionService {
                   xRequestId,
                   "List actions failed",
                   null,
-                  ProblemApiDto.DownstreamSystemEnum.PORTAL_HISTORY.toString());
+                  ProblemApiDto.DownstreamSystemEnum.HISTORY.toString());
               return Mono.error(ex);
             });
   }
@@ -118,7 +118,7 @@ public class ActionService {
                       + deleteAfterHours
                       + " hours",
                   userId,
-                  ProblemApiDto.DownstreamSystemEnum.PORTAL_HISTORY.toString());
+                  ProblemApiDto.DownstreamSystemEnum.HISTORY.toString());
               return Mono.error(ex);
             });
   }
