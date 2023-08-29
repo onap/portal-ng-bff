@@ -167,7 +167,7 @@
       } ],
       "disableableCredentialTypes" : [ ],
       "requiredActions" : [ ],
-      "realmRoles" : [ "default-roles-onap", "onap_admin" ],
+      "realmRoles" : [ "default-roles-onap", "portal_admin" ],
       "notBefore" : 0,
       "groups" : [ ]
     }, {
@@ -182,7 +182,7 @@
       "credentials" : [ ],
       "disableableCredentialTypes" : [ ],
       "requiredActions" : [ ],
-      "realmRoles" : [ "default-roles-onap", "onap_designer" ],
+      "realmRoles" : [ "default-roles-onap", "portal_designer" ],
       "notBefore" : 0,
       "groups" : [ ]
     }, {
@@ -197,7 +197,7 @@
       "credentials" : [ ],
       "disableableCredentialTypes" : [ ],
       "requiredActions" : [ ],
-      "realmRoles" : [ "default-roles-onap", "onap_operator" ],
+      "realmRoles" : [ "default-roles-onap", "portal_operator" ],
       "notBefore" : 0,
       "groups" : [ ]
     }, {

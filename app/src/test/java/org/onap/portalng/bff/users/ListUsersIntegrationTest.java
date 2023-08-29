@@ -41,7 +41,7 @@ import org.springframework.http.MediaType;
 
 class ListUsersIntegrationTest extends BaseIntegrationTest {
   private final RoleKeycloakDto ONAP_ADMIN =
-      new RoleKeycloakDto().id(randomUUID()).name("onap_admin");
+      new RoleKeycloakDto().id(randomUUID()).name("portal_admin");
   private final RoleKeycloakDto OFFLINE_ACCESS =
       new RoleKeycloakDto().id(randomUUID()).name("offline_access");
 
@@ -79,7 +79,7 @@ class ListUsersIntegrationTest extends BaseIntegrationTest {
             .firstName("FirstName4t-admin")
             .lastName("LastName4t-admin")
             .enabled(true)
-            .addRealmRolesItem("onap_admin")
+            .addRealmRolesItem("portal_admin")
             .addRealmRolesItem("offline_access");
     final UserResponseApiDto expectedTDesigner =
         new UserResponseApiDto()

@@ -67,7 +67,7 @@ class CreateUserIntegrationTest extends BaseIntegrationTest {
             .enabled(keycloakRequest.getEnabled());
     mockGetUser(userId, keycloakResponse);
 
-    final RoleKeycloakDto onapAdmin = new RoleKeycloakDto().id(randomUUID()).name("onap_admin");
+    final RoleKeycloakDto onapAdmin = new RoleKeycloakDto().id(randomUUID()).name("portal_admin");
     mockAddRoles(userId, List.of(onapAdmin));
     mockAssignedRoles(userId, List.of(onapAdmin));
     mockListRealmRoles(List.of(onapAdmin));
@@ -92,7 +92,7 @@ class CreateUserIntegrationTest extends BaseIntegrationTest {
             .firstName(null)
             .lastName(null)
             .enabled(true)
-            .addRolesItem(new RoleApiDto().id(onapAdmin.getId()).name("onap_admin"));
+            .addRolesItem(new RoleApiDto().id(onapAdmin.getId()).name("portal_admin"));
 
     final UserResponseApiDto response =
         requestSpecification()
@@ -116,7 +116,7 @@ class CreateUserIntegrationTest extends BaseIntegrationTest {
     assertThat(response.getFirstName()).isEqualTo(request.getFirstName());
     assertThat(response.getLastName()).isEqualTo(request.getLastName());
     assertThat(response.getEnabled()).isEqualTo(request.getEnabled());
-    assertThat(response.getRealmRoles()).containsExactly("onap_admin");
+    assertThat(response.getRealmRoles()).containsExactly("portal_admin");
   }
 
   @Test
@@ -140,7 +140,7 @@ class CreateUserIntegrationTest extends BaseIntegrationTest {
             .enabled(keycloakRequest.getEnabled());
     mockGetUser(userId, keycloakResponse);
 
-    final RoleKeycloakDto onapAdmin = new RoleKeycloakDto().id(randomUUID()).name("onap_admin");
+    final RoleKeycloakDto onapAdmin = new RoleKeycloakDto().id(randomUUID()).name("portal_admin");
     mockAddRoles(userId, List.of(onapAdmin));
     mockListRealmRoles(List.of(onapAdmin));
 
@@ -157,7 +157,7 @@ class CreateUserIntegrationTest extends BaseIntegrationTest {
             .firstName(null)
             .lastName(null)
             .enabled(true)
-            .addRolesItem(new RoleApiDto().id(onapAdmin.getId()).name("onap_admin"));
+            .addRolesItem(new RoleApiDto().id(onapAdmin.getId()).name("portal_admin"));
 
     final ProblemApiDto response =
         requestSpecification()
