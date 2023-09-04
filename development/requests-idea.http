@@ -1,4 +1,4 @@
-# To be used with IntelliJ. Use the requests-code.http with the REST Client Extension if you are using VSCode
+# To be used with IntelliJ IDEA
 POST http://localhost:8080/auth/realms/ONAP/protocol/openid-connect/token
 Content-Type: application/x-www-form-urlencoded
 

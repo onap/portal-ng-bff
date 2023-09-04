@@ -52,7 +52,8 @@ class GetUserDetailIntegrationTest extends BaseIntegrationTest {
                     .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
                     .withBody(objectMapper.writeValueAsString(keycloakUser))));
 
-    final RoleKeycloakDto keycloackRole = new RoleKeycloakDto().id(randomUUID()).name("portal_admin");
+    final RoleKeycloakDto keycloackRole =
+        new RoleKeycloakDto().id(randomUUID()).name("portal_admin");
     mockAssignedRoles(keycloakUser.getId(), List.of(keycloackRole));
 
     final UserResponseApiDto response =
