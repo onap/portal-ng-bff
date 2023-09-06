@@ -42,6 +42,11 @@ dependencies {
     implementation "org.zalando:problem-spring-webflux:$problemSpringVersion"
     implementation "org.zalando:jackson-datatype-problem:$problemVersion"
 
+    implementation(platform("io.micrometer:micrometer-tracing-bom:1.0.0"))
+    implementation("io.micrometer:micrometer-tracing")
+    implementation("io.micrometer:micrometer-tracing-bridge-otel")
+    implementation("io.opentelemetry:opentelemetry-exporter-zipkin")
+
     implementation "org.mapstruct:mapstruct:$mapStructVersion"
     annotationProcessor "org.mapstruct:mapstruct-processor:$mapStructVersion"
     implementation "org.mapstruct.extensions.spring:mapstruct-spring-annotations:$mapStructExtensionsVersion"
