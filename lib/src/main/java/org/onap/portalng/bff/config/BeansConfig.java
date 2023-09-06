@@ -33,11 +33,8 @@ import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.onap.portalng.bff.exceptions.DownstreamApiProblemException;
 import org.onap.portalng.bff.utils.Logger;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Scope;
 import org.springframework.http.codec.ClientCodecConfigurer;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.http.codec.json.Jackson2JsonEncoder;
@@ -46,7 +43,6 @@ import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClient
 import org.springframework.security.oauth2.client.web.reactive.function.client.ServerOAuth2AuthorizedClientExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
-import org.springframework.web.reactive.function.client.WebClient;
 import org.zalando.problem.jackson.ProblemModule;
 import reactor.core.publisher.Mono;
 
@@ -55,12 +51,12 @@ import reactor.core.publisher.Mono;
 public class BeansConfig {
 
   public static final String OAUTH2_EXCHANGE_FILTER_FUNCTION = "oauth2ExchangeFilterFunction";
-  private static final String ID_TOKEN_EXCHANGE_FILTER_FUNCTION = "idTokenExchangeFilterFunction";
-  private static final String ERROR_HANDLING_EXCHANGE_FILTER_FUNCTION =
+  public static final String ID_TOKEN_EXCHANGE_FILTER_FUNCTION = "idTokenExchangeFilterFunction";
+  public static final String ERROR_HANDLING_EXCHANGE_FILTER_FUNCTION =
       "errorHandlingExchangeFilterFunction";
-  private static final String LOG_REQUEST_EXCHANGE_FILTER_FUNCTION =
+  public static final String LOG_REQUEST_EXCHANGE_FILTER_FUNCTION =
       "logRequestExchangeFilterFunction";
-  private static final String LOG_RESPONSE_EXCHANGE_FILTER_FUNCTION =
+  public static final String LOG_RESPONSE_EXCHANGE_FILTER_FUNCTION =
       "logResponseExchangeFilterFunction";
   private static final String CLIENT_REGISTRATION_ID = "keycloak";
   public static final String X_REQUEST_ID = "X-Request-Id";
@@ -146,25 +142,6 @@ public class BeansConfig {
               defaultCodecs.jackson2JsonDecoder(new Jackson2JsonDecoder(objectMapper));
             })
         .build();
-  }
-
-  // we need to use prototype scope to always create new instance of the bean
-  // because internally WebClient.Builder is mutable
-  @Bean
-  @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-  WebClient.Builder webClientBuilder(
-      ExchangeStrategies exchangeStrategies,
-      @Qualifier(ID_TOKEN_EXCHANGE_FILTER_FUNCTION)
-          ExchangeFilterFunction idTokenExchangeFilterFunction,
-      @Qualifier(ERROR_HANDLING_EXCHANGE_FILTER_FUNCTION)
-          ExchangeFilterFunction errorHandlingExchangeFilterFunction,
-      @Qualifier(LOG_RESPONSE_EXCHANGE_FILTER_FUNCTION)
-          ExchangeFilterFunction logResponseExchangeFilterFunction) {
-    return WebClient.builder()
-        .exchangeStrategies(exchangeStrategies)
-        .filter(idTokenExchangeFilterFunction)
-        .filter(errorHandlingExchangeFilterFunction)
-        .filter(logResponseExchangeFilterFunction);
   }
 
   @Bean

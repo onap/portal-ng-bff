@@ -7,12 +7,23 @@ server:
 logging:
   level:
     org.springframework.web: TRACE
+  # Include the `trace_id` and `span_id` in the logs
+  pattern:
+    level: "trace_id=%mdc{traceId} span_id=%mdc{spanId} trace_flags=%mdc{traceFlags} %p"
+
 
 management:
   endpoints:
     web:
       exposure:
         include: "*"
+  tracing:
+    enabled: true
+    sampling:
+      probability: 1.0 # sample every request
+  zipkin:
+    tracing:
+      endpoint: http://${COLLECTOR_HOST}:${COLLECTOR_PORT}/api/v2/spans
 
 spring:
   application:
