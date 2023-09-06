@@ -30,6 +30,11 @@ dependencies {
     implementation "org.mapstruct.extensions.spring:mapstruct-spring-annotations:$mapStructExtensionsVersion"
     implementation "org.mapstruct.extensions.spring:mapstruct-spring-extensions:$mapStructExtensionsVersion"
 
+    implementation(platform("io.micrometer:micrometer-tracing-bom:$micrometerVersion"))
+    implementation("io.micrometer:micrometer-tracing")
+    implementation("io.micrometer:micrometer-tracing-bridge-otel")
+    implementation("io.opentelemetry:opentelemetry-exporter-zipkin")
+
     annotationProcessor "org.mapstruct:mapstruct-processor:$mapStructVersion"
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 
