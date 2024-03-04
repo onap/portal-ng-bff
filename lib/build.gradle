@@ -6,6 +6,7 @@ plugins {
     id 'maven-publish'                      // publish lib jar to artifact repository
     id 'com.diffplug.spotless'              // code formatting
     id 'com.github.spotbugs'                // bug linting that can be picked up by IDE
+    id 'org.sonatype.gradle.plugins.scan'   // sonatype dependency scanning
 }
 
 group 'org.onap.portal-ng'
@@ -80,6 +81,10 @@ publishing {
     }
 }
 
+tasks.withType(PublishToMavenRepository).configureEach {
+    dependsOn shadowJar
+}
+
 spotless {
     java {
         target project.fileTree(project.projectDir) {
@@ -100,4 +105,16 @@ spotbugs {
     ignoreFailures = false
     reportLevel = "high"
     excludeFilter = file("$rootProject.projectDir/spotbugs-exclude.xml")
+}
+
+nexusIQScan {
+    username = System.getenv('NEXUS_USERNAME')
+    password = System.getenv('NEXUS_PASSWORD')
+    serverUrl = System.getenv('NEXUS_URL')
+    applicationId = 'portal-ng-bff'
+}
+
+ossIndexAudit {
+    username = System.getenv('NEXUS_USERNAME')
+    password = System.getenv('NEXUS_PASSWORD')
 }

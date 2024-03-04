@@ -9,6 +9,7 @@ pluginManagement {
         id 'com.gorylenko.gradle-git-properties' version '2.4.1'
         id 'com.diffplug.spotless' version '6.20.0'
         id 'com.github.spotbugs' version '5.0.14'
+        id 'org.sonatype.gradle.plugins.scan' version '2.7.0'
     }
     // https://docs.gradle.org/current/userguide/plugins.html#sec:custom_plugin_repositories
     repositories {
