@@ -9,8 +9,12 @@
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
-      "redirectUris": [],
-      "webOrigins": [],
+      "redirectUris": [
+        "http://localhost/*"
+      ],
+      "webOrigins": [
+        "*"
+      ],
       "notBefore": 0,
       "bearerOnly": false,
       "consentRequired": false,
@@ -217,5 +221,8 @@
       "notBefore" : 0,
       "groups" : [ ]
     }
-  ]
+  ],
+  "attributes": {
+    "frontendUrl": "http://localhost:8080/auth/"
+  }
 }
