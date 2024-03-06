@@ -16,6 +16,24 @@
       "message": "Does this not add a vote? It\u0027s got the code for voting, but is it disabled? Or does it not run when it isn\u0027t a required workflow?",
       "revId": "9b859a6ef22c69c6dfe05c8e8611246f9be6aafb",
       "serverId": "14b4e41f-c4e3-4fb9-9955-6a9b5656895a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "ea49f944_6b2d3f81",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 481
+      },
+      "writtenOn": "2024-03-06T01:46:44Z",
+      "side": 1,
+      "message": "It does not vote. It still runs after a new change is pushed since we need to test it, but will not block and development. \nThe required will still run. \n\nHere is an example on another project that has a similar silent workflow active:\nhttps://github.com/onap/ccsdk-cds/actions",
+      "parentUuid": "251fcf01_4e0e9b78",
+      "revId": "9b859a6ef22c69c6dfe05c8e8611246f9be6aafb",
+      "serverId": "14b4e41f-c4e3-4fb9-9955-6a9b5656895a"
     }
   ]
 }
