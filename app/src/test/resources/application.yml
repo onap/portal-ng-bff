@@ -11,8 +11,8 @@ spring:
       client:
         provider:
           keycloak:
-            token-uri: http://localhost:${wiremock.server.port}/auth/realms/ONAP/protocol/openid-connect/token
-            jwk-set-uri: http://localhost:${wiremock.server.port}/auth/realms/ONAP/protocol/openid-connect/certs
+            token-uri: http://localhost:${wiremock.server.port}/realms/ONAP/protocol/openid-connect/token
+            jwk-set-uri: http://localhost:${wiremock.server.port}/realms/ONAP/protocol/openid-connect/certs
         registration:
           keycloak:
             provider: keycloak
@@ -21,7 +21,7 @@ spring:
             authorization-grant-type: client_credentials
       resourceserver:
         jwt:
-          jwk-set-uri: http://localhost:${wiremock.server.port}/auth/realms/ONAP/protocol/openid-connect/certs
+          jwk-set-uri: http://localhost:${wiremock.server.port}/realms/ONAP/protocol/openid-connect/certs
   jackson:
     serialization:
       FAIL_ON_EMPTY_BEANS: false

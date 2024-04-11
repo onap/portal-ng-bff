@@ -223,6 +223,6 @@
     }
   ],
   "attributes": {
-    "frontendUrl": "http://localhost:8080/auth/"
+    "frontendUrl": "http://localhost:8080/"
   }
 }

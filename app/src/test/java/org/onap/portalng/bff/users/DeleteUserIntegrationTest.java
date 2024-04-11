@@ -37,7 +37,7 @@ class DeleteUserIntegrationTest extends BaseIntegrationTest {
   @Test
   void userCanBeDeleted() {
     WireMock.stubFor(
-        WireMock.delete(WireMock.urlMatching(String.format("/auth/admin/realms/%s/users/1", realm)))
+        WireMock.delete(WireMock.urlMatching(String.format("/admin/realms/%s/users/1", realm)))
             .willReturn(WireMock.aResponse().withStatus(204)));
 
     requestSpecification()
@@ -55,7 +55,7 @@ class DeleteUserIntegrationTest extends BaseIntegrationTest {
         new ErrorResponseKeycloakDto().errorMessage("Some error message");
 
     WireMock.stubFor(
-        WireMock.delete(WireMock.urlMatching(String.format("/auth/admin/realms/%s/users/1", realm)))
+        WireMock.delete(WireMock.urlMatching(String.format("/admin/realms/%s/users/1", realm)))
             .willReturn(
                 WireMock.aResponse()
                     .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)

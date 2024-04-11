@@ -46,7 +46,7 @@ class GetUserDetailIntegrationTest extends BaseIntegrationTest {
         new UserKeycloakDto().id("1").username("user1").email("user1@localhost").enabled(true);
 
     WireMock.stubFor(
-        WireMock.get(WireMock.urlMatching(String.format("/auth/admin/realms/%s/users/1", realm)))
+        WireMock.get(WireMock.urlMatching(String.format("/admin/realms/%s/users/1", realm)))
             .willReturn(
                 WireMock.aResponse()
                     .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
@@ -85,7 +85,7 @@ class GetUserDetailIntegrationTest extends BaseIntegrationTest {
         new ErrorResponseKeycloakDto().errorMessage("Some error message");
 
     WireMock.stubFor(
-        WireMock.get(WireMock.urlMatching(String.format("/auth/admin/realms/%s/users/1", realm)))
+        WireMock.get(WireMock.urlMatching(String.format("/admin/realms/%s/users/1", realm)))
             .willReturn(
                 WireMock.aResponse()
                     .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
@@ -118,7 +118,7 @@ class GetUserDetailIntegrationTest extends BaseIntegrationTest {
         WireMock.get(
                 WireMock.urlMatching(
                     String.format(
-                        "/auth/admin/realms/%s/users/%s/role-mappings/realm", realm, userID)))
+                        "/admin/realms/%s/users/%s/role-mappings/realm", realm, userID)))
             .willReturn(
                 WireMock.aResponse()
                     .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)

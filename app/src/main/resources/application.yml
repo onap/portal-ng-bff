@@ -32,8 +32,8 @@ spring:
       client:
         provider:
           keycloak:
-            token-uri: ${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token
-            jwk-set-uri: ${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs
+            token-uri: ${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token
+            jwk-set-uri: ${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs
         registration:
           keycloak:
             provider: keycloak
@@ -42,7 +42,7 @@ spring:
             authorization-grant-type: client_credentials
       resourceserver:
         jwt:
-          jwk-set-uri: ${KEYCLOAK_URL}/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs
+          jwk-set-uri: ${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs
   jackson:
     serialization:
       FAIL_ON_EMPTY_BEANS: false

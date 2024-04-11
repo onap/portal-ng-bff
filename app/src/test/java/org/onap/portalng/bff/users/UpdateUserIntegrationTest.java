@@ -66,7 +66,7 @@ class UpdateUserIntegrationTest extends BaseIntegrationTest {
     final UserKeycloakDto keycloakRequest = new UserKeycloakDto().firstName("User1").enabled(false);
 
     WireMock.stubFor(
-        WireMock.put(WireMock.urlMatching(String.format("/auth/admin/realms/%s/users/1", realm)))
+        WireMock.put(WireMock.urlMatching(String.format("/admin/realms/%s/users/1", realm)))
             .withRequestBody(WireMock.equalTo(objectMapper.writeValueAsString(keycloakRequest)))
             .willReturn(
                 WireMock.aResponse()
@@ -102,7 +102,7 @@ class UpdateUserIntegrationTest extends BaseIntegrationTest {
     WireMock.stubFor(
         WireMock.put(
                 WireMock.urlMatching(
-                    String.format("/auth/admin/realms/%s/users/%s", realm, userId)))
+                    String.format("/admin/realms/%s/users/%s", realm, userId)))
             .withRequestBody(WireMock.equalTo(objectMapper.writeValueAsString(request)))
             .willReturn(
                 WireMock.aResponse().withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)));
@@ -112,7 +112,7 @@ class UpdateUserIntegrationTest extends BaseIntegrationTest {
     WireMock.stubFor(
         WireMock.get(
                 WireMock.urlMatching(
-                    String.format("/auth/admin/realms/%s/users/%s", realm, userId)))
+                    String.format("/admin/realms/%s/users/%s", realm, userId)))
             .willReturn(
                 WireMock.aResponse()
                     .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
@@ -125,7 +125,7 @@ class UpdateUserIntegrationTest extends BaseIntegrationTest {
         WireMock.get(
                 WireMock.urlMatching(
                     String.format(
-                        "/auth/admin/realms/%s/users/%s/role-mappings/realm", realm, userID)))
+                        "/admin/realms/%s/users/%s/role-mappings/realm", realm, userID)))
             .willReturn(
                 WireMock.aResponse()
                     .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)

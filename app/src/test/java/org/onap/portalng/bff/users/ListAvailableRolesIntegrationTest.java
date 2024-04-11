@@ -48,7 +48,7 @@ class ListAvailableRolesIntegrationTest extends BaseIntegrationTest {
         WireMock.get(
                 WireMock.urlMatching(
                     String.format(
-                        "/auth/admin/realms/%s/users/1/role-mappings/realm/available", realm)))
+                        "/admin/realms/%s/users/1/role-mappings/realm/available", realm)))
             .willReturn(
                 WireMock.aResponse()
                     .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
@@ -84,7 +84,7 @@ class ListAvailableRolesIntegrationTest extends BaseIntegrationTest {
         WireMock.get(
                 WireMock.urlMatching(
                     String.format(
-                        "/auth/admin/realms/%s/users/1/role-mappings/realm/available", realm)))
+                        "/admin/realms/%s/users/1/role-mappings/realm/available", realm)))
             .willReturn(
                 WireMock.aResponse()
                     .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
