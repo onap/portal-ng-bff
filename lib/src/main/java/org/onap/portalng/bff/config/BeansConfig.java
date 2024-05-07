@@ -33,6 +33,7 @@ import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.onap.portalng.bff.exceptions.DownstreamApiProblemException;
 import org.onap.portalng.bff.utils.Logger;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.codec.ClientCodecConfigurer;
@@ -58,8 +59,10 @@ public class BeansConfig {
       "logRequestExchangeFilterFunction";
   public static final String LOG_RESPONSE_EXCHANGE_FILTER_FUNCTION =
       "logResponseExchangeFilterFunction";
-  private static final String CLIENT_REGISTRATION_ID = "keycloak";
   public static final String X_REQUEST_ID = "X-Request-Id";
+
+  private static final String CLIENT_REGISTRATION_ID = "keycloak";
+  private static final ObjectMapper objectMapper = new ObjectMapper();
 
   @Bean(name = OAUTH2_EXCHANGE_FILTER_FUNCTION)
   ExchangeFilterFunction oauth2ExchangeFilterFunction(
@@ -88,9 +91,8 @@ public class BeansConfig {
                     downstreamExceptionBody -> {
                       try {
                         return Mono.error(
-                            new ObjectMapper()
-                                .readValue(
-                                    downstreamExceptionBody, DownstreamApiProblemException.class));
+                            objectMapper.readValue(
+                                downstreamExceptionBody, DownstreamApiProblemException.class));
                       } catch (JsonProcessingException e) {
                         return Mono.error(DownstreamApiProblemException.builder().build());
                       }
@@ -130,7 +132,7 @@ public class BeansConfig {
   }
 
   @Bean
-  ExchangeStrategies exchangeStrategies(ObjectMapper objectMapper) {
+  ExchangeStrategies exchangeStrategies(@Qualifier("objectMapper") ObjectMapper objectMapper) {
     return ExchangeStrategies.builder()
         .codecs(
             configurer -> {

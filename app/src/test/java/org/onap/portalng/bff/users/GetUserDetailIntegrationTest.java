@@ -117,8 +117,7 @@ class GetUserDetailIntegrationTest extends BaseIntegrationTest {
     WireMock.stubFor(
         WireMock.get(
                 WireMock.urlMatching(
-                    String.format(
-                        "/admin/realms/%s/users/%s/role-mappings/realm", realm, userID)))
+                    String.format("/admin/realms/%s/users/%s/role-mappings/realm", realm, userID)))
             .willReturn(
                 WireMock.aResponse()
                     .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)

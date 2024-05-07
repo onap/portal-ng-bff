@@ -101,8 +101,7 @@ class UpdateUserIntegrationTest extends BaseIntegrationTest {
   protected void mockUpdateUser(UserKeycloakDto request, String userId) throws Exception {
     WireMock.stubFor(
         WireMock.put(
-                WireMock.urlMatching(
-                    String.format("/admin/realms/%s/users/%s", realm, userId)))
+                WireMock.urlMatching(String.format("/admin/realms/%s/users/%s", realm, userId)))
             .withRequestBody(WireMock.equalTo(objectMapper.writeValueAsString(request)))
             .willReturn(
                 WireMock.aResponse().withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)));
@@ -111,8 +110,7 @@ class UpdateUserIntegrationTest extends BaseIntegrationTest {
   protected void mockGetUser(String userId, UserKeycloakDto response) throws Exception {
     WireMock.stubFor(
         WireMock.get(
-                WireMock.urlMatching(
-                    String.format("/admin/realms/%s/users/%s", realm, userId)))
+                WireMock.urlMatching(String.format("/admin/realms/%s/users/%s", realm, userId)))
             .willReturn(
                 WireMock.aResponse()
                     .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
@@ -124,8 +122,7 @@ class UpdateUserIntegrationTest extends BaseIntegrationTest {
     WireMock.stubFor(
         WireMock.get(
                 WireMock.urlMatching(
-                    String.format(
-                        "/admin/realms/%s/users/%s/role-mappings/realm", realm, userID)))
+                    String.format("/admin/realms/%s/users/%s/role-mappings/realm", realm, userID)))
             .willReturn(
                 WireMock.aResponse()
                     .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)

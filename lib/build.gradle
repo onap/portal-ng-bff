@@ -9,7 +9,7 @@ plugins {
 }
 
 group 'org.onap.portal-ng'
-version rootProject.file('version').text.trim()
+version getAppVersion()
 
 dependencies {
     implementation project(':openapi:server')
@@ -100,4 +100,19 @@ spotbugs {
     ignoreFailures = false
     reportLevel = "high"
     excludeFilter = file("$rootProject.projectDir/spotbugs-exclude.xml")
+}
+
+def String getAppVersion() {
+	Properties versionProperties = getVersionProperties()
+	String major = versionProperties.getProperty('major')
+	String minor = versionProperties.getProperty('minor')
+	String patch = versionProperties.getProperty('patch')
+	return major + '.' + minor + '.' + patch
+}
+def Properties getVersionProperties() {
+	def versionProperties = new Properties()
+	rootProject.file('version.properties').withInputStream {
+		versionProperties.load(it)
+	}
+	return versionProperties
 }

@@ -226,15 +226,13 @@ class CreateUserIntegrationTest extends BaseIntegrationTest {
                 WireMock.aResponse()
                     .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
                     .withHeader(
-                        "location",
-                        String.format("/admin/realms/%s/users/%s", realm, userId))));
+                        "location", String.format("/admin/realms/%s/users/%s", realm, userId))));
   }
 
   protected void mockGetUser(String userId, UserKeycloakDto response) throws Exception {
     WireMock.stubFor(
         WireMock.get(
-                WireMock.urlMatching(
-                    String.format("/admin/realms/%s/users/%s", realm, userId)))
+                WireMock.urlMatching(String.format("/admin/realms/%s/users/%s", realm, userId)))
             .willReturn(
                 WireMock.aResponse()
                     .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
@@ -245,8 +243,7 @@ class CreateUserIntegrationTest extends BaseIntegrationTest {
     WireMock.stubFor(
         WireMock.post(
                 WireMock.urlMatching(
-                    String.format(
-                        "/admin/realms/%s/users/%s/role-mappings/realm", realm, userId)))
+                    String.format("/admin/realms/%s/users/%s/role-mappings/realm", realm, userId)))
             .willReturn(
                 WireMock.aResponse()
                     .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
@@ -276,8 +273,7 @@ class CreateUserIntegrationTest extends BaseIntegrationTest {
     WireMock.stubFor(
         WireMock.get(
                 WireMock.urlMatching(
-                    String.format(
-                        "/admin/realms/%s/users/%s/role-mappings/realm", realm, userID)))
+                    String.format("/admin/realms/%s/users/%s/role-mappings/realm", realm, userID)))
             .willReturn(
                 WireMock.aResponse()
                     .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)

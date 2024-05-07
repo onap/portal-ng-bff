@@ -162,8 +162,7 @@ class ListUsersIntegrationTest extends BaseIntegrationTest {
 
   protected void mockGetUserCount(Integer userCount) {
     WireMock.stubFor(
-        WireMock.get(
-                WireMock.urlMatching(String.format("/admin/realms/%s/users/count", realm)))
+        WireMock.get(WireMock.urlMatching(String.format("/admin/realms/%s/users/count", realm)))
             .willReturn(
                 WireMock.aResponse()
                     .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
@@ -175,8 +174,7 @@ class ListUsersIntegrationTest extends BaseIntegrationTest {
     WireMock.stubFor(
         WireMock.get(
                 WireMock.urlMatching(
-                    String.format(
-                        "/admin/realms/%s/users\\?first=%s&max=%s", realm, first, max)))
+                    String.format("/admin/realms/%s/users\\?first=%s&max=%s", realm, first, max)))
             .willReturn(
                 WireMock.aResponse()
                     .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
@@ -227,8 +225,7 @@ class ListUsersIntegrationTest extends BaseIntegrationTest {
     WireMock.stubFor(
         WireMock.get(
                 WireMock.urlMatching(
-                    String.format(
-                        "/admin/realms/%s/users\\?first=%s&max=%s", realm, first, max)))
+                    String.format("/admin/realms/%s/users\\?first=%s&max=%s", realm, first, max)))
             .willReturn(
                 WireMock.aResponse()
                     .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
