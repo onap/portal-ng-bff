@@ -1,15 +1,8 @@
 plugins {
   id 'java'
-  id 'io.spring.dependency-management'
-}
-
-dependencies {
-  implementation project('server')
-  implementation project('client-history')
-  implementation project('client-keycloak')
-  implementation project('client-preferences')
 }
 
 ext {
   openapiVersion = '7.4.0'
+  springBootVersion = '3.2.3'
 }

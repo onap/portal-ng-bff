@@ -41,10 +41,10 @@ Currently there are three spring profiles that can be used to run the applicatio
 
 To launch the application with a specific profile run
 ``` sh
-SPRING_PROFILES_ACTIVE=local ./gradlew bootRun
+SPRING_PROFILES_ACTIVE=local ./gradlew app:bootRun
 # or
 export SPRING_PROFILES_ACTIVE=local
-./gradlew bootRun
+./gradlew app:bootRun
 ```
 
 ## Development
