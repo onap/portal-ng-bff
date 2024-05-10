@@ -61,25 +61,6 @@ shadowJar {
     }
 }
 
-publishing {
-    publications {
-        bffLibrary(MavenPublication) {
-            artifactId = rootProject.name
-            groupId = group
-            version = version
-            artifacts = ["build/libs/bff-$version-all.jar"]
-            pom {
-                name = rootProject.name
-                description = 'portal-ng backend-for-frontend service'
-            }
-        }
-    }
-
-    repositories{
-        mavenCentral()
-    }
-}
-
 spotless {
     java {
         target project.fileTree(project.projectDir) {
