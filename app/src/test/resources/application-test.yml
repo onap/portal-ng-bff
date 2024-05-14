@@ -1,7 +1,6 @@
-logging:
-  level:
-    org.springframework.web: TRACE
-
+management:
+  tracing:
+    enabled: false
 spring:
   profiles:
     include:
@@ -22,9 +21,6 @@ spring:
       resourceserver:
         jwt:
           jwk-set-uri: http://localhost:${wiremock.server.port}/realms/ONAP/protocol/openid-connect/certs
-  jackson:
-    serialization:
-      FAIL_ON_EMPTY_BEANS: false
 
 bff:
   realm: ONAP
