@@ -30,6 +30,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.onap.portalng.bff.BaseIntegrationTest;
 import org.onap.portalng.bff.config.IdTokenExchangeFilterFunction;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpMethod;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
@@ -41,10 +42,10 @@ import reactor.core.publisher.Mono;
 
 class IdTokenExchangeFilterFunctionTest extends BaseIntegrationTest {
 
+  @Autowired IdTokenExchangeFilterFunction filterFunction;
+
   @Test
   void idTokenIsCorrectlyPropagated() {
-    final IdTokenExchangeFilterFunction filterFunction = new IdTokenExchangeFilterFunction();
-
     final String idToken = UUID.randomUUID().toString();
     final ServerWebExchange serverWebExchange =
         MockServerWebExchange.builder(
@@ -72,8 +73,6 @@ class IdTokenExchangeFilterFunctionTest extends BaseIntegrationTest {
 
   @Test
   void exceptionIsThrownWhenIdTokenIsMissingInRequest() {
-    final IdTokenExchangeFilterFunction filterFunction = new IdTokenExchangeFilterFunction();
-
     final ServerWebExchange serverWebExchange =
         MockServerWebExchange.builder(MockServerHttpRequest.get("http://localhost:8000")).build();
 
