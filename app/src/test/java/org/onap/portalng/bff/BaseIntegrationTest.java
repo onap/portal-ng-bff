@@ -52,8 +52,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.http.MediaType;
 
 /** Base class for all tests that has the common config including port, realm, logging and auth. */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureWireMock(port = 0)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public abstract class BaseIntegrationTest {
 
   @TestConfiguration

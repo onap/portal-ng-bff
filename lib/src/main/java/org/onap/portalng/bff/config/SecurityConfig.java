@@ -21,9 +21,9 @@
 
 package org.onap.portalng.bff.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientManager;
@@ -34,9 +34,13 @@ import org.springframework.security.oauth2.client.web.DefaultReactiveOAuth2Autho
 import org.springframework.security.oauth2.client.web.server.ServerOAuth2AuthorizedClientRepository;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 
-@EnableWebFluxSecurity
 @Configuration
+@EnableWebFluxSecurity
 public class SecurityConfig {
+
+  @Value("${bff.endpoints.unauthenticated}")
+  private String[] unauthenticatedEndpoints;
+
   @Bean
   public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
     return http.httpBasic()
@@ -48,7 +52,7 @@ public class SecurityConfig {
         .cors()
         .and()
         .authorizeExchange()
-        .pathMatchers(HttpMethod.GET, "/api-docs.html", "/api.yaml", "/webjars/**", "/actuator/**")
+        .pathMatchers(unauthenticatedEndpoints)
         .permitAll()
         .anyExchange()
         .authenticated()
