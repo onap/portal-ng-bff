@@ -31,3 +31,6 @@ bff:
   preferences-url: http://localhost:${wiremock.server.port}
   history-url: http://localhost:${wiremock.server.port}
   keycloak-url: http://localhost:${wiremock.server.port}
+  rbac:
+    endpoints-excluded:
+      - /actuator/**

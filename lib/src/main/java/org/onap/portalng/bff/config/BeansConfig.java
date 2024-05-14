@@ -74,11 +74,6 @@ public class BeansConfig {
     return oauth2Filter;
   }
 
-  @Bean(name = ID_TOKEN_EXCHANGE_FILTER_FUNCTION)
-  ExchangeFilterFunction idTokenExchangeFilterFunction() {
-    return new IdTokenExchangeFilterFunction();
-  }
-
   @Bean(name = ERROR_HANDLING_EXCHANGE_FILTER_FUNCTION)
   ExchangeFilterFunction errorHandlingExchangeFilterFunction() {
     return ExchangeFilterFunction.ofResponseProcessor(

@@ -26,6 +26,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.zalando.problem.Problem;
@@ -37,18 +38,21 @@ import reactor.core.publisher.Mono;
  * urls.
  */
 @Valid
-@ConfigurationProperties("bff")
 @Data
+@ConfigurationProperties("bff")
 public class BffConfig {
 
   @NotBlank private final String realm;
   @NotBlank private final String preferencesUrl;
   @NotBlank private final String historyUrl;
   @NotBlank private final String keycloakUrl;
+  @Valid @NotNull private final RbacProperties rbac;
 
-  @NotNull private final Map<String, List<String>> accessControl;
+  public record RbacProperties(@NotBlank List<String> endpointsExcluded) {}
 
-  public Mono<List<String>> getRoles(String method) {
+  @NotNull private final Map<String, Set<String>> accessControl;
+
+  public Mono<Set<String>> getRoles(String method) {
     return Mono.just(accessControl)
         .map(control -> control.get(method))
         .onErrorResume(

@@ -23,9 +23,9 @@ package org.onap.portalng.bff.config;
 
 import com.nimbusds.jwt.JWTParser;
 import java.text.ParseException;
-import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
+import java.util.Set;
+import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.reactive.function.client.ClientRequest;
 import org.springframework.web.reactive.function.client.ClientResponse;
@@ -37,27 +37,31 @@ import org.zalando.problem.Status;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Mono;
 
+@Component
 public class IdTokenExchangeFilterFunction implements ExchangeFilterFunction {
 
   public static final String X_AUTH_IDENTITY_HEADER = "X-Auth-Identity";
   public static final String CLAIM_NAME_ROLES = "roles";
 
-  private static final List<String> EXCLUDED_PATHS_PATTERNS =
-      List.of(
-          "/actuator/**", "**/actuator/**", "*/actuator/**", "/**/actuator/**", "/*/actuator/**");
+  private final List<String> rbacExcludedPatterns;
 
   private static final Mono<ServerWebExchange> serverWebExchangeFromContext =
       Mono.deferContextual(Mono::just)
           .filter(context -> context.hasKey(ServerWebExchange.class))
           .map(context -> context.get(ServerWebExchange.class));
 
+  private final AntPathMatcher antPathMatcher = new AntPathMatcher();
+
+  IdTokenExchangeFilterFunction(BffConfig bffConfig) {
+    this.rbacExcludedPatterns = bffConfig.getRbac().endpointsExcluded();
+  }
+
   @Override
   public Mono<ClientResponse> filter(ClientRequest request, ExchangeFunction next) {
     boolean shouldNotFilter =
-        EXCLUDED_PATHS_PATTERNS.stream()
+        rbacExcludedPatterns.stream()
             .anyMatch(
-                excludedPath ->
-                    new AntPathMatcher().match(excludedPath, request.url().getRawPath()));
+                excludedPath -> antPathMatcher.match(excludedPath, request.url().getRawPath()));
     if (shouldNotFilter) {
       return next.exchange(request).switchIfEmpty(Mono.defer(() -> next.exchange(request)));
     }
@@ -86,10 +90,10 @@ public class IdTokenExchangeFilterFunction implements ExchangeFilterFunction {
   }
 
   public static Mono<Void> validateAccess(
-      ServerWebExchange exchange, List<String> rolesListForMethod) {
+      ServerWebExchange exchange, Set<String> rolesListForMethod) {
 
     return extractRoles(exchange)
-        .map(roles -> roles.stream().anyMatch(rolesListForMethod::contains))
+        .map(roles -> rolesListForMethod.retainAll(roles))
         .flatMap(
             match ->
                 Boolean.TRUE.equals(match)
@@ -110,16 +114,13 @@ public class IdTokenExchangeFilterFunction implements ExchangeFilterFunction {
         .map(
             jwt -> {
               try {
-                return Optional.of(jwt.getJWTClaimsSet());
+                return jwt.getJWTClaimsSet().getClaim(CLAIM_NAME_ROLES);
               } catch (ParseException e) {
                 throw Exceptions.propagate(e);
               }
             })
-        .map(
-            optionalClaimsSet ->
-                optionalClaimsSet
-                    .map(claimsSet -> claimsSet.getClaim(CLAIM_NAME_ROLES))
-                    .map(obj -> (List<String>) obj))
-        .map(roles -> roles.orElse(Collections.emptyList()));
+        .filter(List.class::isInstance)
+        .map(roles -> (List<String>) roles)
+        .switchIfEmpty(Mono.just(List.<String>of()));
   }
 }
