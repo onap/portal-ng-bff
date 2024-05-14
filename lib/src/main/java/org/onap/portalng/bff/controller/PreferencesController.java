@@ -59,6 +59,7 @@ public class PreferencesController extends AbstractBffController implements Pref
       String xRequestId,
       ServerWebExchange exchange) {
     return checkRoleAccess(CREATE, exchange)
+        .doOnError(smth -> System.out.println(smth))
         .then(preferencesApiDto)
         .flatMap(request -> preferencesService.createPreferences(xRequestId, request))
         .map(ResponseEntity::ok);

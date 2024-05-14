@@ -29,6 +29,7 @@ dependencies {
     implementation "org.mapstruct:mapstruct:$mapStructVersion"
     implementation "org.mapstruct.extensions.spring:mapstruct-spring-annotations:$mapStructExtensionsVersion"
     implementation "org.mapstruct.extensions.spring:mapstruct-spring-extensions:$mapStructExtensionsVersion"
+    implementation "io.swagger.core.v3:swagger-annotations:$swaggerV3Version"
 
     implementation(platform("io.micrometer:micrometer-tracing-bom:$micrometerVersion"))
     implementation("io.micrometer:micrometer-tracing")
