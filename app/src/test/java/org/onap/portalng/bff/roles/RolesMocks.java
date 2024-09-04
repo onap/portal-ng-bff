@@ -48,7 +48,7 @@ public class RolesMocks extends BaseIntegrationTest {
 
   protected void mockListRealmRoles(List<RoleKeycloakDto> roles) throws Exception {
     WireMock.stubFor(
-        WireMock.get(WireMock.urlMatching(String.format("/admin/realms/%s/roles", realm)))
+        WireMock.get(WireMock.urlMatching("/admin/realms/%s/roles".formatted(realm)))
             .willReturn(
                 WireMock.aResponse()
                     .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)

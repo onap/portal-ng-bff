@@ -28,7 +28,7 @@ import com.github.tomakehurst.wiremock.matching.EqualToPattern;
 import io.restassured.http.Header;
 import java.io.File;
 import java.io.IOException;
-import org.apache.http.HttpHeaders;
+import org.apache.hc.core5.http.HttpHeaders;
 import org.onap.portalng.bff.BaseIntegrationTest;
 import org.onap.portalng.bff.openapi.client_preferences.model.PreferencesPreferencesDto;
 import org.onap.portalng.bff.openapi.client_preferences.model.ProblemPreferencesDto;

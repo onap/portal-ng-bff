@@ -25,7 +25,6 @@ import org.onap.portalng.bff.config.BffConfig;
 import org.onap.portalng.bff.openapi.server.api.RolesApi;
 import org.onap.portalng.bff.openapi.server.model.RoleListResponseApiDto;
 import org.onap.portalng.bff.services.KeycloakService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ServerWebExchange;
@@ -38,7 +37,6 @@ public class RolesController extends AbstractBffController implements RolesApi {
 
   private final KeycloakService keycloakService;
 
-  @Autowired
   public RolesController(BffConfig bffConfig, KeycloakService keycloakService) {
     super(bffConfig);
     this.keycloakService = keycloakService;

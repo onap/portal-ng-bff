@@ -66,7 +66,7 @@ class UpdateUserIntegrationTest extends BaseIntegrationTest {
     final UserKeycloakDto keycloakRequest = new UserKeycloakDto().firstName("User1").enabled(false);
 
     WireMock.stubFor(
-        WireMock.put(WireMock.urlMatching(String.format("/admin/realms/%s/users/1", realm)))
+        WireMock.put(WireMock.urlMatching("/admin/realms/%s/users/1".formatted(realm)))
             .withRequestBody(WireMock.equalTo(objectMapper.writeValueAsString(keycloakRequest)))
             .willReturn(
                 WireMock.aResponse()
@@ -100,8 +100,7 @@ class UpdateUserIntegrationTest extends BaseIntegrationTest {
 
   protected void mockUpdateUser(UserKeycloakDto request, String userId) throws Exception {
     WireMock.stubFor(
-        WireMock.put(
-                WireMock.urlMatching(String.format("/admin/realms/%s/users/%s", realm, userId)))
+        WireMock.put(WireMock.urlMatching("/admin/realms/%s/users/%s".formatted(realm, userId)))
             .withRequestBody(WireMock.equalTo(objectMapper.writeValueAsString(request)))
             .willReturn(
                 WireMock.aResponse().withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)));
@@ -109,8 +108,7 @@ class UpdateUserIntegrationTest extends BaseIntegrationTest {
 
   protected void mockGetUser(String userId, UserKeycloakDto response) throws Exception {
     WireMock.stubFor(
-        WireMock.get(
-                WireMock.urlMatching(String.format("/admin/realms/%s/users/%s", realm, userId)))
+        WireMock.get(WireMock.urlMatching("/admin/realms/%s/users/%s".formatted(realm, userId)))
             .willReturn(
                 WireMock.aResponse()
                     .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
@@ -122,7 +120,7 @@ class UpdateUserIntegrationTest extends BaseIntegrationTest {
     WireMock.stubFor(
         WireMock.get(
                 WireMock.urlMatching(
-                    String.format("/admin/realms/%s/users/%s/role-mappings/realm", realm, userID)))
+                    "/admin/realms/%s/users/%s/role-mappings/realm".formatted(realm, userID)))
             .willReturn(
                 WireMock.aResponse()
                     .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)

@@ -43,8 +43,7 @@ class UpdateUserPasswordIntegrationTest extends BaseIntegrationTest {
 
     WireMock.stubFor(
         WireMock.put(
-                WireMock.urlMatching(
-                    String.format("/admin/realms/%s/users/1/reset-password", realm)))
+                WireMock.urlMatching("/admin/realms/%s/users/1/reset-password".formatted(realm)))
             .withRequestBody(WireMock.equalTo(objectMapper.writeValueAsString(keycloakRequest)))
             .willReturn(WireMock.aResponse().withStatus(204)));
 
@@ -72,8 +71,7 @@ class UpdateUserPasswordIntegrationTest extends BaseIntegrationTest {
 
     WireMock.stubFor(
         WireMock.put(
-                WireMock.urlMatching(
-                    String.format("/admin/realms/%s/users/1/reset-password", realm)))
+                WireMock.urlMatching("/admin/realms/%s/users/1/reset-password".formatted(realm)))
             .withRequestBody(WireMock.equalTo(objectMapper.writeValueAsString(keycloakRequest)))
             .willReturn(
                 WireMock.aResponse()
