@@ -115,6 +115,20 @@ public abstract class BaseIntegrationTest {
                             .put("session_state", UUID.randomUUID().toString())
                             .put("scope", "email profile")
                             .toString())));
+
+    /*
+     * MockAuth for new RBAC permission via keycloak
+     */
+    WireMock.stubFor(
+        WireMock.post(
+                WireMock.urlMatching(
+                    String.format("/realms/%s/protocol/openid-connect/token", realm)))
+            .withRequestBody(
+                WireMock.containing("grant_type=urn:ietf:params:oauth:grant-type:uma-ticket"))
+            .willReturn(
+                WireMock.aResponse()
+                    .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
+                    .withBody(objectMapper.createObjectNode().put("result", "true").toString())));
   }
 
   /**
