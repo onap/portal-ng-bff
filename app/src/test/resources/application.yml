@@ -27,8 +27,8 @@ bff:
   preferences-url: http://localhost:${wiremock.server.port}
   history-url: http://localhost:${wiremock.server.port}
   keycloak-url: http://localhost:${wiremock.server.port}
+  keycloak-client-id: test
   endpoints:
     unauthenticated: /api-docs.html, /api.yaml, /webjars/**, /actuator/**
   rbac:
     endpoints-excluded: /actuator/**, **/actuator/**, */actuator/**, /**/actuator/**, /*/actuator/**
-

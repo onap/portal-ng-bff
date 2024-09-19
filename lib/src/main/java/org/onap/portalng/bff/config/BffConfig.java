@@ -45,6 +45,7 @@ public class BffConfig {
   @NotBlank private final String preferencesUrl;
   @NotBlank private final String historyUrl;
   @NotBlank private final String keycloakUrl;
+  @NotBlank private final String keycloakClientId;
 
   @NotNull private final Map<String, Set<String>> accessControl;
 

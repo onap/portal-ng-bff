@@ -62,17 +62,15 @@ public class UsersController extends AbstractBffController implements UsersApi {
   @Override
   public Mono<ResponseEntity<UserResponseApiDto>> createUser(
       Mono<CreateUserRequestApiDto> requestMono, String xRequestId, ServerWebExchange exchange) {
-    return checkRoleAccess(CREATE, exchange)
-        .then(requestMono.flatMap(request -> keycloakService.createUser(request, xRequestId)))
+    return requestMono
+        .flatMap(request -> keycloakService.createUser(request, xRequestId))
         .map(ResponseEntity::ok);
   }
 
   @Override
   public Mono<ResponseEntity<UserResponseApiDto>> getUser(
       String userId, String xRequestId, ServerWebExchange exchange) {
-    return checkRoleAccess(GET, exchange)
-        .then(keycloakService.getUser(userId, xRequestId))
-        .map(ResponseEntity::ok);
+    return keycloakService.getUser(userId, xRequestId).map(ResponseEntity::ok);
   }
 
   @Override
@@ -81,8 +79,7 @@ public class UsersController extends AbstractBffController implements UsersApi {
       Mono<UpdateUserRequestApiDto> requestMono,
       String xRequestId,
       ServerWebExchange exchange) {
-    return checkRoleAccess(UPDATE, exchange)
-        .then(requestMono)
+    return requestMono
         .flatMap(request -> keycloakService.updateUser(userId, request, xRequestId))
         .map(ResponseEntity::ok);
   }
@@ -90,8 +87,8 @@ public class UsersController extends AbstractBffController implements UsersApi {
   @Override
   public Mono<ResponseEntity<Void>> deleteUser(
       String userId, String xRequestId, ServerWebExchange exchange) {
-    return checkRoleAccess(DELETE, exchange)
-        .then(keycloakService.deleteUser(userId, xRequestId))
+    return keycloakService
+        .deleteUser(userId, xRequestId)
         .thenReturn(ResponseEntity.noContent().build());
   }
 
@@ -99,9 +96,7 @@ public class UsersController extends AbstractBffController implements UsersApi {
   public Mono<ResponseEntity<UserListResponseApiDto>> listUsers(
       Integer page, Integer pageSize, String xRequestId, ServerWebExchange exchange) {
 
-    return checkRoleAccess(LIST, exchange)
-        .then(keycloakService.listUsers(page, pageSize, xRequestId))
-        .map(ResponseEntity::ok);
+    return keycloakService.listUsers(page, pageSize, xRequestId).map(ResponseEntity::ok);
   }
 
   @Override
@@ -110,8 +105,7 @@ public class UsersController extends AbstractBffController implements UsersApi {
       Mono<UpdateUserPasswordRequestApiDto> requestMono,
       String xRequestId,
       ServerWebExchange exchange) {
-    return checkRoleAccess(UPDATE_PASSWORD, exchange)
-        .then(requestMono)
+    return requestMono
         .flatMap(request -> keycloakService.updateUserPassword(userId, request))
         .thenReturn(ResponseEntity.noContent().build());
   }
@@ -119,24 +113,20 @@ public class UsersController extends AbstractBffController implements UsersApi {
   @Override
   public Mono<ResponseEntity<RoleListResponseApiDto>> listAvailableRoles(
       String userId, String xRequestId, ServerWebExchange exchange) {
-    return checkRoleAccess(LIST_AVAILABLE_ROLES, exchange)
-        .then(keycloakService.getAvailableRoles(userId, xRequestId))
-        .map(ResponseEntity::ok);
+    return keycloakService.getAvailableRoles(userId, xRequestId).map(ResponseEntity::ok);
   }
 
   @Override
   public Mono<ResponseEntity<RoleListResponseApiDto>> listAssignedRoles(
       String userId, String xRequestId, ServerWebExchange exchange) {
-    return checkRoleAccess(LIST_ROLES, exchange)
-        .then(keycloakService.getAssignedRoles(userId, xRequestId))
-        .map(ResponseEntity::ok);
+    return keycloakService.getAssignedRoles(userId, xRequestId).map(ResponseEntity::ok);
   }
 
   @Override
   public Mono<ResponseEntity<RoleListResponseApiDto>> updateAssignedRoles(
       String userId, String xRequestId, Flux<RoleApiDto> rolesFlux, ServerWebExchange exchange) {
-    return checkRoleAccess(UPDATE_ROLES, exchange)
-        .then(rolesFlux.collectList())
+    return rolesFlux
+        .collectList()
         .flatMap(roles -> keycloakService.updateAssignedRoles(userId, roles, xRequestId))
         .map(ResponseEntity::ok);
   }

@@ -51,8 +51,7 @@ public class ActionsController extends AbstractBffController implements ActionsA
       String xRequestId,
       Mono<CreateActionRequestApiDto> createActionRequestApiDto,
       ServerWebExchange exchange) {
-    return checkRoleAccess(CREATE, exchange)
-        .then(createActionRequestApiDto)
+    return createActionRequestApiDto
         .flatMap(action -> actionService.createAction(userId, xRequestId, action))
         .map(ResponseEntity::ok);
   }
@@ -65,8 +64,8 @@ public class ActionsController extends AbstractBffController implements ActionsA
       Integer showLastHours,
       String xRequestId,
       ServerWebExchange exchange) {
-    return checkRoleAccess(GET, exchange)
-        .then(actionService.getActions(userId, xRequestId, page, pageSize, showLastHours))
+    return actionService
+        .getActions(userId, xRequestId, page, pageSize, showLastHours)
         .map(ResponseEntity::ok);
   }
 
@@ -77,8 +76,8 @@ public class ActionsController extends AbstractBffController implements ActionsA
       Integer showLastHours,
       String xRequestId,
       ServerWebExchange exchange) {
-    return checkRoleAccess(LIST, exchange)
-        .then(actionService.listActions(xRequestId, page, pageSize, showLastHours))
+    return actionService
+        .listActions(xRequestId, page, pageSize, showLastHours)
         .map(ResponseEntity::ok);
   }
 }

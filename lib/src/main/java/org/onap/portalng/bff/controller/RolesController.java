@@ -47,8 +47,8 @@ public class RolesController extends AbstractBffController implements RolesApi {
   @Override
   public Mono<ResponseEntity<RoleListResponseApiDto>> listRoles(
       String xRequestId, ServerWebExchange exchange) {
-    return checkRoleAccess(LIST, exchange)
-        .thenMany(keycloakService.listRoles(xRequestId))
+    return keycloakService
+        .listRoles(xRequestId)
         .collectList()
         .map(roles -> new RoleListResponseApiDto().items(roles).totalCount(roles.size()))
         .map(ResponseEntity::ok);

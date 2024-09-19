@@ -48,9 +48,7 @@ public class PreferencesController extends AbstractBffController implements Pref
   @Override
   public Mono<ResponseEntity<PreferencesResponseApiDto>> getPreferences(
       String xRequestId, ServerWebExchange exchange) {
-    return checkRoleAccess(GET, exchange)
-        .then(preferencesService.getPreferences(xRequestId))
-        .map(ResponseEntity::ok);
+    return preferencesService.getPreferences(xRequestId).map(ResponseEntity::ok);
   }
 
   @Override
@@ -58,8 +56,7 @@ public class PreferencesController extends AbstractBffController implements Pref
       @Valid Mono<CreatePreferencesRequestApiDto> preferencesApiDto,
       String xRequestId,
       ServerWebExchange exchange) {
-    return checkRoleAccess(CREATE, exchange)
-        .then(preferencesApiDto)
+    return preferencesApiDto
         .flatMap(request -> preferencesService.createPreferences(xRequestId, request))
         .map(ResponseEntity::ok);
   }
@@ -69,8 +66,7 @@ public class PreferencesController extends AbstractBffController implements Pref
       @Valid Mono<CreatePreferencesRequestApiDto> preferencesApiDto,
       String xRequestId,
       ServerWebExchange exchange) {
-    return checkRoleAccess(UPDATE, exchange)
-        .then(preferencesApiDto)
+    return preferencesApiDto
         .flatMap(request -> preferencesService.updatePreferences(xRequestId, request))
         .map(ResponseEntity::ok);
   }
