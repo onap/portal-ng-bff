@@ -21,10 +21,12 @@
 
 package org.onap.portalng.bff.config;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
+import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientManager;
 import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientProvider;
@@ -36,7 +38,10 @@ import org.springframework.security.web.server.SecurityWebFilterChain;
 
 @Configuration
 @EnableWebFluxSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+  private final KeycloakPermissionFilter keycloakPermissionFilter;
 
   @Value("${bff.endpoints.unauthenticated}")
   private String[] unauthenticatedEndpoints;
@@ -60,6 +65,7 @@ public class SecurityConfig {
         .oauth2ResourceServer(ServerHttpSecurity.OAuth2ResourceServerSpec::jwt)
         .oauth2Client()
         .and()
+        .addFilterAfter(keycloakPermissionFilter, SecurityWebFiltersOrder.AUTHORIZATION)
         .build();
   }
 
