@@ -52,6 +52,7 @@ bff:
   preferences-url: ${PREFERENCES_URL}
   history-url: ${HISTORY_URL}
   keycloak-url: ${KEYCLOAK_URL}
+  keycloak-client-id: ${KEYCLOAK_CLIENT_ID}
   endpoints:
     unauthenticated: /api-docs.html, /api.yaml, /webjars/**, /actuator/**
   rbac:
