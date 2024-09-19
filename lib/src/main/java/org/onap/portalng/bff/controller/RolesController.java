@@ -33,8 +33,6 @@ import reactor.core.publisher.Mono;
 @RestController
 public class RolesController extends AbstractBffController implements RolesApi {
 
-  public static final String LIST = "ROLE_LIST";
-
   private final KeycloakService keycloakService;
 
   public RolesController(BffConfig bffConfig, KeycloakService keycloakService) {
@@ -45,8 +43,8 @@ public class RolesController extends AbstractBffController implements RolesApi {
   @Override
   public Mono<ResponseEntity<RoleListResponseApiDto>> listRoles(
       String xRequestId, ServerWebExchange exchange) {
-    return checkRoleAccess(LIST, exchange)
-        .thenMany(keycloakService.listRoles(xRequestId))
+    return keycloakService
+        .listRoles(xRequestId)
         .collectList()
         .map(roles -> new RoleListResponseApiDto().items(roles).totalCount(roles.size()))
         .map(ResponseEntity::ok);
