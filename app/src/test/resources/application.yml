@@ -32,3 +32,7 @@ bff:
   rbac:
     endpoints-excluded: /actuator/**, **/actuator/**, */actuator/**, /**/actuator/**, /*/actuator/**
 
+KEYCLOAK_URL: http://localhost:${wiremock.server.port}
+KEYCLOAK_REALM: ONAP
+KEYCLOAK_CLIENT_ID: test
+
