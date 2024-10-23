@@ -54,7 +54,7 @@ class UpdateAssignedRolesIntegrationTest extends BaseIntegrationTest {
     WireMock.stubFor(
         WireMock.get(
                 WireMock.urlMatching(
-                    String.format("/admin/realms/%s/users/1/role-mappings/realm/available", realm)))
+                    "/admin/realms/%s/users/1/role-mappings/realm/available".formatted(realm)))
             .inScenario("test")
             .whenScenarioStateIs(Scenario.STARTED)
             .willReturn(
@@ -65,7 +65,7 @@ class UpdateAssignedRolesIntegrationTest extends BaseIntegrationTest {
     WireMock.stubFor(
         WireMock.get(
                 WireMock.urlMatching(
-                    String.format("/admin/realms/%s/users/1/role-mappings/realm", realm)))
+                    "/admin/realms/%s/users/1/role-mappings/realm".formatted(realm)))
             .inScenario("test")
             .whenScenarioStateIs(Scenario.STARTED)
             .willReturn(
@@ -76,7 +76,7 @@ class UpdateAssignedRolesIntegrationTest extends BaseIntegrationTest {
     WireMock.stubFor(
         WireMock.post(
                 WireMock.urlMatching(
-                    String.format("/admin/realms/%s/users/1/role-mappings/realm", realm)))
+                    "/admin/realms/%s/users/1/role-mappings/realm".formatted(realm)))
             .inScenario("test")
             .whenScenarioStateIs(Scenario.STARTED)
             .withRequestBody(WireMock.equalTo(objectMapper.writeValueAsString(keycloakRolesToAdd)))
@@ -86,7 +86,7 @@ class UpdateAssignedRolesIntegrationTest extends BaseIntegrationTest {
     WireMock.stubFor(
         WireMock.get(
                 WireMock.urlMatching(
-                    String.format("/admin/realms/%s/users/1/role-mappings/realm", realm)))
+                    "/admin/realms/%s/users/1/role-mappings/realm".formatted(realm)))
             .inScenario("test")
             .whenScenarioStateIs("rolesUpdated")
             .willReturn(
@@ -137,7 +137,7 @@ class UpdateAssignedRolesIntegrationTest extends BaseIntegrationTest {
     WireMock.stubFor(
         WireMock.get(
                 WireMock.urlMatching(
-                    String.format("/admin/realms/%s/users/1/role-mappings/realm/available", realm)))
+                    "/admin/realms/%s/users/1/role-mappings/realm/available".formatted(realm)))
             .inScenario("test")
             .whenScenarioStateIs(Scenario.STARTED)
             .willReturn(
@@ -148,7 +148,7 @@ class UpdateAssignedRolesIntegrationTest extends BaseIntegrationTest {
     WireMock.stubFor(
         WireMock.get(
                 WireMock.urlMatching(
-                    String.format("/admin/realms/%s/users/1/role-mappings/realm", realm)))
+                    "/admin/realms/%s/users/1/role-mappings/realm".formatted(realm)))
             .inScenario("test")
             .whenScenarioStateIs(Scenario.STARTED)
             .willReturn(
@@ -159,7 +159,7 @@ class UpdateAssignedRolesIntegrationTest extends BaseIntegrationTest {
     WireMock.stubFor(
         WireMock.delete(
                 WireMock.urlMatching(
-                    String.format("/admin/realms/%s/users/1/role-mappings/realm", realm)))
+                    "/admin/realms/%s/users/1/role-mappings/realm".formatted(realm)))
             .inScenario("test")
             .whenScenarioStateIs(Scenario.STARTED)
             .withRequestBody(
@@ -169,7 +169,7 @@ class UpdateAssignedRolesIntegrationTest extends BaseIntegrationTest {
     WireMock.stubFor(
         WireMock.post(
                 WireMock.urlMatching(
-                    String.format("/admin/realms/%s/users/1/role-mappings/realm", realm)))
+                    "/admin/realms/%s/users/1/role-mappings/realm".formatted(realm)))
             .inScenario("test")
             .whenScenarioStateIs(Scenario.STARTED)
             .withRequestBody(WireMock.equalTo(objectMapper.writeValueAsString(keycloakRolesToAdd)))
@@ -179,7 +179,7 @@ class UpdateAssignedRolesIntegrationTest extends BaseIntegrationTest {
     WireMock.stubFor(
         WireMock.get(
                 WireMock.urlMatching(
-                    String.format("/admin/realms/%s/users/1/role-mappings/realm", realm)))
+                    "/admin/realms/%s/users/1/role-mappings/realm".formatted(realm)))
             .inScenario("test")
             .whenScenarioStateIs("rolesUpdated")
             .willReturn(
@@ -224,7 +224,7 @@ class UpdateAssignedRolesIntegrationTest extends BaseIntegrationTest {
     WireMock.stubFor(
         WireMock.get(
                 WireMock.urlMatching(
-                    String.format("/admin/realms/%s/users/1/role-mappings/realm/available", realm)))
+                    "/admin/realms/%s/users/1/role-mappings/realm/available".formatted(realm)))
             .willReturn(
                 WireMock.aResponse()
                     .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
@@ -233,7 +233,7 @@ class UpdateAssignedRolesIntegrationTest extends BaseIntegrationTest {
     WireMock.stubFor(
         WireMock.delete(
                 WireMock.urlMatching(
-                    String.format("/admin/realms/%s/users/1/role-mappings/realm", realm)))
+                    "/admin/realms/%s/users/1/role-mappings/realm".formatted(realm)))
             .withRequestBody(
                 WireMock.equalTo(objectMapper.writeValueAsString(keycloakRolesToRemove)))
             .willReturn(WireMock.aResponse().withStatus(HttpStatus.NO_CONTENT.value())));
@@ -241,7 +241,7 @@ class UpdateAssignedRolesIntegrationTest extends BaseIntegrationTest {
     WireMock.stubFor(
         WireMock.get(
                 WireMock.urlMatching(
-                    String.format("/admin/realms/%s/users/1/role-mappings/realm", realm)))
+                    "/admin/realms/%s/users/1/role-mappings/realm".formatted(realm)))
             .willReturn(
                 WireMock.aResponse()
                     .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
@@ -285,7 +285,7 @@ class UpdateAssignedRolesIntegrationTest extends BaseIntegrationTest {
     WireMock.stubFor(
         WireMock.get(
                 WireMock.urlMatching(
-                    String.format("/admin/realms/%s/users/1/role-mappings/realm/available", realm)))
+                    "/admin/realms/%s/users/1/role-mappings/realm/available".formatted(realm)))
             .inScenario("test")
             .whenScenarioStateIs(Scenario.STARTED)
             .willReturn(
@@ -296,7 +296,7 @@ class UpdateAssignedRolesIntegrationTest extends BaseIntegrationTest {
     WireMock.stubFor(
         WireMock.get(
                 WireMock.urlMatching(
-                    String.format("/admin/realms/%s/users/1/role-mappings/realm", realm)))
+                    "/admin/realms/%s/users/1/role-mappings/realm".formatted(realm)))
             .inScenario("test")
             .whenScenarioStateIs(Scenario.STARTED)
             .willReturn(
@@ -307,7 +307,7 @@ class UpdateAssignedRolesIntegrationTest extends BaseIntegrationTest {
     WireMock.stubFor(
         WireMock.post(
                 WireMock.urlMatching(
-                    String.format("/admin/realms/%s/users/1/role-mappings/realm", realm)))
+                    "/admin/realms/%s/users/1/role-mappings/realm".formatted(realm)))
             .inScenario("test")
             .whenScenarioStateIs(Scenario.STARTED)
             .withRequestBody(WireMock.equalTo(objectMapper.writeValueAsString(keycloakRolesToAdd)))
@@ -317,7 +317,7 @@ class UpdateAssignedRolesIntegrationTest extends BaseIntegrationTest {
     WireMock.stubFor(
         WireMock.get(
                 WireMock.urlMatching(
-                    String.format("/admin/realms/%s/users/1/role-mappings/realm", realm)))
+                    "/admin/realms/%s/users/1/role-mappings/realm".formatted(realm)))
             .inScenario("test")
             .whenScenarioStateIs("rolesUpdated")
             .willReturn(
@@ -370,7 +370,7 @@ class UpdateAssignedRolesIntegrationTest extends BaseIntegrationTest {
     WireMock.stubFor(
         WireMock.get(
                 WireMock.urlMatching(
-                    String.format("/admin/realms/%s/users/1/role-mappings/realm/available", realm)))
+                    "/admin/realms/%s/users/1/role-mappings/realm/available".formatted(realm)))
             .inScenario("test")
             .whenScenarioStateIs(Scenario.STARTED)
             .willReturn(
@@ -381,7 +381,7 @@ class UpdateAssignedRolesIntegrationTest extends BaseIntegrationTest {
     WireMock.stubFor(
         WireMock.get(
                 WireMock.urlMatching(
-                    String.format("/admin/realms/%s/users/1/role-mappings/realm", realm)))
+                    "/admin/realms/%s/users/1/role-mappings/realm".formatted(realm)))
             .inScenario("test")
             .whenScenarioStateIs(Scenario.STARTED)
             .willReturn(
@@ -393,7 +393,7 @@ class UpdateAssignedRolesIntegrationTest extends BaseIntegrationTest {
     WireMock.stubFor(
         WireMock.delete(
                 WireMock.urlMatching(
-                    String.format("/admin/realms/%s/users/1/role-mappings/realm", realm)))
+                    "/admin/realms/%s/users/1/role-mappings/realm".formatted(realm)))
             .inScenario("test")
             .whenScenarioStateIs(Scenario.STARTED)
             .withRequestBody(
@@ -403,7 +403,7 @@ class UpdateAssignedRolesIntegrationTest extends BaseIntegrationTest {
     WireMock.stubFor(
         WireMock.post(
                 WireMock.urlMatching(
-                    String.format("/admin/realms/%s/users/1/role-mappings/realm", realm)))
+                    "/admin/realms/%s/users/1/role-mappings/realm".formatted(realm)))
             .inScenario("test")
             .whenScenarioStateIs(Scenario.STARTED)
             .withRequestBody(WireMock.equalTo(objectMapper.writeValueAsString(keycloakRolesToAdd)))
@@ -413,7 +413,7 @@ class UpdateAssignedRolesIntegrationTest extends BaseIntegrationTest {
     WireMock.stubFor(
         WireMock.get(
                 WireMock.urlMatching(
-                    String.format("/admin/realms/%s/users/1/role-mappings/realm", realm)))
+                    "/admin/realms/%s/users/1/role-mappings/realm".formatted(realm)))
             .inScenario("test")
             .whenScenarioStateIs("rolesUpdated")
             .willReturn(

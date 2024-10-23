@@ -31,7 +31,6 @@ import org.onap.portalng.bff.openapi.server.model.UpdateUserRequestApiDto;
 import org.onap.portalng.bff.openapi.server.model.UserListResponseApiDto;
 import org.onap.portalng.bff.openapi.server.model.UserResponseApiDto;
 import org.onap.portalng.bff.services.KeycloakService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ServerWebExchange;
@@ -53,7 +52,6 @@ public class UsersController extends AbstractBffController implements UsersApi {
 
   private final KeycloakService keycloakService;
 
-  @Autowired
   public UsersController(BffConfig bffConfig, KeycloakService keycloakService) {
     super(bffConfig);
     this.keycloakService = keycloakService;

@@ -21,6 +21,8 @@
 
 package org.onap.portalng.bff.config;
 
+import static org.springframework.security.config.Customizer.withDefaults;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -43,23 +45,20 @@ public class SecurityConfig {
 
   @Bean
   public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
-    return http.httpBasic()
-        .disable()
-        .formLogin()
-        .disable()
-        .csrf()
-        .disable()
-        .cors()
-        .and()
-        .authorizeExchange()
-        .pathMatchers(unauthenticatedEndpoints)
-        .permitAll()
-        .anyExchange()
-        .authenticated()
-        .and()
+    return http.httpBasic(
+            basic ->
+                basic
+                    .disable()
+                    .formLogin(login -> login.disable().csrf(csrf -> csrf.disable().cors())))
+        .authorizeExchange(
+            exchange ->
+                exchange
+                    .pathMatchers(unauthenticatedEndpoints)
+                    .permitAll()
+                    .anyExchange()
+                    .authenticated())
         .oauth2ResourceServer(ServerHttpSecurity.OAuth2ResourceServerSpec::jwt)
-        .oauth2Client()
-        .and()
+        .oauth2Client(withDefaults())
         .build();
   }
 

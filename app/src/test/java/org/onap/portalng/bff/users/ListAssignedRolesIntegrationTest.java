@@ -47,7 +47,7 @@ class ListAssignedRolesIntegrationTest extends BaseIntegrationTest {
     WireMock.stubFor(
         WireMock.get(
                 WireMock.urlMatching(
-                    String.format("/admin/realms/%s/users/1/role-mappings/realm", realm)))
+                    "/admin/realms/%s/users/1/role-mappings/realm".formatted(realm)))
             .willReturn(
                 WireMock.aResponse()
                     .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
@@ -82,7 +82,7 @@ class ListAssignedRolesIntegrationTest extends BaseIntegrationTest {
     WireMock.stubFor(
         WireMock.get(
                 WireMock.urlMatching(
-                    String.format("/admin/realms/%s/users/1/role-mappings/realm", realm)))
+                    "/admin/realms/%s/users/1/role-mappings/realm".formatted(realm)))
             .willReturn(
                 WireMock.aResponse()
                     .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)

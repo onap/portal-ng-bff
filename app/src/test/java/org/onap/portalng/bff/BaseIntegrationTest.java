@@ -36,7 +36,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import org.apache.http.client.utils.URIBuilder;
+import org.apache.hc.core5.net.URIBuilder;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.onap.portalng.bff.config.BffConfig;
@@ -86,8 +86,7 @@ public abstract class BaseIntegrationTest {
 
     WireMock.stubFor(
         WireMock.get(
-                WireMock.urlMatching(
-                    String.format("/realms/%s/protocol/openid-connect/certs", realm)))
+                WireMock.urlMatching("/realms/%s/protocol/openid-connect/certs".formatted(realm)))
             .willReturn(
                 WireMock.aResponse()
                     .withHeader("Content-Type", JWKSet.MIME_TYPE)
@@ -98,8 +97,7 @@ public abstract class BaseIntegrationTest {
 
     WireMock.stubFor(
         WireMock.post(
-                WireMock.urlMatching(
-                    String.format("/realms/%s/protocol/openid-connect/token", realm)))
+                WireMock.urlMatching("/realms/%s/protocol/openid-connect/token".formatted(realm)))
             .withBasicAuth("test", "test")
             .withRequestBody(WireMock.containing("grant_type=client_credentials"))
             .willReturn(

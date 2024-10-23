@@ -38,25 +38,29 @@ class CreatePreferencesIntegrationTest extends PreferencesMocks {
   void thatPreferencesCanBeCreated() throws Exception {
     PreferencesPreferencesDto preferencesPreferencesDto = new PreferencesPreferencesDto();
     preferencesPreferencesDto.setProperties(
-        "{\n"
-            + "\"properties\": {\n"
-            + "\"appStarter\": \"value1\",\n"
-            + "\"dashboard\": {\"key1:\" : \"value2\"}\n"
-            + "}\n"
-            + "\n"
-            + "}");
+        """
+        {
+        "properties": {
+        "appStarter": "value1",
+        "dashboard": {"key1:" : "value2"}
+        }
+
+        }\
+        """);
     mockCreatePreferences(preferencesPreferencesDto);
 
     final CreatePreferencesRequestApiDto request =
         new CreatePreferencesRequestApiDto()
             .properties(
-                "{\n"
-                    + "\"properties\": {\n"
-                    + "\"appStarter\": \"value1\",\n"
-                    + "\"dashboard\": {\"key1:\" : \"value2\"}\n"
-                    + "}\n"
-                    + "\n"
-                    + "}");
+                """
+                {
+                "properties": {
+                "appStarter": "value1",
+                "dashboard": {"key1:" : "value2"}
+                }
+
+                }\
+                """);
     final PreferencesResponseApiDto response = createPreferences(request);
     assertThat(response).isNotNull();
     assertThat(response.getProperties()).isEqualTo(preferencesPreferencesDto.getProperties());
@@ -72,25 +76,29 @@ class CreatePreferencesIntegrationTest extends PreferencesMocks {
     final PreferencesPreferencesDto preferencesPreferencesDto =
         new PreferencesPreferencesDto()
             .properties(
-                "{\n"
-                    + "\"properties\": {\n"
-                    + "\"appStarter\": \"value1\",\n"
-                    + "\"dashboard\": {\"key1:\" : \"value2\"}\n"
-                    + "}\n"
-                    + "\n"
-                    + "}");
+                """
+                {
+                "properties": {
+                "appStarter": "value1",
+                "dashboard": {"key1:" : "value2"}
+                }
+
+                }\
+                """);
     mockCreatePreferencesError(preferencesPreferencesDto, problemPreferencesDto);
 
     CreatePreferencesRequestApiDto responseBody =
         new CreatePreferencesRequestApiDto()
             .properties(
-                "{\n"
-                    + "\"properties\": {\n"
-                    + "\"appStarter\": \"value1\",\n"
-                    + "\"dashboard\": {\"key1:\" : \"value2\"}\n"
-                    + "}\n"
-                    + "\n"
-                    + "}");
+                """
+                {
+                "properties": {
+                "appStarter": "value1",
+                "dashboard": {"key1:" : "value2"}
+                }
+
+                }\
+                """);
     final ProblemApiDto response =
         requestSpecification()
             .given()

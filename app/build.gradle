@@ -41,7 +41,6 @@ dependencies {
     implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml'
     implementation "org.zalando:problem-spring-webflux:$problemSpringVersion"
     implementation "org.zalando:jackson-datatype-problem:$problemVersion"
-    implementation "io.swagger.core.v3:swagger-annotations:$swaggerV3Version"
 
     implementation "org.mapstruct:mapstruct:$mapStructVersion"
     annotationProcessor "org.mapstruct:mapstruct-processor:$mapStructVersion"

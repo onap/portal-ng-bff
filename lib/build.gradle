@@ -2,7 +2,7 @@ plugins {
     id 'java'
     id 'org.springframework.boot'
     id 'io.spring.dependency-management'
-    id 'com.github.johnrengelman.shadow' 
+    id 'com.github.johnrengelman.shadow'
     id 'maven-publish'                      // publish lib jar to artifact repository
     id 'com.diffplug.spotless'              // code formatting
     id 'com.github.spotbugs'                // bug linting that can be picked up by IDE
@@ -31,10 +31,10 @@ dependencies {
     implementation "org.mapstruct.extensions.spring:mapstruct-spring-extensions:$mapStructExtensionsVersion"
     implementation "io.swagger.core.v3:swagger-annotations:$swaggerV3Version"
 
-    implementation(platform("io.micrometer:micrometer-tracing-bom:$micrometerVersion"))
-    implementation("io.micrometer:micrometer-tracing")
-    implementation("io.micrometer:micrometer-tracing-bridge-otel")
-    implementation("io.opentelemetry:opentelemetry-exporter-zipkin")
+    implementation 'io.micrometer:micrometer-tracing'
+    implementation 'io.micrometer:micrometer-tracing-bridge-otel'
+    implementation 'io.opentelemetry:opentelemetry-exporter-zipkin'
+    implementation 'io.micrometer:micrometer-registry-prometheus'
 
     annotationProcessor "org.mapstruct:mapstruct-processor:$mapStructVersion"
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'

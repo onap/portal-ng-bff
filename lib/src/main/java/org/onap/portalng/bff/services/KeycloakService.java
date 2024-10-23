@@ -71,9 +71,8 @@ public class KeycloakService {
                     DownstreamApiProblemException.builder()
                         .status(Status.NOT_FOUND)
                         .detail(
-                            String.format(
-                                "Roles not found in the realm: %s",
-                                absentRoles.stream().map(RoleApiDto::getName).toList()))
+                            "Roles not found in the realm: %s"
+                                .formatted(absentRoles.stream().map(RoleApiDto::getName).toList()))
                         .downstreamSystem(ProblemApiDto.DownstreamSystemEnum.KEYCLOAK.toString())
                         .title(HttpStatus.NOT_FOUND.toString())
                         .build());
