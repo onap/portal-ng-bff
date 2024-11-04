@@ -1,0 +1,48 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2024 The Linux Foundation
+
+name: "🏷️ Check/Inject Issue-ID"
+
+outputs:
+  PRESENT:
+    description: "Whether the Issue-ID string is present"
+    value: ${{ steps.fetch.outputs.count }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Checking for Issue-ID in body of first commit"
+      id: check
+      shell: bash
+      run: |
+        # Checking for Issue-ID in body of first commit
+        echo "github.event.head_commit.message:"
+        echo "${{ github.event.head_commit.message }}"
+        echo "github.event.workflow_run.head_commit.message:"
+        echo "${{ github.event.workflow_run.head_commit.message }}"
+        echo "github.event.commits[0].message:"
+        echo "${{ github.event.commits[0].message }}"
+
+        # Gerrit reg-ex expression is:
+        # Issue-ID: ([A-Z][A-Z0-9]{1,9}-\\d+)
+
+        # Set detection outcome
+        echo "present=false" >> "$GITHUB_ENV"
+        echo "present=false" >> "$GITHUB_OUTPUT"
+
+    - name: "Look up appropriate JIRA ticket for this change"
+      id: lookup
+      if: env.present == 'false'
+      shell: bash
+      run: |
+        # Look up appropriate JIRA ticket for this change
+        echo "Look up appropriate JIRA ticket for this change"
+
+    - name: "Injecting Issue-ID into body of first commit message"
+      id: inject
+      if: env.present == 'false'
+      shell: bash
+      run: |
+        # Injecting Issue-ID into body of first commit
+        echo "Injecting Issue-ID into body of first commit"
