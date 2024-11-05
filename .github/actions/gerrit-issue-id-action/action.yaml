@@ -13,8 +13,6 @@ runs:
   using: "composite"
   steps:
     - uses: actions/checkout@v4
-      with:
-       ref: ${{ github.event.pull_request.head.sha }}
 
     - name: Get commit message header
       id: get_commit_message
