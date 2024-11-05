@@ -26,19 +26,6 @@ runs:
       run: |
         echo "The commit message header is: $COMMIT_MESSAGE_HEADER"
 
-    - name: Get commit message header
-      id: get_commit_message
-      shell: bash
-      run: |
-        COMMIT_MESSAGE_HEADER=$(git log -1 --pretty=%B | head -n 1)
-        echo "COMMIT_MESSAGE_HEADER=${COMMIT_MESSAGE_HEADER}" >> $GITHUB_ENV
-
-    - name: Use commit message header
-      shell: bash
-      run: |
-        echo "The commit message header is: $COMMIT_MESSAGE_HEADER"
-        echo "Test"
-
     - name: "Checking for Issue-ID in body of first commit"
       id: check
       shell: bash
