@@ -12,6 +12,8 @@ outputs:
 runs:
   using: "composite"
   steps:
+    - uses: actions/checkout@v4
+
     - name: "Checking for Issue-ID in body of first commit"
       id: check
       shell: bash
