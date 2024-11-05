@@ -27,4 +27,4 @@ jobs:
       pull-requests: write
     steps:
       # yamllint disable-line rule:line-length
-      - uses: modeseven-onap/portal-ng-bff/.github/actions/gerrit-issue-id-action@master
+      - uses: os-climate/osc-github-devops/.github/actions/gerrit-issue-id@main
