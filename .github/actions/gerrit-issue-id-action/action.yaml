@@ -37,7 +37,6 @@ runs:
       shell: bash
       run: |
         echo "The commit message header is: $COMMIT_MESSAGE_HEADER"
-        echo "Test"
 
     - name: "Checking for Issue-ID in body of first commit"
       id: check
