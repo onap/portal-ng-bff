@@ -12,7 +12,7 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - uses: actions/checkout@v4
+    # - uses: actions/checkout@v4
 
     - name: "Retrieve last commit message body"
       id: retrieve
@@ -31,11 +31,11 @@ runs:
 
         ISSUE=$(grep -i -w -m1 '^Issue-ID: .*$' "$TMPFILE")
         if [ "$?" -eq 0 ]; then
-          "✅ Existing Issue-ID was found in the pull request"
+          echo "✅ Existing Issue-ID was found in the pull request"
           echo "PRESENT=true" >> "$GITHUB_ENV"
           echo "PRESENT=true" >> "$GITHUB_OUTPUT"
         else
-          "❌ Existing Issue-ID was NOT found in the pull request"
+          echo "❌ Existing Issue-ID was NOT found in the pull request"
           echo "PRESENT=false" >> "$GITHUB_ENV"
           echo "PRESENT=false" >> "$GITHUB_OUTPUT"
         fi
