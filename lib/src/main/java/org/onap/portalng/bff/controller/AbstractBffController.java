@@ -22,9 +22,6 @@
 package org.onap.portalng.bff.controller;
 
 import org.onap.portalng.bff.config.BffConfig;
-import org.onap.portalng.bff.config.IdTokenExchangeFilterFunction;
-import org.springframework.web.server.ServerWebExchange;
-import reactor.core.publisher.Mono;
 
 public abstract class AbstractBffController {
 
@@ -32,15 +29,5 @@ public abstract class AbstractBffController {
 
   protected AbstractBffController(BffConfig bffConfig) {
     this.bffConfig = bffConfig;
-  }
-
-  public Mono<Void> checkRoleAccess(String method, ServerWebExchange exchange) {
-    return bffConfig
-        .getRoles(method)
-        .flatMap(
-            roles ->
-                roles.contains("*")
-                    ? Mono.empty()
-                    : IdTokenExchangeFilterFunction.validateAccess(exchange, roles));
   }
 }
