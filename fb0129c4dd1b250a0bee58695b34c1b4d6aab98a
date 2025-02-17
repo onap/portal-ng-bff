@@ -16,6 +16,23 @@
       "message": "jjb-deploy portal-ng-ui-release-merge-master",
       "revId": "fb0129c4dd1b250a0bee58695b34c1b4d6aab98a",
       "serverId": "14b4e41f-c4e3-4fb9-9955-6a9b5656895a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "324d5711_64093b70",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 8049
+      },
+      "writtenOn": "2025-02-17T12:42:29Z",
+      "side": 1,
+      "message": "Tested against ci-management here: https://gerrit.onap.org/r/c/ci-management/+/140236\nThe jjb-deploy macro is only valid in ci-management.",
+      "revId": "fb0129c4dd1b250a0bee58695b34c1b4d6aab98a",
+      "serverId": "14b4e41f-c4e3-4fb9-9955-6a9b5656895a"
     }
   ]
 }
