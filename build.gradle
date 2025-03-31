@@ -15,5 +15,5 @@ ext {
     swaggerV3Version = '2.2.21'
 
     // app
-    wiremockVersion = '4.0.4'
+    wiremockVersion = '4.2.1'
 }
