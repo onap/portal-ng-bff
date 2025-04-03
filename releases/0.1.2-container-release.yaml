@@ -1,0 +1,7 @@
+distribution_type: container
+container_release_tag: 0.1.2
+project: portal-ng/bff
+ref: afdfcdb63de16818aa4984552b725c4b4151b756
+containers:
+    - name: portal-ng/bff
+      version: latest
