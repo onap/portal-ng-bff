@@ -12,7 +12,7 @@ ext {
     mapStructExtensionsVersion = '1.0.2'
     logbackVersion = '7.4'
     lombokVersion = '1.18.36'
-    swaggerV3Version = '2.2.21'
+    swaggerV3Version = '2.2.30'
 
     // app
     wiremockVersion = '4.0.4'
