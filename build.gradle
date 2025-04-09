@@ -13,6 +13,7 @@ ext {
     logbackVersion = '7.4'
     lombokVersion = '1.18.36'
     swaggerV3Version = '2.2.21'
+    lombokMapStructBindingVersion = '0.2.0'
 
     // app
     wiremockVersion = '4.0.4'

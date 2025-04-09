@@ -29,7 +29,6 @@ dependencies {
     implementation "org.mapstruct:mapstruct:$mapStructVersion"
     implementation "org.mapstruct.extensions.spring:mapstruct-spring-annotations:$mapStructExtensionsVersion"
     implementation "org.mapstruct.extensions.spring:mapstruct-spring-extensions:$mapStructExtensionsVersion"
-    implementation "io.swagger.core.v3:swagger-annotations:$swaggerV3Version"
 
     implementation 'io.micrometer:micrometer-tracing'
     implementation 'io.micrometer:micrometer-tracing-bridge-otel'
@@ -41,6 +40,7 @@ dependencies {
 
     compileOnly             "org.projectlombok:lombok:$lombokVersion"
     annotationProcessor     "org.projectlombok:lombok:$lombokVersion"
+    annotationProcessor "org.projectlombok:lombok-mapstruct-binding:$lombokMapStructBindingVersion"
     testCompileOnly         "org.projectlombok:lombok:$lombokVersion"
     testAnnotationProcessor "org.projectlombok:lombok:$lombokVersion"
 }
@@ -97,4 +97,7 @@ def Properties getVersionProperties() {
 		versionProperties.load(it)
 	}
 	return versionProperties
+}
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
 }
