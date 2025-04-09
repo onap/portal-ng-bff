@@ -54,7 +54,8 @@ public class SecurityConfig {
             basic ->
                 basic
                     .disable()
-                    .formLogin(login -> login.disable().csrf(csrf -> csrf.disable().cors())))
+                    .formLogin(
+                        login -> login.disable().csrf(csrf -> csrf.disable().cors(withDefaults()))))
         .authorizeExchange(
             exchange ->
                 exchange

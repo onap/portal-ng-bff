@@ -71,7 +71,7 @@ public class KeycloakConfig extends AbstractClientConfig<ErrorResponseKeycloakDt
 
     // Extract service name and version from BasePath
     String urlBasePathPrefix =
-        String.format("%s/admin/realms/%s", bffConfig.getKeycloakUrl(), bffConfig.getRealm());
+        "%s/admin/realms/%s".formatted(bffConfig.getKeycloakUrl(), bffConfig.getRealm());
 
     return apiConstructor.apply(apiClient.setBasePath(urlBasePathPrefix));
   }
