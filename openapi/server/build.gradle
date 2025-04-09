@@ -56,3 +56,6 @@ idea {
     generatedSourceDirs += file("$buildDir/openapi/src/main/java")
   }
 }
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+}

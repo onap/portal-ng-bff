@@ -36,7 +36,7 @@ public class RoleBaseAccessIntegrationTest extends BaseIntegrationTest {
     WireMock.stubFor(
         WireMock.post(
                 WireMock.urlMatching(
-                    String.format("/realms/%s/protocol/openid-connect/token", realm)))
+                    "/realms/%s/protocol/openid-connect/token".formatted(realm)))
             .withRequestBody(
                 WireMock.containing("grant_type=urn:ietf:params:oauth:grant-type:uma-ticket"))
             .willReturn(
@@ -60,7 +60,7 @@ public class RoleBaseAccessIntegrationTest extends BaseIntegrationTest {
     WireMock.stubFor(
         WireMock.post(
                 WireMock.urlMatching(
-                    String.format("/realms/%s/protocol/openid-connect/token", realm)))
+                    "/realms/%s/protocol/openid-connect/token".formatted(realm)))
             .withRequestBody(
                 WireMock.containing("grant_type=urn:ietf:params:oauth:grant-type:uma-ticket"))
             .willReturn(
@@ -84,7 +84,7 @@ public class RoleBaseAccessIntegrationTest extends BaseIntegrationTest {
     WireMock.stubFor(
         WireMock.post(
                 WireMock.urlMatching(
-                    String.format("/realms/%s/protocol/openid-connect/token", realm)))
+                    "/realms/%s/protocol/openid-connect/token".formatted(realm)))
             .withRequestBody(
                 WireMock.containing("grant_type=urn:ietf:params:oauth:grant-type:uma-ticket"))
             .willReturn(

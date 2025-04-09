@@ -51,10 +51,10 @@ public class SecurityConfig {
   @Bean
   public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
     return http.httpBasic(
-            basic ->
-                basic
-                    .disable()
-                    .formLogin(login -> login.disable().csrf(csrf -> csrf.disable().cors())))
+        basic ->
+            basic
+                .disable()
+                .formLogin(login -> login.disable().csrf(csrf -> csrf.disable().cors(withDefaults()))))
         .authorizeExchange(
             exchange ->
                 exchange

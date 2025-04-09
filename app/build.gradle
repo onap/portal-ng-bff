@@ -51,6 +51,7 @@ dependencies {
     implementation "net.logstash.logback:logstash-logback-encoder:$logbackVersion"
     compileOnly             "org.projectlombok:lombok:$lombokVersion"
     annotationProcessor     "org.projectlombok:lombok:$lombokVersion"
+    annotationProcessor "org.projectlombok:lombok-mapstruct-binding:0.2.0"
     testCompileOnly         "org.projectlombok:lombok:$lombokVersion"
     testAnnotationProcessor "org.projectlombok:lombok:$lombokVersion"
 
