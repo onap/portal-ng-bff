@@ -11,7 +11,7 @@ ext {
     mapStructVersion = '1.6.3'
     mapStructExtensionsVersion = '1.0.2'
     logbackVersion = '7.4'
-    lombokVersion = '1.18.36'
+    lombokVersion = '1.18.38'
     swaggerV3Version = '2.2.21'
     lombokMapStructBindingVersion = '0.2.0'
 
