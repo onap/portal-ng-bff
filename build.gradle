@@ -16,5 +16,5 @@ ext {
     lombokMapStructBindingVersion = '0.2.0'
 
     // app
-    wiremockVersion = '4.0.4'
+    wiremockVersion = '4.3.0'
 }
