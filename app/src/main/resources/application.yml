@@ -19,7 +19,7 @@ management:
       probability: 1.0 # sample every request
   zipkin:
     tracing:
-      endpoint: http://${COLLECTOR_HOST}:${COLLECTOR_PORT}/api/v2/spans
+      endpoint: ${COLLECTOR_HOST}:${COLLECTOR_PORT}/api/v2/spans
 
 spring:
   application:
@@ -55,7 +55,6 @@ bff:
   keycloak-client-id: ${KEYCLOAK_CLIENT_ID}
   endpoints:
     unauthenticated: /api-docs.html, /api.yaml, /webjars/**, /actuator/**
-    
+
   rbac:
     endpoints-excluded: ${RBAC_EXCLUDED_ENDPOINTS}:-/api-docs.html, /api.yaml, /webjars/**, /actuator/**, /users**, /roles**, /preferences**, /actions**}
-
