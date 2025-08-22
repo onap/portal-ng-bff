@@ -26,6 +26,7 @@ def _base_env() -> dict[str, str]:
         "GERRIT_SSH_USER_G2G_EMAIL": "gerrit-bot@example.org",
         # Local run: no GitHub event
         "GITHUB_EVENT_NAME": "",
+        "GITHUB_EVENT_PATH": "",
         # Token not needed since we mock build_client for bulk mode
         "GITHUB_TOKEN": "dummy",
         "DRY_RUN": "true",
