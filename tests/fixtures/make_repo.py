@@ -57,6 +57,11 @@ def _run_git(
     merged_env = dict(os.environ)
     if env:
         merged_env.update(env)
+    # Ensure identity for non-interactive commits in tests
+    merged_env.setdefault("GIT_AUTHOR_NAME", "Test Bot")
+    merged_env.setdefault("GIT_AUTHOR_EMAIL", "test-bot@example.org")
+    merged_env.setdefault("GIT_COMMITTER_NAME", "Test Bot")
+    merged_env.setdefault("GIT_COMMITTER_EMAIL", "test-bot@example.org")
     proc = subprocess.run(  # noqa: S603
         full_cmd,
         cwd=str(cwd),

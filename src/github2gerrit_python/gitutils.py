@@ -14,37 +14,33 @@ import os
 import shlex
 import subprocess
 import time
+from collections.abc import Callable
+from collections.abc import Iterable
+from collections.abc import Mapping
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
-from typing import Dict
-from typing import Iterable
-from typing import List
-from typing import Mapping
-from typing import Optional
-from typing import Sequence
-from typing import Union
 
 
 __all__ = [
     "CommandError",
-    "GitError",
     "CommandResult",
-    "run_cmd",
-    "run_cmd_with_retries",
+    "GitError",
+    "enumerate_reviewer_emails",
     "git",
-    "git_config",
-    "git_config_get",
-    "git_config_get_all",
-    "git_reset_soft",
     "git_cherry_pick",
     "git_commit_amend",
     "git_commit_new",
-    "git_show",
-    "git_log",
+    "git_config",
+    "git_config_get",
+    "git_config_get_all",
     "git_last_commit_trailers",
+    "git_log",
+    "git_reset_soft",
+    "git_show",
     "mask_text",
-    "enumerate_reviewer_emails",
+    "run_cmd",
+    "run_cmd_with_retries",
 ]
 
 
@@ -91,7 +87,7 @@ class CommandResult:
     stderr: str
 
 
-def _to_str_opt(val: Optional[Union[str, bytes]]) -> Optional[str]:
+def _to_str_opt(val: str | bytes | None) -> str | None:
     """Convert an optional bytes/str value to str safely."""
     if val is None:
         return None
@@ -120,11 +116,11 @@ def _format_cmd_for_log(
 
 
 def _merge_env(
-    base: Optional[Mapping[str, str]],
-    extra: Optional[Mapping[str, str]],
-) -> Dict[str, str]:
+    base: Mapping[str, str] | None,
+    extra: Mapping[str, str] | None,
+) -> dict[str, str]:
     if base is None:
-        out: Dict[str, str] = dict(os.environ)
+        out: dict[str, str] = dict(os.environ)
     else:
         out = dict(base)
     if extra:
@@ -162,12 +158,12 @@ def _backoff_delay(attempt: int, base: float = 0.5, cap: float = 5.0) -> float:
 def run_cmd(
     cmd: Sequence[str],
     *,
-    cwd: Optional[Path] = None,
-    env: Optional[Mapping[str, str]] = None,
-    timeout: Optional[float] = None,
+    cwd: Path | None = None,
+    env: Mapping[str, str] | None = None,
+    timeout: float | None = None,
     check: bool = True,
-    masks: Optional[Iterable[str]] = None,
-    stdin_data: Optional[str] = None,
+    masks: Iterable[str] | None = None,
+    stdin_data: str | None = None,
 ) -> CommandResult:
     """Run a subprocess command and capture output.
 
@@ -180,20 +176,20 @@ def run_cmd(
 
     log.debug("Executing: %s", _format_cmd_for_log(cmd, masks))
     try:
-        proc = subprocess.run(
+        proc = subprocess.run(  # noqa: S603
             list(cmd),
             cwd=str(cwd) if cwd else None,
             env=env_full,
             input=stdin_data,
             text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            shell=False,
+            capture_output=True,
             timeout=timeout,
             check=False,
         )
     except subprocess.TimeoutExpired as exc:
         msg = f"Command timed out: {cmd!r}"
-        log.error(msg)
+        log.exception(msg)
         # TimeoutExpired carries 'output' and 'stderr' attributes,
         # which may be bytes depending on invocation context.
         out = getattr(exc, "output", None)
@@ -207,7 +203,7 @@ def run_cmd(
         ) from exc
     except OSError as exc:
         msg = f"Failed to execute command: {cmd!r} ({exc})"
-        log.error(msg)
+        log.exception(msg)
         raise CommandError(msg, cmd=cmd) from exc
 
     result = CommandResult(
@@ -224,7 +220,7 @@ def run_cmd(
             mask_text(result.stderr, masks),
         )
         if check:
-            raise CommandError(
+            raise CommandError(  # noqa: TRY003
                 "Command failed",
                 cmd=cmd,
                 returncode=result.returncode,
@@ -243,14 +239,14 @@ def run_cmd(
 def run_cmd_with_retries(
     cmd: Sequence[str],
     *,
-    cwd: Optional[Path] = None,
-    env: Optional[Mapping[str, str]] = None,
-    timeout: Optional[float] = None,
+    cwd: Path | None = None,
+    env: Mapping[str, str] | None = None,
+    timeout: float | None = None,
     check: bool = True,
-    masks: Optional[Iterable[str]] = None,
-    stdin_data: Optional[str] = None,
+    masks: Iterable[str] | None = None,
+    stdin_data: str | None = None,
     retries: int = 2,
-    retry_on: Optional[Callable[[CommandResult], bool]] = None,
+    retry_on: Callable[[CommandResult], bool] | None = None,
 ) -> CommandResult:
     """Run a command with basic exponential backoff retries on transient errors.
 
@@ -277,13 +273,13 @@ def run_cmd_with_retries(
                 masks=masks,
                 stdin_data=stdin_data,
             )
-        except CommandError:
+        except CommandError:  # noqa: TRY203
             # Non-exec or timeout errors are not retried here.
             raise
 
         if res.returncode == 0 or attempt > (retries + 1):
             if check and res.returncode != 0:
-                raise CommandError(
+                raise CommandError(  # noqa: TRY003
                     "Command failed after retries",
                     cmd=cmd,
                     returncode=res.returncode,
@@ -306,7 +302,7 @@ def run_cmd_with_retries(
 
         # Non-transient failure; stop.
         if check:
-            raise CommandError(
+            raise CommandError(  # noqa: TRY003
                 "Command failed (non-retryable)",
                 cmd=cmd,
                 returncode=res.returncode,
@@ -324,11 +320,11 @@ def run_cmd_with_retries(
 def git(
     args: Sequence[str],
     *,
-    cwd: Optional[Path] = None,
-    env: Optional[Mapping[str, str]] = None,
-    timeout: Optional[float] = None,
+    cwd: Path | None = None,
+    env: Mapping[str, str] | None = None,
+    timeout: float | None = None,
     check: bool = True,
-    masks: Optional[Iterable[str]] = None,
+    masks: Iterable[str] | None = None,
     retries: int = 2,
 ) -> CommandResult:
     """Run a git subcommand with retries on transient errors."""
@@ -349,7 +345,7 @@ def git_config(
     value: str,
     *,
     global_: bool = False,
-    cwd: Optional[Path] = None,
+    cwd: Path | None = None,
 ) -> None:
     args = ["config"]
     if global_:
@@ -358,7 +354,7 @@ def git_config(
     try:
         git(args, cwd=cwd)
     except CommandError as exc:
-        raise GitError(
+        raise GitError(  # noqa: TRY003
             f"git config failed for {key}",
             cmd=exc.cmd,
             returncode=exc.returncode,
@@ -367,11 +363,11 @@ def git_config(
         ) from exc
 
 
-def git_reset_soft(ref: str, *, cwd: Optional[Path] = None) -> None:
+def git_reset_soft(ref: str, *, cwd: Path | None = None) -> None:
     try:
         git(["reset", "--soft", ref], cwd=cwd)
     except CommandError as exc:
-        raise GitError(
+        raise GitError(  # noqa: TRY003
             f"git reset --soft {ref} failed",
             cmd=exc.cmd,
             returncode=exc.returncode,
@@ -383,17 +379,17 @@ def git_reset_soft(ref: str, *, cwd: Optional[Path] = None) -> None:
 def git_cherry_pick(
     commit: str,
     *,
-    cwd: Optional[Path] = None,
-    strategy_opts: Optional[Sequence[str]] = None,
+    cwd: Path | None = None,
+    strategy_opts: Sequence[str] | None = None,
 ) -> None:
-    args: List[str] = ["cherry-pick"]
+    args: list[str] = ["cherry-pick"]
     if strategy_opts:
         args.extend(strategy_opts)
     args.append(commit)
     try:
         git(args, cwd=cwd)
     except CommandError as exc:
-        raise GitError(
+        raise GitError(  # noqa: TRY003
             f"git cherry-pick {commit} failed",
             cmd=exc.cmd,
             returncode=exc.returncode,
@@ -404,18 +400,18 @@ def git_cherry_pick(
 
 def git_commit_amend(
     *,
-    cwd: Optional[Path] = None,
+    cwd: Path | None = None,
     no_edit: bool = True,
     signoff: bool = True,
-    author: Optional[str] = None,
-    message: Optional[str] = None,
-    message_file: Optional[Path] = None,
+    author: str | None = None,
+    message: str | None = None,
+    message_file: Path | None = None,
 ) -> None:
     """Amend the current commit.
 
     If message is provided, it takes precedence over message_file.
     """
-    args: List[str] = ["commit", "--amend"]
+    args: list[str] = ["commit", "--amend"]
     if no_edit and not message and not message_file:
         args.append("--no-edit")
     if signoff:
@@ -430,7 +426,7 @@ def git_commit_amend(
     try:
         git(args, cwd=cwd)
     except CommandError as exc:
-        raise GitError(
+        raise GitError(  # noqa: TRY003
             "git commit --amend failed",
             cmd=exc.cmd,
             returncode=exc.returncode,
@@ -441,18 +437,18 @@ def git_commit_amend(
 
 def git_commit_new(
     *,
-    cwd: Optional[Path] = None,
-    message: Optional[str] = None,
-    message_file: Optional[Path] = None,
+    cwd: Path | None = None,
+    message: str | None = None,
+    message_file: Path | None = None,
     signoff: bool = True,
-    author: Optional[str] = None,
+    author: str | None = None,
     allow_empty: bool = False,
 ) -> None:
     """Create a new commit using message or message_file."""
     if not message and not message_file:
-        raise ValueError("Either message or message_file must be provided")
+        raise ValueError("Either message or message_file must be provided")  # noqa: TRY003
 
-    args: List[str] = ["commit"]
+    args: list[str] = ["commit"]
     if signoff:
         args.append("-s")
     if author:
@@ -468,7 +464,7 @@ def git_commit_new(
     try:
         git(args, cwd=cwd)
     except CommandError as exc:
-        raise GitError(
+        raise GitError(  # noqa: TRY003
             "git commit failed",
             cmd=exc.cmd,
             returncode=exc.returncode,
@@ -480,58 +476,60 @@ def git_commit_new(
 def git_show(
     rev: str,
     *,
-    cwd: Optional[Path] = None,
-    fmt: Optional[str] = None,
+    cwd: Path | None = None,
+    fmt: str | None = None,
 ) -> str:
     """Show a commit content or its formatted output."""
-    args: List[str] = ["show", rev]
+    args: list[str] = ["show", rev]
     if fmt:
         args.extend(["--format", fmt, "-s"])
     try:
         res = git(args, cwd=cwd)
-        return res.stdout
     except CommandError as exc:
-        raise GitError(
+        raise GitError(  # noqa: TRY003
             f"git show {rev} failed",
             cmd=exc.cmd,
             returncode=exc.returncode,
             stdout=exc.stdout,
             stderr=exc.stderr,
         ) from exc
+    else:
+        return res.stdout
 
 
 def git_log(
     *,
-    cwd: Optional[Path] = None,
+    cwd: Path | None = None,
     n: int = 1,
-    pretty: Optional[str] = None,
-    additional_args: Optional[Sequence[str]] = None,
+    pretty: str | None = None,
+    additional_args: Sequence[str] | None = None,
 ) -> str:
     """Run git log with common options."""
-    args: List[str] = ["log", f"-n{n}"]
+    args: list[str] = ["log", f"-n{n}"]
     if pretty:
         args.extend(["--pretty", pretty])
     if additional_args:
         args.extend(additional_args)
     try:
         res = git(args, cwd=cwd)
-        return res.stdout
     except CommandError as exc:
-        raise GitError(
+        raise GitError(  # noqa: TRY003
             "git log failed",
             cmd=exc.cmd,
             returncode=exc.returncode,
             stdout=exc.stdout,
             stderr=exc.stderr,
         ) from exc
+    else:
+        return res.stdout
 
 
-def _parse_trailers(text: str) -> Dict[str, List[str]]:
+def _parse_trailers(text: str) -> dict[str, list[str]]:
     """Parse trailers from a commit message body.
 
     Expects lines like 'Key: Value'. Multiple values per key are supported.
     """
-    trailers: Dict[str, List[str]] = {}
+    trailers: dict[str, list[str]] = {}
     for raw in text.splitlines():
         line = raw.strip()
         if not line or ":" not in line:
@@ -546,10 +544,10 @@ def _parse_trailers(text: str) -> Dict[str, List[str]]:
 
 
 def git_last_commit_trailers(
-    keys: Optional[Sequence[str]] = None,
+    keys: Sequence[str] | None = None,
     *,
-    cwd: Optional[Path] = None,
-) -> Dict[str, List[str]]:
+    cwd: Path | None = None,
+) -> dict[str, list[str]]:
     """Return trailers for the last commit, optionally filtered by keys."""
     try:
         # Use pretty format to print only body for robust parsing.
@@ -558,21 +556,22 @@ def git_last_commit_trailers(
         trailers = _parse_trailers(body)
         if keys is None:
             return trailers
-        subset: Dict[str, List[str]] = {}
+        subset: dict[str, list[str]] = {}
         for k in keys:
             if k in trailers:
                 subset[k] = trailers[k]
-        return subset
     except GitError:
         # If HEAD is unavailable (fresh repo), return empty.
         return {}
+    else:
+        return subset
 
 
 def git_config_get(
     key: str,
     *,
     global_: bool = False,
-) -> Optional[str]:
+) -> str | None:
     """Get a git config value (single) from local or global config."""
     args = ["config"]
     if global_:
@@ -581,16 +580,17 @@ def git_config_get(
     try:
         res = git(args)
         value = res.stdout.strip()
-        return value if value else None
     except CommandError:
         return None
+    else:
+        return value if value else None
 
 
 def git_config_get_all(
     key: str,
     *,
     global_: bool = False,
-) -> List[str]:
+) -> list[str]:
     """Get all git config values for a key (may return multiple lines)."""
     args = ["config"]
     if global_:
@@ -599,12 +599,13 @@ def git_config_get_all(
     try:
         res = git(args, check=False)
         values = [ln.strip() for ln in res.stdout.splitlines() if ln.strip()]
-        return values
     except CommandError:
         return []
+    else:
+        return values
 
 
-def enumerate_reviewer_emails() -> List[str]:
+def enumerate_reviewer_emails() -> list[str]:
     """Return reviewer emails from local/global git config.
 
     Sources checked in order:
@@ -617,7 +618,7 @@ def enumerate_reviewer_emails() -> List[str]:
     Returns:
       A de-duplicated list of emails (order preserved).
     """
-    emails: List[str] = []
+    emails: list[str] = []
 
     def _add_email(e: str) -> None:
         v = e.strip()

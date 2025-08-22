@@ -13,7 +13,7 @@ authors = [
 ]
 keywords = ["github", "gerrit", "ci", "actions", "typer", "cli"]
 classifiers = [
-  "Development Status :: 3 - Alpha",
+  "Development Status :: 4 - Beta",
   "Environment :: Console",
   "Intended Audience :: Developers",
   "License :: OSI Approved :: Apache Software License",
@@ -43,6 +43,8 @@ dependencies = [
 
   # YAML for central settings, if configured
   "PyYAML>=6.0.2",
+  # git-review CLI used for pushing to Gerrit
+  "git-review>=2.3.1",
 ]
 
 [project.urls]
@@ -105,7 +107,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*.py" = ["S101", "S105", "PLW0603", "E501"]
+"tests/*.py" = ["S101", "S105", "PLW0603", "E501", "TRY003"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["github2gerrit_python"]
@@ -136,14 +138,17 @@ exclude = [
   "tests/fixtures/",
 ]
 
+
+
+[[tool.mypy.overrides]]
+module = ["pygerrit2", "pygerrit2.*"]
+ignore_missing_imports = true
+
 [tool.coverage.run]
 branch = true
 source = ["src/github2gerrit_python"]
 omit = [
   "tests/*",
-  "src/github2gerrit_python/core.py",
-  "src/github2gerrit_python/github_api.py",
-  "src/github2gerrit_python/gitutils.py",
 ]
 
 [tool.coverage.report]

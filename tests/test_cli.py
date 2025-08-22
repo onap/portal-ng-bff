@@ -15,6 +15,26 @@ from github2gerrit_python.cli import app
 runner = CliRunner()
 
 
+def test_conflicting_options_error_message_in_stderr(tmp_path: Path) -> None:
+    env = _base_env(tmp_path)
+    env["SUBMIT_SINGLE_COMMITS"] = "true"
+    env["USE_PR_AS_COMMIT"] = "true"
+
+    result = runner.invoke(app, ["run"], env=env)
+    assert result.exit_code == 2
+    assert "cannot be enabled at the same time" in result.stderr
+
+
+def test_missing_required_input_error_message_in_stderr(tmp_path: Path) -> None:
+    env = _base_env(tmp_path)
+    # Remove a required input to trigger a validation error path
+    env.pop("GERRIT_KNOWN_HOSTS", None)
+
+    result = runner.invoke(app, ["run"], env=env)
+    assert result.exit_code == 2
+    assert "Missing required input" in result.stderr
+
+
 def _base_env(tmp_path: Path) -> dict[str, str]:
     """Return a baseline environment with required inputs set."""
     event_path = tmp_path / "event.json"

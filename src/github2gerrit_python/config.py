@@ -51,9 +51,6 @@ import os
 import re
 from pathlib import Path
 from typing import Any
-from typing import Dict
-from typing import Iterable
-from typing import Optional
 from typing import cast
 
 
@@ -102,14 +99,12 @@ def _expand_env_refs(value: str) -> str:
 
 def _strip_quotes(value: str) -> str:
     v = value.strip()
-    if len(v) >= 2 and (
-        (v[0] == v[-1] == '"') or (v[0] == v[-1] == "'")
-    ):
+    if len(v) >= 2 and ((v[0] == v[-1] == '"') or (v[0] == v[-1] == "'")):
         return v[1:-1]
     return v
 
 
-def _normalize_bool_like(value: str) -> Optional[str]:
+def _normalize_bool_like(value: str) -> str | None:
     """Return 'true'/'false' for boolean-like values, else None."""
     s = value.strip().lower()
     if s in {"1", "true", "yes", "on"}:
@@ -138,7 +133,7 @@ def _coerce_value(raw: str) -> str:
 def _select_section(
     cp: configparser.RawConfigParser,
     org: str,
-) -> Optional[str]:
+) -> str | None:
     """Find a section name case-insensitively."""
     target = org.strip().lower()
     for sec in cp.sections():
@@ -174,7 +169,8 @@ def _load_ini(path: Path) -> configparser.RawConfigParser:
                 if rhs == '"':
                     i += 1
                     block: list[str] = []
-                    # Collect until a line with only a closing quote (ignoring spaces)
+                    # Collect until a line with only a closing quote
+                    # (ignoring spaces)
                     while i < len(lines) and lines[i].strip() != '"':
                         block.append(lines[i])
                         i += 1
@@ -184,7 +180,8 @@ def _load_ini(path: Path) -> configparser.RawConfigParser:
                         i += 1
                         continue
                     else:
-                        # No closing quote found; fall through and keep original line
+                        # No closing quote found; fall through
+                        # and keep original line
                         out_lines.append(line)
                         continue
             out_lines.append(line)
@@ -193,12 +190,12 @@ def _load_ini(path: Path) -> configparser.RawConfigParser:
         cp.read_string(preprocessed)
     except FileNotFoundError:
         log.debug("Config file not found: %s", path)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         log.warning("Failed to read config file %s: %s", path, exc)
     return cp
 
 
-def _detect_org() -> Optional[str]:
+def _detect_org() -> str | None:
     # Prefer explicit ORGANIZATION, then GitHub default env var
     org = os.getenv("ORGANIZATION", "").strip()
     if org:
@@ -208,22 +205,22 @@ def _detect_org() -> Optional[str]:
 
 
 def _merge_dicts(
-    base: Dict[str, str],
-    override: Dict[str, str],
-) -> Dict[str, str]:
+    base: dict[str, str],
+    override: dict[str, str],
+) -> dict[str, str]:
     out = dict(base)
     out.update(override)
     return out
 
 
-def _normalize_keys(d: Dict[str, str]) -> Dict[str, str]:
+def _normalize_keys(d: dict[str, str]) -> dict[str, str]:
     return {k.strip().upper(): v for k, v in d.items() if k.strip()}
 
 
 def load_org_config(
-    org: Optional[str] = None,
-    path: Optional[str | Path] = None,
-) -> Dict[str, str]:
+    org: str | None = None,
+    path: str | Path | None = None,
+) -> dict[str, str]:
     """Load configuration for a GitHub organization.
 
     Args:
@@ -246,7 +243,7 @@ def load_org_config(
 
     cp = _load_ini(cfg_path)
     effective_org = org or _detect_org()
-    result: Dict[str, str] = {}
+    result: dict[str, str] = {}
 
     # Start with [default]
     if cp.has_section("default"):
@@ -270,7 +267,7 @@ def load_org_config(
     return normalized
 
 
-def apply_config_to_env(cfg: Dict[str, str]) -> None:
+def apply_config_to_env(cfg: dict[str, str]) -> None:
     """Set environment variables for any keys not already set.
 
     This is useful to make configuration values visible to downstream
@@ -285,9 +282,9 @@ def apply_config_to_env(cfg: Dict[str, str]) -> None:
 
 
 def filter_known(
-    cfg: Dict[str, str],
+    cfg: dict[str, str],
     include_extra: bool = True,
-) -> Dict[str, str]:
+) -> dict[str, str]:
     """Return a filtered view of cfg.
 
     If include_extra is False, only keys from KNOWN_KEYS are included.
@@ -299,9 +296,9 @@ def filter_known(
 
 
 def overlay_missing(
-    primary: Dict[str, str],
-    fallback: Dict[str, str],
-) -> Dict[str, str]:
+    primary: dict[str, str],
+    fallback: dict[str, str],
+) -> dict[str, str]:
     """Merge fallback into primary for any missing keys.
 
     This is a helper when composing precedence:

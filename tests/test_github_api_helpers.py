@@ -37,10 +37,17 @@ def test_get_repo_from_env_calls_client_get_repo_and_returns_repo(
     # Arrange
     calls: dict[str, object] = {}
 
+    class DummyRepo:
+        def get_pull(self, number: int) -> object:
+            return object()
+
+        def get_pulls(self, state: str) -> list[object]:
+            return []
+
     class DummyClient:
         def get_repo(self, full: str) -> object:
             calls["arg"] = full
-            return {"repo": full}
+            return DummyRepo()
 
     monkeypatch.setenv("GITHUB_REPOSITORY", "owner/name")
 
@@ -48,7 +55,7 @@ def test_get_repo_from_env_calls_client_get_repo_and_returns_repo(
     repo = ghapi.get_repo_from_env(DummyClient())
 
     # Assert
-    assert repo == {"repo": "owner/name"}
+    assert hasattr(repo, "get_pulls")
     assert calls["arg"] == "owner/name"
 
 
@@ -58,21 +65,39 @@ def test_iter_open_pulls_yields_open_prs() -> None:
             self.number = number
 
     class DummyRepo:
+        def get_pull(self, number: int) -> DummyPR:
+            return DummyPR(number)
+
         def get_pulls(self, state: str) -> list[DummyPR]:
             assert state == "open"
             return [DummyPR(5), DummyPR(7)]
 
+    from typing import cast
+
     repo = DummyRepo()
-    numbers = [pr.number for pr in ghapi.iter_open_pulls(repo)]
+    numbers = [
+        pr.number
+        for pr in ghapi.iter_open_pulls(cast(ghapi.GhRepository, repo))
+    ]
     assert numbers == [5, 7]
 
 
 def test_get_pr_title_body_handles_none_values() -> None:
     class DummyPR:
-        title = None
-        body = None
+        def __init__(self) -> None:
+            self.number = 0
+            self.title = None
+            self.body = None
 
-    title, body = ghapi.get_pr_title_body(DummyPR())
+        def as_issue(self) -> object:
+            return object()
+
+        def edit(self, *, state: str) -> None:
+            pass
+
+    from typing import cast
+
+    title, body = ghapi.get_pr_title_body(cast(ghapi.GhPullRequest, DummyPR()))
     assert title == ""
     assert body == ""
 

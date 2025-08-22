@@ -21,42 +21,95 @@ import os
 import random
 import re
 import time
+from collections.abc import Callable
+
+# unused: Generator import removed
+from collections.abc import Iterable
+from importlib import import_module
 from typing import Any
-from typing import Callable
-from typing import Generator
-from typing import Optional
-from typing import Tuple
+from typing import Protocol
 from typing import TypeVar
-from typing import TYPE_CHECKING
 from typing import cast
 
-from github import Github
-from github.GithubException import GithubException
-from github.GithubException import RateLimitExceededException
 
-if TYPE_CHECKING:
-    # These imports improve editor experience if stubs are present.
-    from github.Repository import Repository as GhRepository
-    from github.PullRequest import PullRequest as GhPullRequest
-    from github.Issue import Issue as GhIssue
-    from github.IssueComment import IssueComment as GhIssueComment
-else:  # pragma: no cover - typing convenience
-    # Provide runtime placeholders; type checkers ignore this branch.
-    GhRepository = object
-    GhPullRequest = object
-    GhIssue = object
-    GhIssueComment = object
+class GithubExceptionType(Exception):
+    pass
+
+
+class RateLimitExceededExceptionType(GithubExceptionType):
+    pass
+
+
+def _load_github_classes() -> tuple[
+    Any | None, type[BaseException], type[BaseException]
+]:
+    try:
+        exc_mod = import_module("github.GithubException")
+        ge = exc_mod.GithubException
+        rle = exc_mod.RateLimitExceededException
+    except Exception:
+        ge = GithubExceptionType
+        rle = RateLimitExceededExceptionType
+    try:
+        gh_mod = import_module("github")
+        gh_cls = gh_mod.Github
+    except Exception:
+        gh_cls = None
+    return gh_cls, ge, rle
+
+
+_GITHUB_CLASS, _GITHUB_EXCEPTION, _RATE_LIMIT_EXC = _load_github_classes()
+# Expose a public Github alias for tests and callers.
+# If PyGithub is not available, provide a placeholder that raises.
+if _GITHUB_CLASS is not None:
+    Github = _GITHUB_CLASS
+else:
+
+    class Github:  # type: ignore[no-redef]
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            raise RuntimeError("PyGithub required")  # noqa: TRY003
+
+
+class GhIssueComment(Protocol):
+    body: str | None
+
+
+class GhIssue(Protocol):
+    def get_comments(self) -> Iterable[GhIssueComment]: ...
+    def create_comment(self, body: str) -> None: ...
+
+
+class GhPullRequest(Protocol):
+    number: int
+    title: str | None
+    body: str | None
+
+    def as_issue(self) -> GhIssue: ...
+    def edit(self, *, state: str) -> None: ...
+
+
+class GhRepository(Protocol):
+    def get_pull(self, number: int) -> GhPullRequest: ...
+    def get_pulls(self, state: str) -> Iterable[GhPullRequest]: ...
+
+
+class GhClient(Protocol):
+    def get_repo(self, full: str) -> GhRepository: ...
 
 
 __all__ = [
+    "Github",
+    "GithubExceptionType",
+    "RateLimitExceededExceptionType",
     "build_client",
-    "get_repo_from_env",
-    "get_pull",
-    "iter_open_pulls",
-    "get_pr_title_body",
-    "get_recent_change_ids_from_comments",
-    "create_pr_comment",
     "close_pr",
+    "create_pr_comment",
+    "get_pr_title_body",
+    "get_pull",
+    "get_recent_change_ids_from_comments",
+    "get_repo_from_env",
+    "iter_open_pulls",
+    "time",
 ]
 
 log = logging.getLogger("github2gerrit.github_api")
@@ -72,7 +125,7 @@ def _getenv_str(name: str) -> str:
 def _backoff_delay(attempt: int, base: float = 0.5, cap: float = 6.0) -> float:
     # Exponential backoff with jitter; cap prevents unbounded waits.
     delay: float = float(min(base * (2 ** max(0, attempt - 1)), cap))
-    jitter: float = float(random.uniform(0.0, delay / 2.0))
+    jitter: float = float(random.uniform(0.0, delay / 2.0))  # noqa: S311
     return float(delay + jitter)
 
 
@@ -81,14 +134,14 @@ def _should_retry(exc: BaseException) -> bool:
     # - RateLimitExceededException
     # - GithubException with 5xx codes
     # - GithubException with 403 and rate limit hints
-    if isinstance(exc, RateLimitExceededException):
+    if isinstance(exc, _RATE_LIMIT_EXC | RateLimitExceededExceptionType):
         return True
-    if isinstance(exc, GithubException):
+    if isinstance(exc, _GITHUB_EXCEPTION | GithubExceptionType):
         status = getattr(exc, "status", None)
         if isinstance(status, int) and 500 <= status <= 599:
             return True
         data = getattr(exc, "data", "")
-        if status == 403 and isinstance(data, (str, bytes)):
+        if status == 403 and isinstance(data, str | bytes):
             try:
                 text = data.decode("utf-8") if isinstance(data, bytes) else data
             except Exception:
@@ -103,11 +156,11 @@ def _retry_on_github(
 ) -> Callable[[Callable[..., _T]], Callable[..., _T]]:
     def decorator(func: Callable[..., _T]) -> Callable[..., _T]:
         def wrapper(*args: Any, **kwargs: Any) -> _T:
-            last_exc: Optional[BaseException] = None
+            last_exc: BaseException | None = None
             for attempt in range(1, attempts + 1):
                 try:
                     return func(*args, **kwargs)
-                except BaseException as exc:  # noqa: BLE001
+                except BaseException as exc:
                     last_exc = exc
                     if not _should_retry(exc) or attempt == attempts:
                         log.debug(
@@ -126,14 +179,17 @@ def _retry_on_github(
                     )
                     time.sleep(delay)
             # Should not reach here, but raise if it does.
-            assert last_exc is not None
+            if last_exc is None:
+                raise RuntimeError("unreachable")
             raise last_exc
+
         return wrapper
+
     return decorator
 
 
 @_retry_on_github()
-def build_client(token: Optional[str] = None) -> Github:
+def build_client(token: str | None = None) -> GhClient:
     """Construct a PyGithub client from a token or environment.
 
     Order of precedence:
@@ -145,21 +201,48 @@ def build_client(token: Optional[str] = None) -> Github:
     """
     tok = token or _getenv_str("GITHUB_TOKEN")
     if not tok:
-        raise ValueError(
-            "GITHUB_TOKEN is required to access the GitHub API"
-        )
+        raise ValueError("missing GITHUB_TOKEN")  # noqa: TRY003
     # per_page improves pagination; adjust as needed.
-    return Github(login_or_token=tok, per_page=100)
+    base_url = _getenv_str("GITHUB_API_URL")
+    if not base_url:
+        server_url = _getenv_str("GITHUB_SERVER_URL")
+        if server_url:
+            base_url = server_url.rstrip("/") + "/api/v3"
+    client_any: Any
+    try:
+        gh_mod = import_module("github")
+        auth_factory = getattr(gh_mod, "Auth", None)
+        if auth_factory is not None and hasattr(auth_factory, "Token"):
+            auth_obj = auth_factory.Token(tok)
+            if base_url:
+                client_any = Github(
+                    auth=auth_obj, per_page=100, base_url=base_url
+                )
+            else:
+                client_any = Github(auth=auth_obj, per_page=100)
+        else:
+            if base_url:
+                client_any = Github(
+                    login_or_token=tok, per_page=100, base_url=base_url
+                )
+            else:
+                client_any = Github(login_or_token=tok, per_page=100)
+    except Exception:
+        if base_url:
+            client_any = Github(
+                login_or_token=tok, per_page=100, base_url=base_url
+            )
+        else:
+            client_any = Github(login_or_token=tok, per_page=100)
+    return cast(GhClient, client_any)
 
 
 @_retry_on_github()
-def get_repo_from_env(client: Github) -> GhRepository:
+def get_repo_from_env(client: GhClient) -> GhRepository:
     """Return the repository object based on GITHUB_REPOSITORY."""
     full = _getenv_str("GITHUB_REPOSITORY")
     if not full or "/" not in full:
-        raise ValueError(
-            "GITHUB_REPOSITORY environment must be set to 'owner/repo'"
-        )
+        raise ValueError("bad GITHUB_REPOSITORY")  # noqa: TRY003
     repo = client.get_repo(full)
     return repo
 
@@ -171,22 +254,19 @@ def get_pull(repo: GhRepository, number: int) -> GhPullRequest:
     return pr
 
 
-def iter_open_pulls(repo: GhRepository) -> Generator[GhPullRequest, None, None]:
+def iter_open_pulls(repo: GhRepository) -> Iterable[GhPullRequest]:
     """Yield open pull requests in this repository."""
-    prs = repo.get_pulls(state="open")
-    for pr in prs:
-        # Cast to improve type awareness for callers
-        yield pr
+    yield from repo.get_pulls(state="open")
 
 
-def get_pr_title_body(pr: GhPullRequest) -> Tuple[str, str]:
+def get_pr_title_body(pr: GhPullRequest) -> tuple[str, str]:
     """Return PR title and body, replacing None with empty strings."""
     title = getattr(pr, "title", "") or ""
     body = getattr(pr, "body", "") or ""
     return str(title), str(body)
 
 
-_CHANGE_ID_RE = re.compile(r"Change-Id:\s*([A-Za-z0-9._-]+)")
+_CHANGE_ID_RE: re.Pattern[str] = re.compile(r"Change-Id:\s*([A-Za-z0-9._-]+)")
 
 
 @_retry_on_github()
@@ -213,7 +293,7 @@ def get_recent_change_ids_from_comments(
       within the scanned window. Duplicates are preserved.
     """
     issue = _get_issue(pr)
-    comments = issue.get_comments()
+    comments: Iterable[GhIssueComment] = issue.get_comments()
     # Collect last 'max_comments' by buffering and slicing at the end.
     buf: list[GhIssueComment] = []
     for c in comments:
@@ -241,11 +321,13 @@ def create_pr_comment(pr: GhPullRequest, body: str) -> None:
 
 
 @_retry_on_github()
-def close_pr(pr: GhPullRequest, *, comment: Optional[str] = None) -> None:
+def close_pr(pr: GhPullRequest, *, comment: str | None = None) -> None:
     """Close a pull request, optionally posting a comment first."""
     if comment and comment.strip():
         try:
             create_pr_comment(pr, comment)
-        except Exception as exc:  # noqa: BLE001
-            log.warning("Failed to add close comment to PR #%s: %s", pr.number, exc)
+        except Exception as exc:
+            log.warning(
+                "Failed to add close comment to PR #%s: %s", pr.number, exc
+            )
     pr.edit(state="closed")

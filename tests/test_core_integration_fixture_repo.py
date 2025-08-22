@@ -54,7 +54,7 @@ def _gh_ctx(
         server_url="https://github.com",
         run_id="1",
         sha="deadbeef",
-        base_ref="main",
+        base_ref="master",
         head_ref="feature/test",
         pr_number=pr_number,
     )
