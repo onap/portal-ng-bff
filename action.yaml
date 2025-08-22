@@ -18,6 +18,10 @@ inputs:
     description: "Fetch depth for checkout"
     required: false
     default: "10"
+  PR_NUMBER:
+    description: "Pull request number to process, use 0 to process all open"
+    required: false
+    default: "0"
 
   # SSH and identity
   GERRIT_KNOWN_HOSTS:
@@ -115,18 +119,63 @@ runs:
         # Ensure we are on the PR's head SHA when triggered by PR events
         ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
+    - name: Validate PR_NUMBER usage (non-dispatch)
+      # yamllint disable-line rule:line-length
+      if: ${{ github.event_name != 'workflow_dispatch' && inputs.PR_NUMBER != '' && inputs.PR_NUMBER != '0' }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        echo "Error: PR_NUMBER only valid during workflow_dispatch events."
+        exit 2
+
+    - name: Normalize PR_NUMBER for workflow_dispatch
+      if: ${{ github.event_name == 'workflow_dispatch' }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        pr_in="${{ inputs.PR_NUMBER }}"
+        if [[ -z "${pr_in}" || "${pr_in}" == "null" ]]; then
+          pr_in="0"
+        fi
+        if ! [[ "${pr_in}" =~ ^[0-9]+$ ]]; then
+          echo "Error: PR_NUMBER must be a numeric value"
+          exit 2
+        fi
+        if [[ "${pr_in}" == "0" ]]; then
+          echo "SYNC_ALL_OPEN_PRS=true" >> "$GITHUB_ENV"
+        else
+          echo "PR_NUMBER=${pr_in}" >> "$GITHUB_ENV"
+        fi
+
     - name: Extract PR number and validate context
       shell: bash
       run: |
         set -euo pipefail
-        PR_NUMBER="${{ github.event.pull_request.number || \
-          github.event.issue.number || '' }}"
-        echo "PR_NUMBER=${PR_NUMBER}" >> "$GITHUB_ENV"
-        if [[ -z "${PR_NUMBER}" || "${PR_NUMBER}" == "null" ]]; then
-          echo "Error: PR_NUMBER is empty."
-          echo "This action requires a valid pull request context."
-          echo "Current event: ${{ github.event_name }}"
-          exit 2
+        # Honor PR_NUMBER or SYNC_ALL_OPEN_PRS set by workflow_dispatch
+        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          if [[ -n "${SYNC_ALL_OPEN_PRS:-}" ]]; then
+            echo "Processing all open pull requests via workflow_dispatch."
+          else
+            if [[ -z "${PR_NUMBER:-}" || "${PR_NUMBER}" == "null" ]]; then
+              echo "Error: provide PR_NUMBER or set 0 to process all PRs."
+              exit 2
+            fi
+            echo "PR_NUMBER=${PR_NUMBER}" >> "$GITHUB_ENV"
+          fi
+        else
+          PR_NUMBER_EVT="${{ github.event.pull_request.number || \
+            github.event.issue.number || '' }}"
+          # Do not override PR_NUMBER if previously set
+          if [[ -z "${PR_NUMBER:-}" ]]; then
+            PR_NUMBER="${PR_NUMBER_EVT}"
+            echo "PR_NUMBER=${PR_NUMBER}" >> "$GITHUB_ENV"
+          fi
+          if [[ -z "${PR_NUMBER}" || "${PR_NUMBER}" == "null" ]]; then
+            echo "Error: PR_NUMBER is empty."
+            echo "This action requires a valid pull request context."
+            echo "Current event: ${{ github.event_name }}"
+            exit 2
+          fi
         fi
 
     - name: Install SSH key for Gerrit
@@ -182,6 +231,7 @@ runs:
         GITHUB_SHA: ${{ github.sha }}
         GITHUB_BASE_REF: ${{ github.base_ref }}
         GITHUB_HEAD_REF: ${{ github.head_ref }}
+        SYNC_ALL_OPEN_PRS: ${{ env.SYNC_ALL_OPEN_PRS }}
         PR_NUMBER: ${{ env.PR_NUMBER }}
         # Allow CLI to short-circuit test path if needed (disabled by default)
         G2G_TEST_MODE: "false"

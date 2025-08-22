@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: 2025 The Linux Foundation
 
-name: github2gerrit-python-reusable-workflow
+name: "GitHub2Gerrit [R]"
 
 # yamllint disable-line rule:truthy
 on:
@@ -89,12 +89,85 @@ on:
       GERRIT_SSH_PRIVKEY_G2G:
         description: "SSH Private key"
         required: true
+  workflow_dispatch:
+    inputs:
+      PR_NUMBER:
+        description: "Pull request number to process, use 0 to process all open"
+        required: false
+        default: "0"
+        type: string
+      SUBMIT_SINGLE_COMMITS:
+        description: "Submit one commit at a time to the Gerrit repository"
+        required: false
+        default: false
+        type: boolean
+      USE_PR_AS_COMMIT:
+        description: "Use PR body and title as commit message"
+        required: false
+        default: false
+        type: boolean
+      FETCH_DEPTH:
+        description: "fetch-depth for the clone. (Default: 10)"
+        required: false
+        default: "10"
+        type: string
+      GERRIT_KNOWN_HOSTS:
+        description: "known hosts"
+        required: true
+        type: string
+      GERRIT_SSH_USER_G2G:
+        description: "Gerrit user-id for SSH"
+        required: true
+        type: string
+      GERRIT_SSH_USER_G2G_EMAIL:
+        description: "Email of the SSH user"
+        required: true
+        type: string
+      ORGANIZATION:
+        description: "Organization name (empty uses repository owner)"
+        required: false
+        type: string
+        default: ""
+      PRESERVE_GITHUB_PRS:
+        description: "Do not close GitHub PRs after pushing to Gerrit"
+        required: false
+        default: false
+        type: boolean
+      DRY_RUN:
+        description: "Validate settings and PR metadata; do not write to Gerrit"
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: reusable-${{ github.workflow }}-${{ github.run_id }}
   cancel-in-progress: true
 
 jobs:
+  manual-dispatch:
+    # Manual run: allow optional PR_NUMBER (0 => process all PRs)
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      # yamllint disable rule:line-length
+      # PR_NUMBER normalization is handled by the composite action
+
+      - name: Run github2gerrit composite action
+        uses: ./
+        with:
+          SUBMIT_SINGLE_COMMITS: ${{ inputs.SUBMIT_SINGLE_COMMITS }}
+          USE_PR_AS_COMMIT: ${{ inputs.USE_PR_AS_COMMIT }}
+          FETCH_DEPTH: ${{ inputs.FETCH_DEPTH }}
+          GERRIT_KNOWN_HOSTS: ${{ inputs.GERRIT_KNOWN_HOSTS }}
+          GERRIT_SSH_PRIVKEY_G2G: ${{ secrets.GERRIT_SSH_PRIVKEY_G2G }}
+          GERRIT_SSH_USER_G2G: ${{ inputs.GERRIT_SSH_USER_G2G }}
+          GERRIT_SSH_USER_G2G_EMAIL: ${{ inputs.GERRIT_SSH_USER_G2G_EMAIL }}
+          ORGANIZATION: ${{ inputs.ORGANIZATION }}
+          PRESERVE_GITHUB_PRS: ${{ inputs.PRESERVE_GITHUB_PRS }}
+          DRY_RUN: ${{ inputs.DRY_RUN }}
+          PR_NUMBER: ${{ inputs.PR_NUMBER }}
+
   github2gerrit-python:
     # Only run if we have a proper pull request context
     if: ${{ github.event.pull_request.number || github.event.issue.number }}
@@ -109,6 +182,13 @@ jobs:
         id: setup-python
         with:
           python-version: "3.11"
+
+      - name: Reject explicit PR_NUMBER in non-dispatch events
+        if: ${{ github.event_name != 'workflow_dispatch' && inputs.PR_NUMBER != '' }}
+        shell: bash
+        run: |
+          echo "Error: PR_NUMBER input is only allowed when invoked via workflow_dispatch."
+          exit 1
 
       - name: Validate workflow inputs
         if: ${{ (inputs.USE_PR_AS_COMMIT == true) && (inputs.SUBMIT_SINGLE_COMMITS == true) }}
