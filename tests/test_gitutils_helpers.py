@@ -186,3 +186,71 @@ def test_git_raises_on_non_transient_error(
 
     with pytest.raises(CommandError):
         git(["fetch", "origin"])
+
+
+def test_run_cmd_with_retries_retries_on_http2_stream_then_succeeds(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Simulate a transient HTTP/2 stream error on first attempt, then success.
+    attempts = {"n": 0}
+
+    def fake_run_cmd(cmd: list[str], **kwargs: object) -> CommandResult:
+        attempts["n"] += 1
+        if attempts["n"] == 1:
+            return CommandResult(
+                returncode=128,
+                stdout="",
+                stderr="HTTP/2 stream 0 was not closed cleanly",
+            )
+        return CommandResult(returncode=0, stdout="ok", stderr="")
+
+    monkeypatch.setattr("github2gerrit_python.gitutils.run_cmd", fake_run_cmd)
+
+    res = run_cmd_with_retries(["git", "fetch", "origin"])
+    assert res.returncode == 0
+    assert "ok" in res.stdout
+    assert attempts["n"] >= 2
+
+
+def test_git_last_commit_trailers_parsing_edge_cases(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Patch git_show to return a crafted commit message body with various trailer forms.
+    import github2gerrit_python.gitutils as gitutils
+
+    body = (
+        "Subject line\n\n"
+        "Key: Value\n"
+        "Key: Another Value\n"
+        "Empty: \n"
+        "NoColonLine\n"
+        "Signed-off-by: Dev <dev@example.org>\n"
+        "Change-Id: Ideadbeefdeadbeefdeadbeefdeadbeefdeadbeef\n"
+        "Change-Id: Iabc123abc123abc123abc123abc123abc123ab\n"
+    )
+
+    monkeypatch.setattr(gitutils, "git_show", lambda rev, **kw: body)
+
+    # Without filter: expect only keys with non-empty values collected.
+    trailers_all = gitutils.git_last_commit_trailers()
+    assert "Key" in trailers_all
+    assert trailers_all["Key"] == ["Value", "Another Value"]
+    # 'Empty' should be ignored due to empty value
+    assert "Empty" not in trailers_all
+    # NoColonLine should be ignored as it lacks ':'
+    assert "NoColonLine" not in trailers_all
+    # Signed-off-by preserved
+    assert trailers_all["Signed-off-by"] == ["Dev <dev@example.org>"]
+    # Change-Id collects both values
+    assert trailers_all["Change-Id"] == [
+        "Ideadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+        "Iabc123abc123abc123abc123abc123abc123ab",
+    ]
+
+    # With filter keys: only Change-Id should be returned.
+    trailers_change = gitutils.git_last_commit_trailers(keys=["Change-Id"])
+    assert list(trailers_change.keys()) == ["Change-Id"]
+    assert trailers_change["Change-Id"] == [
+        "Ideadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+        "Iabc123abc123abc123abc123abc123abc123ab",
+    ]

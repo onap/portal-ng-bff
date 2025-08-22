@@ -4,9 +4,10 @@
 # High-level orchestrator scaffold for the GitHub PR -> Gerrit flow.
 #
 # This module defines the public orchestration surface and typed data models
-# required to execute the end-to-end workflow. At this stage, methods are
-# placeholders that log intent and raise NotImplementedError where actual
-# behavior will be implemented in subsequent iterations.
+# used to execute the end-to-end workflow. The major steps are implemented:
+# configuration resolution, commit preparation (single or squash), pushing
+# to Gerrit, querying results, and posting comments, with a dry-run mode
+# for non-destructive validations.
 #
 # Design principles applied:
 # - Single Responsibility: orchestration logic is grouped here; git/exec
@@ -15,49 +16,53 @@
 # - Central logging: use Python logging; callers can configure handlers.
 # - Compatibility: inputs map 1:1 with the existing shell-based action.
 #
-# Future implementation notes:
-# - This orchestrator will be invoked by the Typer CLI entrypoint.
-# - It will read .gitreview for Gerrit host/port/project when present.
-# - It will support both "single commit" and "squash" submission policies.
-# - It will push via git-review to refs/for/<branch> and manage Change-Id.
-# - It will query Gerrit for URL/change-number and update PR comments.
+# Capabilities overview:
+# - Invoked by the Typer CLI entrypoint.
+# - Reads .gitreview for Gerrit host/port/project when present; otherwise
+#   resolves from explicit inputs.
+# - Supports both "single commit" and "squash" submission strategies.
+# - Pushes via git-review to refs/for/<branch> and manages Change-Id.
+# - Queries Gerrit for URL/change-number and updates PR comments.
 
 from __future__ import annotations
 
 import logging
 import os
 import re
+import urllib.request
+from collections.abc import Iterable
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
-from typing import List
-from typing import Optional
-from typing import Sequence
+from typing import Any
 
 
-from .models import GitHubContext
-from .models import Inputs
+try:
+    from pygerrit2 import GerritRestAPI
+    from pygerrit2 import HTTPBasicAuth
+except ImportError:
+    GerritRestAPI = None
+    HTTPBasicAuth = None
+
+from .github_api import build_client
+from .github_api import close_pr
+from .github_api import create_pr_comment
+from .github_api import get_pr_title_body
+from .github_api import get_pull
+from .github_api import get_recent_change_ids_from_comments
+from .github_api import get_repo_from_env
+from .github_api import iter_open_pulls
+from .gitutils import CommandError
 from .gitutils import GitError
-from .gitutils import git_last_commit_trailers
-
-from .gitutils import git_config
-
 from .gitutils import git_cherry_pick
 from .gitutils import git_commit_amend
 from .gitutils import git_commit_new
-
+from .gitutils import git_config
+from .gitutils import git_last_commit_trailers
 from .gitutils import git_show
 from .gitutils import run_cmd
-from .gitutils import CommandError
-from .github_api import build_client
-from .github_api import get_repo_from_env
-from .github_api import get_pull
-from .github_api import get_pr_title_body
-from .github_api import get_recent_change_ids_from_comments
-from .github_api import create_pr_comment
-from .github_api import close_pr
-from .github_api import iter_open_pulls
-from pygerrit2 import GerritRestAPI, HTTPBasicAuth
+from .models import GitHubContext
+from .models import Inputs
 
 
 log = logging.getLogger("github2gerrit.core")
@@ -66,7 +71,8 @@ log = logging.getLogger("github2gerrit.core")
 # Utility functions
 # ---------------------
 
-def _match_first_group(pattern: str, text: str) -> Optional[str]:
+
+def _match_first_group(pattern: str, text: str) -> str | None:
     m = re.search(pattern, text)
     if not m:
         return None
@@ -101,19 +107,19 @@ class RepoNames:
 @dataclass(frozen=True)
 class PreparedChange:
     # One or more Change-Id values that will be (or were) pushed.
-    change_ids: List[str]
+    change_ids: list[str]
     # The commit shas created/pushed to Gerrit. May be empty until queried.
-    commit_shas: List[str]
+    commit_shas: list[str]
 
 
 @dataclass(frozen=True)
 class SubmissionResult:
     # URLs of created/updated Gerrit changes.
-    change_urls: List[str]
+    change_urls: list[str]
     # Numeric change-ids in Gerrit (change number).
-    change_numbers: List[str]
+    change_numbers: list[str]
     # Associated patch set commit shas in Gerrit (if available).
-    commit_shas: List[str]
+    commit_shas: list[str]
 
 
 class OrchestratorError(RuntimeError):
@@ -157,15 +163,19 @@ class Orchestrator:
         log.info("Starting PR -> Gerrit pipeline")
         self._guard_pull_request_context(gh)
 
-        gitreview = self._read_gitreview(self.workspace / ".gitreview")
+        gitreview = self._read_gitreview(self.workspace / ".gitreview", gh)
         repo_names = self._derive_repo_names(gitreview, gh)
         gerrit = self._resolve_gerrit_info(gitreview, inputs, repo_names)
 
         if inputs.dry_run:
             # Perform preflight validations and exit without making changes
-            self._dry_run_preflight(gerrit=gerrit, inputs=inputs, gh=gh, repo=repo_names)
+            self._dry_run_preflight(
+                gerrit=gerrit, inputs=inputs, gh=gh, repo=repo_names
+            )
             log.info("Dry run complete; skipping write operations to Gerrit")
-            return SubmissionResult(change_urls=[], change_numbers=[], commit_shas=[])
+            return SubmissionResult(
+                change_urls=[], change_numbers=[], commit_shas=[]
+            )
         self._configure_git(gerrit, inputs)
 
         if inputs.submit_single_commits:
@@ -210,15 +220,14 @@ class Orchestrator:
 
     def _guard_pull_request_context(self, gh: GitHubContext) -> None:
         if gh.pr_number is None:
-            raise OrchestratorError(
-                "A valid pull request context is required"
-            )
+            raise OrchestratorError("missing PR context")  # noqa: TRY003
         log.debug("PR context OK: #%s", gh.pr_number)
 
     def _read_gitreview(
         self,
         path: Path,
-    ) -> Optional[GerritInfo]:
+        gh: GitHubContext | None = None,
+    ) -> GerritInfo | None:
         """Read .gitreview and return GerritInfo if present.
 
         Expected keys:
@@ -227,7 +236,94 @@ class Orchestrator:
           project=<repo/path>.git
         """
         if not path.exists():
-            log.info(".gitreview not found, will rely on inputs/env")
+            log.info(".gitreview not found locally; attempting remote fetch")
+            # If invoked via direct URL or in environments with a token,
+            # attempt to read .gitreview from the repository using the API.
+            try:
+                client = build_client()
+                repo_obj: Any = get_repo_from_env(client)
+                # Prefer a specific ref when available; otherwise default branch
+                ref = os.getenv("GITHUB_HEAD_REF") or os.getenv("GITHUB_SHA")
+                if ref:
+                    content = repo_obj.get_contents(".gitreview", ref=ref)
+                else:
+                    content = repo_obj.get_contents(".gitreview")
+                text_remote = (
+                    getattr(content, "decoded_content", b"") or b""
+                ).decode("utf-8")
+                host = _match_first_group(r"(?m)^host=(.+)$", text_remote)
+                port_s = _match_first_group(r"(?m)^port=(\d+)$", text_remote)
+                proj = _match_first_group(r"(?m)^project=(.+)$", text_remote)
+                if host and proj:
+                    project = proj.removesuffix(".git")
+                    port = int(port_s) if port_s else 29418
+                    info_remote = GerritInfo(
+                        host=host.strip(),
+                        port=port,
+                        project=project.strip(),
+                    )
+                    log.debug("Parsed remote .gitreview: %s", info_remote)
+                    return info_remote
+                log.info("Remote .gitreview missing required keys; ignoring")
+            except Exception as exc:
+                log.debug("Remote .gitreview not available: %s", exc)
+            # Attempt raw.githubusercontent.com as a fallback
+            try:
+                repo_full = (
+                    (
+                        gh.repository
+                        if gh
+                        else os.getenv("GITHUB_REPOSITORY", "")
+                    )
+                    or ""
+                ).strip()
+                branches: list[str] = []
+                if gh and gh.head_ref:
+                    branches.append(gh.head_ref)
+                if gh and gh.base_ref:
+                    branches.append(gh.base_ref)
+                branches.extend(["master", "main"])
+                tried: set[str] = set()
+                for br in branches:
+                    if not br or br in tried:
+                        continue
+                    tried.add(br)
+                    url = (
+                        f"https://raw.githubusercontent.com/"
+                        f"{repo_full}/refs/heads/{br}/.gitreview"
+                    )
+                    parsed = urllib.parse.urlparse(url)
+                    if (
+                        parsed.scheme != "https"
+                        or parsed.netloc != "raw.githubusercontent.com"
+                    ):
+                        continue
+                    log.info("Fetching .gitreview via raw URL: %s", url)
+                    with urllib.request.urlopen(url, timeout=5) as resp:  # noqa: S310
+                        text_remote = resp.read().decode("utf-8")
+                    host = _match_first_group(r"(?m)^host=(.+)$", text_remote)
+                    port_s = _match_first_group(
+                        r"(?m)^port=(\d+)$",
+                        text_remote,
+                    )
+                    proj = _match_first_group(
+                        r"(?m)^project=(.+)$",
+                        text_remote,
+                    )
+                    if host and proj:
+                        project = proj.removesuffix(".git")
+                        port = int(port_s) if port_s else 29418
+                        info_remote = GerritInfo(
+                            host=host.strip(),
+                            port=port,
+                            project=project.strip(),
+                        )
+                        log.debug("Parsed remote .gitreview: %s", info_remote)
+                        return info_remote
+            except Exception as exc2:
+                log.debug("Raw .gitreview fetch failed: %s", exc2)
+            log.info("Remote .gitreview not available via API or HTTP")
+            log.info("Falling back to inputs/env")
             return None
 
         text = path.read_text(encoding="utf-8")
@@ -236,9 +332,7 @@ class Orchestrator:
         proj = _match_first_group(r"(?m)^project=(.+)$", text)
 
         if not host or not proj:
-            raise OrchestratorError(
-                "Invalid .gitreview: host or project missing"
-            )
+            raise OrchestratorError("invalid .gitreview")  # noqa: TRY003
 
         project = proj.removesuffix(".git")
         port = int(port_s) if port_s else 29418
@@ -249,7 +343,7 @@ class Orchestrator:
 
     def _derive_repo_names(
         self,
-        gitreview: Optional[GerritInfo],
+        gitreview: GerritInfo | None,
         gh: GitHubContext,
     ) -> RepoNames:
         """Compute Gerrit and GitHub repo names following existing rules.
@@ -271,19 +365,20 @@ class Orchestrator:
         # Fallback: use the repository name portion only.
         repo_full = gh.repository
         if not repo_full or "/" not in repo_full:
-            raise OrchestratorError(
-                "Cannot derive repo names without .gitreview or repository"
-            )
+            raise OrchestratorError("bad repository context")  # noqa: TRY003
         owner, name = repo_full.split("/", 1)
-        # Fallback maps '-' to '/' to approximate original rule
-        gerrit_name = name.replace("-", "/")
+        # Fallback: replace only the last '-' with '/' (e.g., 'portal-ng/bff')
+        dash = name.rfind("-")
+        gerrit_name = (
+            f"{name[:dash]}/{name[dash + 1 :]}" if dash != -1 else name
+        )
         names = RepoNames(project_gerrit=gerrit_name, project_github=name)
         log.debug("Derived names from context: %s", names)
         return names
 
     def _resolve_gerrit_info(
         self,
-        gitreview: Optional[GerritInfo],
+        gitreview: GerritInfo | None,
         inputs: Inputs,
         repo: RepoNames,
     ) -> GerritInfo:
@@ -293,24 +388,27 @@ class Orchestrator:
 
         host = inputs.gerrit_server.strip()
         if not host:
-            raise OrchestratorError(
-                "GERRIT_SERVER is required when .gitreview is absent"
-            )
+            raise OrchestratorError("missing GERRIT_SERVER")  # noqa: TRY003
         port_s = inputs.gerrit_server_port.strip() or "29418"
         try:
             port = int(port_s)
         except ValueError as exc:
-            raise OrchestratorError("Invalid GERRIT_SERVER_PORT") from exc
+            msg = "bad GERRIT_SERVER_PORT"
+            raise OrchestratorError(msg) from exc
 
         project = inputs.gerrit_project.strip()
         if not project:
             if inputs.dry_run:
                 project = repo.project_gerrit
                 log.info("Dry run: using derived Gerrit project '%s'", project)
-            else:
-                raise OrchestratorError(
-                    "GERRIT_PROJECT is required when .gitreview is absent"
+            elif os.getenv("G2G_TARGET_URL", "").strip():
+                project = repo.project_gerrit
+                log.info(
+                    "Using derived Gerrit project '%s' from repository name",
+                    project,
                 )
+            else:
+                raise OrchestratorError("missing GERRIT_PROJECT")  # noqa: TRY003
 
         info = GerritInfo(host=host, port=port, project=project)
         log.debug("Resolved Gerrit info: %s", info)
@@ -323,21 +421,71 @@ class Orchestrator:
     ) -> None:
         """Set git global config and initialize git-review if needed."""
         log.info("Configuring git and git-review for %s", gerrit.host)
-        # Global configs required by git-review
-        git_config("gitreview.username", inputs.gerrit_ssh_user_g2g, global_=True)
-        git_config("user.name", inputs.gerrit_ssh_user_g2g, global_=True)
-        git_config("user.email", inputs.gerrit_ssh_user_g2g_email, global_=True)
-        # Workaround for submodules commit-msg hook
+        # Prefer repo-local config; fallback to global if needed
+        try:
+            git_config(
+                "gitreview.username", inputs.gerrit_ssh_user_g2g, global_=False
+            )
+        except GitError:
+            git_config(
+                "gitreview.username", inputs.gerrit_ssh_user_g2g, global_=True
+            )
+        try:
+            git_config("user.name", inputs.gerrit_ssh_user_g2g, global_=False)
+        except GitError:
+            git_config("user.name", inputs.gerrit_ssh_user_g2g, global_=True)
+        try:
+            git_config(
+                "user.email", inputs.gerrit_ssh_user_g2g_email, global_=False
+            )
+        except GitError:
+            git_config(
+                "user.email", inputs.gerrit_ssh_user_g2g_email, global_=True
+            )
 
-        hooks_path = run_cmd(["git", "rev-parse", "--show-toplevel"]).stdout.strip()
-        git_config("core.hooksPath", str(Path(hooks_path) / ".git" / "hooks"))
+        # Ensure git-review host/port/project are configured
+        # when .gitreview is absent
+        try:
+            git_config("gitreview.hostname", gerrit.host, global_=False)
+            git_config("gitreview.port", str(gerrit.port), global_=False)
+            git_config("gitreview.project", gerrit.project, global_=False)
+        except GitError:
+            git_config("gitreview.hostname", gerrit.host, global_=True)
+            git_config("gitreview.port", str(gerrit.port), global_=True)
+            git_config("gitreview.project", gerrit.project, global_=True)
+
+        # Add 'gerrit' remote if missing (required by git-review)
+        try:
+            run_cmd(["git", "config", "--get", "remote.gerrit.url"])
+        except CommandError:
+            ssh_user = inputs.gerrit_ssh_user_g2g.strip()
+            remote_url = (
+                f"ssh://{ssh_user}@{gerrit.host}:{gerrit.port}/{gerrit.project}"
+            )
+            log.info("Adding 'gerrit' remote: %s", remote_url)
+            run_cmd(["git", "remote", "add", "gerrit", remote_url], check=False)
+
+        # Workaround for submodules commit-msg hook
+        hooks_path = run_cmd(
+            ["git", "rev-parse", "--show-toplevel"]
+        ).stdout.strip()
+        try:
+            git_config(
+                "core.hooksPath", str(Path(hooks_path) / ".git" / "hooks")
+            )
+        except GitError:
+            git_config(
+                "core.hooksPath",
+                str(Path(hooks_path) / ".git" / "hooks"),
+                global_=True,
+            )
         # Initialize git-review (copies commit-msg hook)
         try:
             run_cmd(["git", "review", "-s", "-v"])
         except CommandError as exc:
-            raise OrchestratorError(
-                f"Failed to initialize git-review: {exc}"
-            ) from exc
+            msg = f"Failed to initialize git-review: {exc}"
+            raise OrchestratorError(msg) from exc
+            raise OrchestratorError(msg) from exc
 
     def _prepare_single_commits(
         self,
@@ -350,17 +498,21 @@ class Orchestrator:
         # Determine commit range: commits in HEAD not in base branch
         base_ref = f"origin/{branch}"
         run_cmd(["git", "fetch", "origin", branch])
-        revs = run_cmd(["git", "rev-list", "--reverse", f"{base_ref}..HEAD"]).stdout
+        revs = run_cmd(
+            ["git", "rev-list", "--reverse", f"{base_ref}..HEAD"]
+        ).stdout
         commit_list = [c for c in revs.splitlines() if c.strip()]
         if not commit_list:
             log.info("No commits to submit; returning empty PreparedChange")
             return PreparedChange(change_ids=[], commit_shas=[])
-        # Create temp branch from base sha
+        # Create temp branch from base sha; export for downstream
         base_sha = run_cmd(["git", "rev-parse", base_ref]).stdout.strip()
-        run_cmd(["git", "checkout", "-b", "tmp_branch", base_sha])
-        change_ids: List[str] = []
+        tmp_branch = f"g2g_tmp_{gh.pr_number or 'pr'!s}_{os.getpid()}"
+        os.environ["G2G_TMP_BRANCH"] = tmp_branch
+        run_cmd(["git", "checkout", "-b", tmp_branch, base_sha])
+        change_ids: list[str] = []
         for csha in commit_list:
-            run_cmd(["git", "checkout", "tmp_branch"])
+            run_cmd(["git", "checkout", tmp_branch])
             git_cherry_pick(csha)
             # Preserve author of the original commit
             author = run_cmd(
@@ -381,7 +533,7 @@ class Orchestrator:
             if cid not in seen:
                 uniq_ids.append(cid)
                 seen.add(cid)
-        run_cmd(["git", "log", "-n3", "tmp_branch"])
+        run_cmd(["git", "log", "-n3", tmp_branch])
         return PreparedChange(change_ids=uniq_ids, commit_shas=[])
 
     def _prepare_squashed_commit(
@@ -396,18 +548,26 @@ class Orchestrator:
         base_ref = f"origin/{branch}"
         base_sha = run_cmd(["git", "rev-parse", base_ref]).stdout.strip()
         head_sha = run_cmd(["git", "rev-parse", "HEAD"]).stdout.strip()
-        # Create a temporary branch from base and merge-squash the PR head
-        run_cmd(["git", "checkout", "-b", "tmp_branch", base_sha])
+        # Create temp branch from base and merge-squash PR head
+        tmp_branch = f"g2g_tmp_{gh.pr_number or 'pr'!s}_{os.getpid()}"
+        os.environ["G2G_TMP_BRANCH"] = tmp_branch
+        run_cmd(["git", "checkout", "-b", tmp_branch, base_sha])
         run_cmd(["git", "merge", "--squash", head_sha])
         # Build commit message from commits between base and head
         body = run_cmd(
-            ["git", "log", "-v", "--format=%B", "--reverse", f"{base_ref}..{head_sha}"]
+            [
+                "git",
+                "log",
+                "--format=%B",
+                "--reverse",
+                f"{base_ref}..{head_sha}",
+            ]
         ).stdout
         lines = [ln for ln in body.splitlines() if ln.strip()]
         # Separate trailers
-        change_ids: List[str] = []
-        signed_off: List[str] = []
-        message_lines: List[str] = []
+        change_ids: list[str] = []
+        signed_off: list[str] = []
+        message_lines: list[str] = []
         for ln in lines:
             if ln.startswith("Change-Id:"):
                 cid = ln.split(":", 1)[1].strip()
@@ -420,15 +580,20 @@ class Orchestrator:
             message_lines.append(ln)
         # Deduplicate Signed-off-by
         signed_off = sorted(set(signed_off))
-        # Reuse Change-Id if PR was reopened or synchronized and prior CID exists
+        # Reuse Change-Id if PR reopened/synchronized and prior CID exists
         pr = str(gh.pr_number or "").strip()
         reuse_cid = ""
-        if gh.event_name == "pull_request_target" and gh.event_action in ("reopened", "synchronize"):
+        if gh.event_name == "pull_request_target" and gh.event_action in (
+            "reopened",
+            "synchronize",
+        ):
             try:
                 client = build_client()
                 repo = get_repo_from_env(client)
                 pr_obj = get_pull(repo, int(pr))
-                cand = get_recent_change_ids_from_comments(pr_obj, max_comments=50)
+                cand = get_recent_change_ids_from_comments(
+                    pr_obj, max_comments=50
+                )
                 if cand:
                     reuse_cid = cand[-1]
             except Exception:
@@ -444,7 +609,7 @@ class Orchestrator:
             ["git", "show", "-s", "--pretty=format:%an <%ae>", head_sha]
         ).stdout.strip()
         git_commit_new(message=commit_msg, author=author, signoff=True)
-        # Ensure Change-Id trailer is present via commit-msg hook (amend if needed)
+        # Ensure Change-Id via commit-msg hook (amend if needed)
         trailers = git_last_commit_trailers(keys=["Change-Id"])
         if not trailers.get("Change-Id"):
             git_commit_amend(no_edit=True, signoff=True, author=author)
@@ -472,14 +637,25 @@ class Orchestrator:
         title, body = get_pr_title_body(pr_obj)
         title = (title or "").strip()
         body = (body or "").strip()
-        # Compose commit message; preserve any Signed-off-by lines from current commit
+        # Compose message; preserve any Signed-off-by lines
         current_body = git_show("HEAD", fmt="%B")
-        signed = [ln for ln in current_body.splitlines() if ln.startswith("Signed-off-by:")]
+        signed = [
+            ln
+            for ln in current_body.splitlines()
+            if ln.startswith("Signed-off-by:")
+        ]
         msg_parts = [title, "", body] if title or body else [current_body]
         if signed:
-            msg_parts += [""] + signed
-        author = run_cmd(["git", "show", "-s", "--pretty=format:%an <%ae>", "HEAD"]).stdout.strip()
-        git_commit_amend(no_edit=False, signoff=True, author=author, message="\n".join(msg_parts).strip())
+            msg_parts += ["", *signed]
+        author = run_cmd(
+            ["git", "show", "-s", "--pretty=format:%an <%ae>", "HEAD"]
+        ).stdout.strip()
+        git_commit_amend(
+            no_edit=False,
+            signoff=not bool(signed),
+            author=author,
+            message="\n".join(msg_parts).strip(),
+        )
 
     def _push_to_gerrit(
         self,
@@ -499,19 +675,39 @@ class Orchestrator:
             branch,
         )
         if single_commits:
-            run_cmd(["git", "checkout", "tmp_branch"])
-        prefix = (os.getenv("G2G_TOPIC_PREFIX", "GH").strip() or "GH")
+            tmp_branch = os.getenv("G2G_TMP_BRANCH", "tmp_branch")
+            run_cmd(["git", "checkout", tmp_branch])
+        prefix = os.getenv("G2G_TOPIC_PREFIX", "GH").strip() or "GH"
         pr_num = os.getenv("PR_NUMBER", "").strip()
         if pr_num:
             topic = f"{prefix}-{repo.project_github}-{pr_num}"
         else:
             topic = f"{prefix}-{repo.project_github}"
         try:
-            run_cmd(["git", "review", "--yes", "-t", topic, "--reviewers", reviewers])
+            args = [
+                "git",
+                "review",
+                "--yes",
+                "-t",
+                topic,
+                "-b",
+                branch,
+            ]
+            revs = [
+                r.strip() for r in (reviewers or "").split(",") if r.strip()
+            ]
+            for r in revs:
+                args.extend(["--reviewer", r])
+            run_cmd(args)
         except CommandError as exc:
-            raise OrchestratorError(
-                f"Failed to push changes to Gerrit with git-review: {exc}"
-            ) from exc
+            msg = f"Failed to push changes to Gerrit with git-review: {exc}"
+            raise OrchestratorError(msg) from exc
+        # Cleanup temporary branch used during preparation
+        tmp_branch = (os.getenv("G2G_TMP_BRANCH", "") or "").strip()
+        if tmp_branch:
+            # Switch back to the target branch, then delete the temp branch
+            run_cmd(["git", "checkout", branch], check=False)
+            run_cmd(["git", "branch", "-D", tmp_branch], check=False)
 
     def _query_gerrit_for_results(
         self,
@@ -520,45 +716,83 @@ class Orchestrator:
         repo: RepoNames,
         change_ids: Sequence[str],
     ) -> SubmissionResult:
-        """Query Gerrit for change URL/number and patch set commit sha via REST."""
+        """Query Gerrit for change URL/number and patchset sha via REST."""
         log.info("Querying Gerrit for submitted change(s) via REST")
         # Build Gerrit REST client (prefer HTTP basic auth if provided)
         base_path = os.getenv("GERRIT_HTTP_BASE_PATH", "").strip().strip("/")
-        base_url = f"https://{gerrit.host}/" if not base_path else f"https://{gerrit.host}/{base_path}/"
-        http_user = os.getenv("GERRIT_HTTP_USER", "").strip() or os.getenv(
-            "GERRIT_SSH_USER_G2G", ""
-        ).strip()
+        base_url = (
+            f"https://{gerrit.host}/"
+            if not base_path
+            else f"https://{gerrit.host}/{base_path}/"
+        )
+        http_user = (
+            os.getenv("GERRIT_HTTP_USER", "").strip()
+            or os.getenv("GERRIT_SSH_USER_G2G", "").strip()
+        )
         http_pass = os.getenv("GERRIT_HTTP_PASSWORD", "").strip()
+        if GerritRestAPI is None:
+            raise OrchestratorError(  # noqa: TRY003
+                "pygerrit2 is required to query Gerrit REST API"
+            )
         if http_user and http_pass:
-            rest = GerritRestAPI(url=base_url, auth=HTTPBasicAuth(http_user, http_pass))
+            if HTTPBasicAuth is None:
+                raise OrchestratorError(  # noqa: TRY003
+                    "pygerrit2 is required for HTTP authentication"
+                )
+            rest = GerritRestAPI(
+                url=base_url, auth=HTTPBasicAuth(http_user, http_pass)
+            )
         else:
             rest = GerritRestAPI(url=base_url)
-        urls: List[str] = []
-        nums: List[str] = []
-        shas: List[str] = []
+        urls: list[str] = []
+        nums: list[str] = []
+        shas: list[str] = []
         for cid in change_ids:
             if not cid:
                 continue
-            # Limit results to 1, filter by project and open status, include current revision
+            # Limit results to 1, filter by project and open status,
+            # include current revision
             query = f"limit:1 is:open project:{repo.project_gerrit} {cid}"
             path = f"/changes/?q={query}&o=CURRENT_REVISION&n=1"
             try:
                 changes = rest.get(path)
             except Exception as exc:
-                status = getattr(getattr(exc, "response", None), "status_code", None)
+                status = getattr(
+                    getattr(exc, "response", None), "status_code", None
+                )
                 if not base_path and status == 404:
                     try:
                         fallback_url = f"https://{gerrit.host}/r/"
+                        if GerritRestAPI is None:
+                            log.warning(
+                                "pygerrit2 missing; skipping REST fallback"
+                            )
+                            continue
                         if http_user and http_pass:
-                            rest_fallback = GerritRestAPI(url=fallback_url, auth=HTTPBasicAuth(http_user, http_pass))
+                            if HTTPBasicAuth is None:
+                                log.warning(
+                                    "pygerrit2 auth missing; skipping fallback"
+                                )
+                                continue
+                            rest_fallback = GerritRestAPI(
+                                url=fallback_url,
+                                auth=HTTPBasicAuth(http_user, http_pass),
+                            )
                         else:
                             rest_fallback = GerritRestAPI(url=fallback_url)
                         changes = rest_fallback.get(path)
                     except Exception as exc2:
-                        log.warning("Failed to query change via REST for %s (including '/r' fallback): %s", cid, exc2)
+                        log.warning(
+                            "Failed to query change via REST for %s "
+                            "(including '/r' fallback): %s",
+                            cid,
+                            exc2,
+                        )
                         continue
                 else:
-                    log.warning("Failed to query change via REST for %s: %s", cid, exc)
+                    log.warning(
+                        "Failed to query change via REST for %s: %s", cid, exc
+                    )
                     continue
             if not changes:
                 continue
@@ -567,7 +801,9 @@ class Orchestrator:
             current_rev = change.get("current_revision", "")
             # Construct a stable web URL for the change
             if num:
-                urls.append(f"https://{gerrit.host}/c/{repo.project_gerrit}/+/{num}")
+                urls.append(
+                    f"https://{gerrit.host}/c/{repo.project_gerrit}/+/{num}"
+                )
                 nums.append(num)
             if current_rev:
                 shas.append(current_rev)
@@ -578,7 +814,9 @@ class Orchestrator:
             os.environ["GERRIT_CHANGE_REQUEST_NUM"] = "\n".join(nums)
         if shas:
             os.environ["GERRIT_COMMIT_SHA"] = "\n".join(shas)
-        return SubmissionResult(change_urls=urls, change_numbers=nums, commit_shas=shas)
+        return SubmissionResult(
+            change_urls=urls, change_numbers=nums, commit_shas=shas
+        )
 
     def _add_backref_comment_in_gerrit(
         self,
@@ -642,9 +880,8 @@ class Orchestrator:
         try:
             client = build_client()
             repo = get_repo_from_env(client)
-            pr_number = gh.pr_number
-            assert pr_number is not None
-            pr_obj = get_pull(repo, pr_number)
+            # At this point, gh.pr_number is non-None due to earlier guard.
+            pr_obj = get_pull(repo, int(gh.pr_number))
             create_pr_comment(pr_obj, text)
         except Exception as exc:
             log.warning("Failed to add PR comment: %s", exc)
@@ -674,7 +911,8 @@ class Orchestrator:
             client = build_client()
             repo = get_repo_from_env(client)
             pr_number = gh.pr_number
-            assert pr_number is not None
+            if pr_number is None:
+                return
             pr_obj = get_pull(repo, pr_number)
             close_pr(pr_obj, comment="Auto-closing pull request")
         except Exception as exc:
@@ -688,7 +926,7 @@ class Orchestrator:
         gh: GitHubContext,
         repo: RepoNames,
     ) -> None:
-        """Validate configuration, DNS reachability, and credentials in dry-run mode.
+        """Validate config, DNS, and credentials in dry-run mode.
 
         - Resolve Gerrit host via DNS
         - Verify SSH (TCP) reachability on the Gerrit port
@@ -700,72 +938,130 @@ class Orchestrator:
         import socket
 
         log.info("Dry-run: starting preflight checks")
-        if os.getenv("G2G_DRYRUN_DISABLE_NETWORK", "").strip().lower() in ("1", "true", "yes", "on"):
-            log.info("Dry-run: network checks disabled via G2G_DRYRUN_DISABLE_NETWORK")
+        if os.getenv("G2G_DRYRUN_DISABLE_NETWORK", "").strip().lower() in (
+            "1",
+            "true",
+            "yes",
+            "on",
+        ):
             log.info(
-                "Dry-run targets: Gerrit project=%s branch=%s topic_prefix=GH-%s",
+                "Dry-run: network checks disabled (G2G_DRYRUN_DISABLE_NETWORK)"
+            )
+            log.info(
+                "Dry-run targets: Gerrit project=%s branch=%s "
+                "topic_prefix=GH-%s",
                 repo.project_gerrit,
                 self._resolve_target_branch(),
                 repo.project_github,
             )
             if inputs.reviewers_email:
-                log.info("Reviewers (from inputs/config): %s", inputs.reviewers_email)
+                log.info(
+                    "Reviewers (from inputs/config): %s", inputs.reviewers_email
+                )
             elif os.getenv("REVIEWERS_EMAIL"):
-                log.info("Reviewers (from environment): %s", os.getenv("REVIEWERS_EMAIL"))
+                log.info(
+                    "Reviewers (from environment): %s",
+                    os.getenv("REVIEWERS_EMAIL"),
+                )
             return
 
         # DNS resolution for Gerrit host
         try:
             socket.getaddrinfo(gerrit.host, None)
-            log.info("DNS resolution for Gerrit host '%s' succeeded", gerrit.host)
+            log.info(
+                "DNS resolution for Gerrit host '%s' succeeded", gerrit.host
+            )
         except Exception as exc:
-            raise OrchestratorError(f"DNS resolution failed for Gerrit host '{gerrit.host}': {exc}")
+            msg = "DNS resolution failed"
+            raise OrchestratorError(msg) from exc
 
         # SSH (TCP) reachability on Gerrit port
         try:
-            with socket.create_connection((gerrit.host, gerrit.port), timeout=5):
+            with socket.create_connection(
+                (gerrit.host, gerrit.port), timeout=5
+            ):
                 pass
-            log.info("SSH TCP connectivity to %s:%s verified", gerrit.host, gerrit.port)
-        except Exception as exc:
-            raise OrchestratorError(
-                f"SSH TCP connectivity failed to {gerrit.host}:{gerrit.port}: {exc}"
+            log.info(
+                "SSH TCP connectivity to %s:%s verified",
+                gerrit.host,
+                gerrit.port,
             )
+        except Exception as exc:
+            msg = "SSH TCP connectivity failed"
+            raise OrchestratorError(msg) from exc
 
         # Gerrit REST reachability and optional auth check
         base_path = os.getenv("GERRIT_HTTP_BASE_PATH", "").strip().strip("/")
-        base_url = f"https://{gerrit.host}/" if not base_path else f"https://{gerrit.host}/{base_path}/"
-        http_user = os.getenv("GERRIT_HTTP_USER", "").strip() or os.getenv("GERRIT_SSH_USER_G2G", "").strip()
+        base_url = (
+            f"https://{gerrit.host}/"
+            if not base_path
+            else f"https://{gerrit.host}/{base_path}/"
+        )
+        http_user = (
+            os.getenv("GERRIT_HTTP_USER", "").strip()
+            or os.getenv("GERRIT_SSH_USER_G2G", "").strip()
+        )
         http_pass = os.getenv("GERRIT_HTTP_PASSWORD", "").strip()
         try:
             if http_user and http_pass:
-                rest = GerritRestAPI(url=base_url, auth=HTTPBasicAuth(http_user, http_pass))
+                if GerritRestAPI is None:
+                    raise OrchestratorError("pygerrit2 missing")  # noqa: TRY301, TRY003
+                if HTTPBasicAuth is None:
+                    raise OrchestratorError("pygerrit2 auth missing")  # noqa: TRY301, TRY003
+                rest = GerritRestAPI(
+                    url=base_url, auth=HTTPBasicAuth(http_user, http_pass)
+                )
                 # Authenticated check: verify account is accessible
                 _ = rest.get("/accounts/self")
-                log.info("Gerrit REST authenticated access verified for user '%s'", http_user)
+                log.info(
+                    "Gerrit REST authenticated access verified for user '%s'",
+                    http_user,
+                )
             else:
-                # Unauthenticated basic check: user dashboard (reachable on many setups)
+                # Unauthenticated check: user dashboard (common)
+                if GerritRestAPI is None:
+                    raise OrchestratorError("pygerrit2 missing")  # noqa: TRY301, TRY003
                 rest = GerritRestAPI(url=base_url)
                 _ = rest.get("/dashboard/self")
                 log.info("Gerrit REST endpoint reachable (unauthenticated)")
         except Exception as exc:
-            # If no explicit base path was configured and we hit a 404, retry with '/r'
-            status = getattr(getattr(exc, "response", None), "status_code", None)
+            # If no explicit base path was configured and we hit a 404,
+            # retry with '/r'
+            status = getattr(
+                getattr(exc, "response", None), "status_code", None
+            )
             if not base_path and status == 404:
                 try:
                     fallback_url = f"https://{gerrit.host}/r/"
                     if http_user and http_pass:
-                        rest = GerritRestAPI(url=fallback_url, auth=HTTPBasicAuth(http_user, http_pass))
+                        if GerritRestAPI is None:
+                            raise OrchestratorError("pygerrit2 missing")  # noqa: TRY301, TRY003
+                        if HTTPBasicAuth is None:
+                            raise OrchestratorError("pygerrit2 auth missing")  # noqa: TRY301, TRY003
+                        rest = GerritRestAPI(
+                            url=fallback_url,
+                            auth=HTTPBasicAuth(http_user, http_pass),
+                        )
                         _ = rest.get("/accounts/self")
                         log.info(
-                            "Gerrit REST authenticated access verified via '/r' base path for user '%s'",
+                            "Gerrit REST auth verified via '/r' for user '%s'",
                             http_user,
                         )
                     else:
+                        if GerritRestAPI is None:
+                            raise OrchestratorError("pygerrit2 missing")  # noqa: TRY301, TRY003
                         rest = GerritRestAPI(url=fallback_url)
                         _ = rest.get("/dashboard/self")
-                        log.info("Gerrit REST endpoint reachable (unauthenticated) via '/r' base path")
+                        log.info(
+                            "Gerrit REST endpoint reachable (unauthenticated) "
+                            "via '/r' base path"
+                        )
                 except Exception as exc2:
-                    log.warning("Gerrit REST probe did not succeed (including '/r' fallback): %s", exc2)
+                    log.warning(
+                        "Gerrit REST probe did not succeed "
+                        "(including '/r' fallback): %s",
+                        exc2,
+                    )
             else:
                 log.warning("Gerrit REST probe did not succeed: %s", exc)
 
@@ -775,7 +1071,9 @@ class Orchestrator:
             repo_obj = get_repo_from_env(client)
             if gh.pr_number is not None:
                 pr_obj = get_pull(repo_obj, gh.pr_number)
-                log.info("GitHub PR #%s metadata loaded successfully", gh.pr_number)
+                log.info(
+                    "GitHub PR #%s metadata loaded successfully", gh.pr_number
+                )
                 try:
                     title, _ = get_pr_title_body(pr_obj)
                     log.info("GitHub PR title: %s", title)
@@ -784,9 +1082,14 @@ class Orchestrator:
             else:
                 # Enumerate at least one open PR to validate scope
                 prs = list(iter_open_pulls(repo_obj))
-                log.info("GitHub repository '%s' open PR count: %d", gh.repository, len(prs))
+                log.info(
+                    "GitHub repository '%s' open PR count: %d",
+                    gh.repository,
+                    len(prs),
+                )
         except Exception as exc:
-            raise OrchestratorError(f"GitHub API validation failed: {exc}")
+            msg = "GitHub API validation failed"
+            raise OrchestratorError(msg) from exc
 
         # Log effective targets
         log.info(
@@ -796,9 +1099,13 @@ class Orchestrator:
             repo.project_github,
         )
         if inputs.reviewers_email:
-            log.info("Reviewers (from inputs/config): %s", inputs.reviewers_email)
+            log.info(
+                "Reviewers (from inputs/config): %s", inputs.reviewers_email
+            )
         elif os.getenv("REVIEWERS_EMAIL"):
-            log.info("Reviewers (from environment): %s", os.getenv("REVIEWERS_EMAIL"))
+            log.info(
+                "Reviewers (from environment): %s", os.getenv("REVIEWERS_EMAIL")
+            )
 
     # ---------------
     # Helpers
@@ -808,14 +1115,14 @@ class Orchestrator:
         # Preference order:
         # 1) GERRIT_BRANCH (explicit override)
         # 2) GITHUB_BASE_REF (provided in Actions PR context)
-        # 3) 'main' as a safe default
+        # 3) 'master' as a safe default
         b = os.getenv("GERRIT_BRANCH", "").strip()
         if b:
             return b
         b = os.getenv("GITHUB_BASE_REF", "").strip()
         if b:
             return b
-        return "main"
+        return "master"
 
     def _resolve_reviewers(self, inputs: Inputs) -> str:
         # If empty, use the Gerrit SSH user's email as default.
@@ -823,7 +1130,7 @@ class Orchestrator:
             return inputs.reviewers_email.strip()
         return inputs.gerrit_ssh_user_g2g_email.strip()
 
-    def _get_last_change_ids_from_head(self) -> List[str]:
+    def _get_last_change_ids_from_head(self) -> list[str]:
         """Return Change-Id trailer(s) from HEAD commit, if present."""
         try:
             trailers = git_last_commit_trailers(keys=["Change-Id"])
@@ -832,9 +1139,9 @@ class Orchestrator:
         values = trailers.get("Change-Id", [])
         return [v for v in values if v]
 
-    def _validate_change_ids(self, ids: Iterable[str]) -> List[str]:
+    def _validate_change_ids(self, ids: Iterable[str]) -> list[str]:
         """Basic validation for Change-Id strings."""
-        out: List[str] = []
+        out: list[str] = []
         for cid in ids:
             c = cid.strip()
             if not c:

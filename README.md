@@ -43,6 +43,9 @@ refactors it to Python with typed modules and test support.
   `GERRIT_PROJECT` via the reusable workflow interface.
 - SSH key for Gerrit and known hosts are available to the workflow.
 - The default `GITHUB_TOKEN` is available for PR metadata and comments.
+- The workflow grants permissions required for PR interactions:
+  - `pull-requests: write` (to comment on and close PRs)
+  - `issues: write` (to create PR comments via the Issues API)
 - The workflow runs with `pull_request_target` or via
   `workflow_dispatch` using a valid PR context.
 
@@ -60,36 +63,17 @@ name: github2gerrit-python
 on:
   pull_request_target:
     types: [opened, reopened, edited, synchronize]
-    branches: [master, main]
   workflow_dispatch:
 
 permissions:
   contents: read
   pull-requests: write
+  issues: write
 
 jobs:
   submit-to-gerrit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          # Use the PR HEAD SHA to check out the correct content
-          ref: ${{ github.event.pull_request.head.sha }}
-          fetch-depth: 10
-
-      - name: Install SSH key
-        uses: shimataro/ssh-key-action@d4fffb50872869abe2d9a9098a6d9c5aa7d16be4
-        with:
-          key: ${{ secrets.GERRIT_SSH_PRIVKEY_G2G }}
-          name: "id_rsa"
-          known_hosts: ${{ vars.GERRIT_KNOWN_HOSTS }}
-          config: |
-            Host ${{ vars.GERRIT_SERVER }}
-              User ${{ vars.GERRIT_SSH_USER_G2G }}
-              Port 29418
-              PubkeyAcceptedKeyTypes +ssh-rsa
-              IdentityFile ~/.ssh/id_rsa
-
       - name: Submit PR to Gerrit
         id: g2g
         uses: lfit/github2gerrit-python@main
@@ -110,6 +94,94 @@ supply Gerrit connection details through a reusable workflow or by
 setting the corresponding environment variables before invoking the
 action. The shell action enforces `.gitreview` for the composite
 variant; this Python action mirrors that behavior for compatibility.
+
+## Advanced usage
+
+You can explicitly install the SSH key and provide a custom SSH configuration
+before invoking this action. This is useful when:
+
+- You want to override the port/host used by SSH
+- You need to define host aliases or SSH options
+- Your Gerrit instance uses a non-standard HTTP base path (e.g. /r)
+
+Example:
+
+```yaml
+name: github2gerrit-python (advanced)
+
+on:
+  pull_request_target:
+    types: [opened, reopened, edited, synchronize]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  submit-to-gerrit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install SSH key and custom SSH config
+        <!-- markdownlint-disable-next-line MD013 -->
+        uses: shimataro/ssh-key-action@d4fffb50872869abe2d9a9098a6d9c5aa7d16be4 # v2.7.0
+        with:
+          key: ${{ secrets.GERRIT_SSH_PRIVKEY_G2G }}
+          name: "id_rsa"
+          known_hosts: ${{ vars.GERRIT_KNOWN_HOSTS }}
+          config: |
+            Host ${{ vars.GERRIT_SERVER }}
+              User ${{ vars.GERRIT_SSH_USER_G2G }}
+              Port ${{ vars.GERRIT_SERVER_PORT }}
+              PubkeyAcceptedKeyTypes +ssh-rsa
+              IdentityFile ~/.ssh/id_rsa
+
+      - name: Submit PR to Gerrit (with explicit overrides)
+        id: g2g
+        uses: lfit/github2gerrit-python@main
+        with:
+          # Behavior
+          SUBMIT_SINGLE_COMMITS: "false"
+          USE_PR_AS_COMMIT: "false"
+          FETCH_DEPTH: "10"
+
+          # Required SSH/identity
+          GERRIT_KNOWN_HOSTS: ${{ vars.GERRIT_KNOWN_HOSTS }}
+          GERRIT_SSH_PRIVKEY_G2G: ${{ secrets.GERRIT_SSH_PRIVKEY_G2G }}
+          GERRIT_SSH_USER_G2G: ${{ vars.GERRIT_SSH_USER_G2G }}
+          GERRIT_SSH_USER_G2G_EMAIL: ${{ vars.GERRIT_SSH_USER_G2G_EMAIL }}
+
+          # Optional overrides when .gitreview is missing or to force values
+          GERRIT_SERVER: ${{ vars.GERRIT_SERVER }}
+          GERRIT_SERVER_PORT: ${{ vars.GERRIT_SERVER_PORT }}
+          GERRIT_PROJECT: ${{ vars.GERRIT_PROJECT }}
+
+          # Optional Gerrit REST base path and credentials (if required)
+          # e.g. '/r' for some deployments
+          GERRIT_HTTP_BASE_PATH: ${{ vars.GERRIT_HTTP_BASE_PATH }}
+          GERRIT_HTTP_USER: ${{ vars.GERRIT_HTTP_USER }}
+          GERRIT_HTTP_PASSWORD: ${{ secrets.GERRIT_HTTP_PASSWORD }}
+
+          ORGANIZATION: ${{ github.repository_owner }}
+          REVIEWERS_EMAIL: ""
+```
+
+Notes:
+
+- If both this step and the action define SSH configuration, the last
+  configuration applied in the runner wins.
+- For most users, you can rely on the action’s built-in SSH setup. Use this
+  advanced configuration when you need custom SSH behavior or hosts.
+
+## GitHub Enterprise support
+
+- Direct-URL mode accepts enterprise GitHub hosts when you set
+  ALLOW_GHE_URLS to "true".
+- In GitHub Actions, this action works with GitHub Enterprise when the
+  workflow runs in that enterprise environment and provides a valid
+  GITHUB_TOKEN. For direct-URL runs outside Actions, ensure ORGANIZATION
+  and GITHUB_REPOSITORY reflect the target repository.
 
 ## Inputs
 
@@ -134,6 +206,9 @@ All inputs are strings, matching the composite action.
 - REVIEWERS_EMAIL
   - Comma separated reviewer emails. If empty, defaults to
     `GERRIT_SSH_USER_G2G_EMAIL`.
+- ALLOW_GHE_URLS
+  - Allow non-github.com GitHub Enterprise URLs in direct URL mode. Default: "false".
+  - Set to "true" to allow non-github.com enterprise hosts.
 
 Optional inputs when `.gitreview` is not present (parity with
 the reusable workflow):
@@ -156,7 +231,7 @@ These outputs mirror the composite action. They are also exported into
 the environment as:
 
 - GERRIT_CHANGE_REQUEST_URL
-- GERRIT_CHANGE_REQUEST_NUM (or GERRIT_CHANGE_REQUEST_NUMBER)
+- GERRIT_CHANGE_REQUEST_NUM
 
 ## Behavior details
 
@@ -166,12 +241,15 @@ the environment as:
 - Topic naming
   - Uses `GH-<repo>-<pr-number>` where `<repo>` replaces slashes with
     hyphens.
+- GitHub Enterprise support
+  - Direct URL mode accepts enterprise GitHub hosts when ALLOW_GHE_URLS is
+    "true". The tool determines the GitHub API base URL from GITHUB_API_URL
+    or GITHUB_SERVER_URL/api/v3.
 - Change‑Id handling
   - Single commits: the process amends each cherry‑picked commit to include a
     `Change-Id`. The tool collects these values for querying.
   - Squashed: collects trailers from original commits, preserves
     `Signed-off-by`, and reuses the `Change-Id` when PRs reopen or synchronize.
-    synchronized.
 - Reviewers
   - If empty, defaults to the Gerrit SSH user email.
 - Comments

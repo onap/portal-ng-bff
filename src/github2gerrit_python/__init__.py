@@ -14,14 +14,16 @@ package metadata when available.
 
 from __future__ import annotations
 
+
 try:
     # Prefer stdlib importlib.metadata (Python 3.8+)
-    from importlib.metadata import PackageNotFoundError, version as _pkg_version
+    from importlib.metadata import PackageNotFoundError
+    from importlib.metadata import version as _pkg_version
 
     try:
         __version__ = _pkg_version("github2gerrit-python")
     except PackageNotFoundError:
         __version__ = "0.0.0"
 except Exception:
-    # Fallback if importlib.metadata is not available or any unexpected error occurs
+    # Fallback when importlib.metadata is unavailable or errors occur
     __version__ = "0.0.0"

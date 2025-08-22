@@ -68,13 +68,13 @@ def test_resolve_target_branch_falls_back_to_github_base_ref(
     assert orch._resolve_target_branch() == "feature/do-thing"
 
 
-def test_resolve_target_branch_defaults_to_main(
+def test_resolve_target_branch_defaults_to_master(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     monkeypatch.delenv("GERRIT_BRANCH", raising=False)
     monkeypatch.delenv("GITHUB_BASE_REF", raising=False)
     orch = Orchestrator(workspace=tmp_path)
-    assert orch._resolve_target_branch() == "main"
+    assert orch._resolve_target_branch() == "master"
 
 
 # -----------------------------
@@ -112,7 +112,7 @@ def test_push_to_gerrit_topic_default_prefix_with_pr(
     orch._push_to_gerrit(
         gerrit=gerrit,
         repo=repo,
-        branch="main",
+        branch="master",
         reviewers="reviewer@example.org",
         single_commits=False,
     )
@@ -156,7 +156,7 @@ def test_push_to_gerrit_topic_custom_prefix_without_pr(
     orch._push_to_gerrit(
         gerrit=gerrit,
         repo=repo,
-        branch="main",
+        branch="master",
         reviewers="reviewer@example.org",
         single_commits=True,  # also exercises the tmp_branch checkout path
     )
@@ -207,7 +207,7 @@ def test_push_to_gerrit_raises_on_git_review_failure(
         orch._push_to_gerrit(
             gerrit=gerrit,
             repo=repo,
-            branch="main",
+            branch="master",
             reviewers="reviewer@example.org",
             single_commits=False,
         )

@@ -153,10 +153,23 @@ wheels = [
 ]
 
 [[package]]
+name = "git-review"
+version = "2.5.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/da/92/ddc922d34061791a4d0fd483ee4ffc5e026e93783b70fe5a29a129d0cf63/git_review-2.5.0.tar.gz", hash = "sha256:1bcffaef02848a5a3b066e8268c7d700a77cbd8b2e56b128d30f60cd431cf0a8", size = 72645, upload-time = "2025-05-19T19:06:19.367Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a2/09/e65301fd79f605e472877ecafe55013e22c5e49f1dead77c68f4ceec91ac/git_review-2.5.0-py3-none-any.whl", hash = "sha256:fcaa16edeceaf635b4d0dc5d645b47379e676d35cf39b0c24ffcdf0f86515f9f", size = 53717, upload-time = "2025-05-19T19:06:18.381Z" },
+]
+
+[[package]]
 name = "github2gerrit-python"
 source = { editable = "." }
 dependencies = [
     { name = "anyio" },
+    { name = "git-review" },
     { name = "httpx" },
     { name = "pygerrit2" },
     { name = "pygithub" },
@@ -168,6 +181,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "anyio", specifier = ">=4.4.0" },
+    { name = "git-review", specifier = ">=2.3.1" },
     { name = "httpx", specifier = ">=0.27.2" },
     { name = "pygerrit2", specifier = ">=2.0.0" },
     { name = "pygithub", specifier = ">=2.3.0" },

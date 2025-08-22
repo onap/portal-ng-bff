@@ -11,10 +11,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 
-__all__ = ["Inputs", "GitHubContext"]
+__all__ = ["GitHubContext", "Inputs"]
 
 
 @dataclass(frozen=True)
@@ -65,7 +64,7 @@ class GitHubContext:
 
     event_name: str
     event_action: str
-    event_path: Optional[Path]
+    event_path: Path | None
 
     repository: str
     repository_owner: str
@@ -77,4 +76,4 @@ class GitHubContext:
     base_ref: str
     head_ref: str
 
-    pr_number: Optional[int]
+    pr_number: int | None
