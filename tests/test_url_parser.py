@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2025 The Linux Foundation
 
 from __future__ import annotations
 
@@ -7,7 +8,7 @@ import pytest
 from github2gerrit_python.cli import _parse_github_target
 
 
-@pytest.mark.parametrize(
+@pytest.mark.parametrize(  # type: ignore[misc]
     "url, expected",
     [
         # Standard PR URLs
@@ -55,5 +56,7 @@ from github2gerrit_python.cli import _parse_github_target
         ("https://github.com", (None, None, None)),
     ],
 )
-def test_parse_github_target(url: str, expected: tuple) -> None:
+def test_parse_github_target(
+    url: str, expected: tuple[object, object, object]
+) -> None:
     assert _parse_github_target(url) == expected

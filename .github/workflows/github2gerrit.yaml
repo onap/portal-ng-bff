@@ -1,9 +1,10 @@
 ---
 # SPDX-License-Identifier: Apache-2.0
-# Copyright 2025 The Linux Foundation <abelur@linux.com>
+# SPDX-FileCopyrightText: 2025 The Linux Foundation
 
 name: github2gerrit-python-reusable-workflow
 
+# yamllint disable-line rule:truthy
 on:
   workflow_call:
     inputs:
@@ -55,7 +56,7 @@ on:
         type: string
         default: ${{ github.repository_owner }}
       REVIEWERS_EMAIL:
-        description: "Committers email list (comma separated) to notify on code-reviews"
+        description: "Committer emails (comma separated) to notify reviewers"
         required: false
         default: ""
         type: string
@@ -94,12 +95,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  compose-github2gerrit:
+  github2gerrit-python:
     # Only run if we have a proper pull request context
     if: ${{ github.event.pull_request.number || github.event.issue.number }}
     runs-on: ubuntu-latest
+    timeout-minutes: 6
     steps:
-        # yamllint disable rule:line-length
+      # Too many long lines to have this check
+      # yamllint disable rule:line-length
 
       - name: Install python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0

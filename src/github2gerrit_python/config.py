@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright:
-#   2025 The Linux Foundation
+# SPDX-FileCopyrightText: 2025 The Linux Foundation
 #
 # Configuration loader for github2gerrit.
 #
@@ -51,9 +50,11 @@ import logging
 import os
 import re
 from pathlib import Path
+from typing import Any
 from typing import Dict
 from typing import Iterable
 from typing import Optional
+from typing import cast
 
 
 log = logging.getLogger("github2gerrit.config")
@@ -135,7 +136,7 @@ def _coerce_value(raw: str) -> str:
 
 
 def _select_section(
-    cp: configparser.ConfigParser,
+    cp: configparser.RawConfigParser,
     org: str,
 ) -> Optional[str]:
     """Find a section name case-insensitively."""
@@ -146,9 +147,10 @@ def _select_section(
     return None
 
 
-def _load_ini(path: Path) -> configparser.ConfigParser:
+def _load_ini(path: Path) -> configparser.RawConfigParser:
     cp = configparser.RawConfigParser()
-    cp.optionxform = str
+    # Preserve option case; mypy requires a cast for attribute assignment
+    cast(Any, cp).optionxform = str
     try:
         with path.open("r", encoding="utf-8") as fh:
             raw_text = fh.read()

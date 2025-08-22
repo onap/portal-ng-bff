@@ -1,6 +1,5 @@
-[build-system]
-requires = ["pdm-backend>=2.3.3"]
-build-backend = "pdm.backend"
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2025 The Linux Foundation
 
 [project]
 name = "github2gerrit-python"
@@ -54,6 +53,10 @@ Issues = "https://github.com/lfit/github2gerrit-python/issues"
 [project.scripts]
 github2gerrit = "github2gerrit_python.cli:app"
 
+[build-system]
+requires = ["pdm-backend>=2.3.3"]
+build-backend = "pdm.backend"
+
 [tool.pdm]
 # PDM is the build backend and project manager.
 # We use a src/ layout as per modern packaging norms.
@@ -88,6 +91,8 @@ dev = [
 [tool.ruff]
 line-length = 80
 target-version = "py311"
+
+[tool.ruff.lint]
 # Keep default rules strict; allow incremental adoption via ignores if needed.
 select = [
   "E", "F", "I", "UP", "ASYNC", "S", "B", "A",
@@ -99,6 +104,9 @@ ignore = [
   "T201",
 ]
 
+[tool.ruff.lint.per-file-ignores]
+"tests/*.py" = ["S101", "S105", "PLW0603", "E501"]
+
 [tool.ruff.lint.isort]
 known-first-party = ["github2gerrit_python"]
 lines-after-imports = 2
@@ -106,6 +114,7 @@ force-single-line = true
 
 [tool.mypy]
 python_version = "3.11"
+mypy_path = ["src"]
 strict = true
 warn_unused_configs = true
 warn_redundant_casts = true

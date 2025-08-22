@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright:
-#   2025 The Linux Foundation
+# SPDX-FileCopyrightText: 2025 The Linux Foundation
 
 from __future__ import annotations
 

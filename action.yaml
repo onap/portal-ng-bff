@@ -1,7 +1,9 @@
 ---
 # SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2025 The Linux Foundation
+
 name: github2gerrit-python
-description: "Submit a GitHub pull request to a Gerrit repository using the Python github2gerrit tool"
+description: "Creates Gerrit changes from GitHub pull requests"
 
 inputs:
   SUBMIT_SINGLE_COMMITS:
@@ -59,7 +61,7 @@ inputs:
     required: false
     default: "29418"
   GERRIT_PROJECT:
-    description: "Gerrit project (e.g. releng/builder). Optional if .gitreview exists"
+    description: "Gerrit project, optional if .gitreview exists"
     required: false
     default: ""
 
@@ -73,13 +75,13 @@ inputs:
     required: false
     default: ""
   GERRIT_HTTP_PASSWORD:
-    description: "Optional Gerrit HTTP password/token (for REST authenticated checks)"
+    description: "Optional Gerrit HTTP password/token (for REST authentication)"
     required: false
     default: ""
 
 outputs:
   gerrit_change_request_url:
-    description: "URL(s) of the submitted/updated Gerrit change(s) (newline-separated if multiple)"
+    description: "Gerrit change URL(s) (newline-separated if multiple)"
     value: ${{ steps.capture-outputs.outputs.gerrit_change_request_url }}
   gerrit_change_request_num:
     description: "Gerrit change number(s) (newline-separated if multiple)"
@@ -92,7 +94,8 @@ runs:
   using: "composite"
   steps:
     - name: Setup Python
-      uses: actions/setup-python@v5
+      # yamllint disable-line rule:line-length
+      uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
       with:
         python-version: "3.11"
 
@@ -105,7 +108,8 @@ runs:
         pip install "git-review==2.3.1" pygithub pygerrit2 typer
 
     - name: Checkout repository
-      uses: actions/checkout@v4
+      # yamllint disable-line rule:line-length
+      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
       with:
         fetch-depth: ${{ inputs.FETCH_DEPTH }}
         # Ensure we are on the PR's head SHA when triggered by PR events
@@ -115,15 +119,18 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
-        PR_NUMBER="${{ github.event.pull_request.number || github.event.issue.number || '' }}"
+        PR_NUMBER="${{ github.event.pull_request.number || \
+          github.event.issue.number || '' }}"
         echo "PR_NUMBER=${PR_NUMBER}" >> "$GITHUB_ENV"
         if [[ -z "${PR_NUMBER}" || "${PR_NUMBER}" == "null" ]]; then
-          echo "Error: PR_NUMBER is empty. This action requires a valid pull request context."
+          echo "Error: PR_NUMBER is empty."
+          echo "This action requires a valid pull request context."
           echo "Current event: ${{ github.event_name }}"
           exit 2
         fi
 
     - name: Install SSH key for Gerrit
+      # yamllint disable-line rule:line-length
       uses: shimataro/ssh-key-action@d4fffb50872869abe2d9a9098a6d9c5aa7d16be4 # v2.7.0
       with:
         key: ${{ inputs.GERRIT_SSH_PRIVKEY_G2G }}
@@ -188,6 +195,8 @@ runs:
     - name: Capture outputs (best-effort)
       id: capture-outputs
       shell: bash
+      # Disable this rule when creating summary output
+      # yamllint disable rule:line-length
       run: |
         set -euo pipefail
         # Note: The Python CLI sets outputs inside its process. If it also writes them

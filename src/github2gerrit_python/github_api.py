@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright:
-#   2025 The Linux Foundation
+# SPDX-FileCopyrightText: 2025 The Linux Foundation
 #
 # GitHub API wrapper using PyGithub with retries/backoff.
 # - Centralized construction of the client
@@ -28,29 +27,25 @@ from typing import Generator
 from typing import Optional
 from typing import Tuple
 from typing import TypeVar
+from typing import TYPE_CHECKING
 from typing import cast
 
 from github import Github
 from github.GithubException import GithubException
 from github.GithubException import RateLimitExceededException
 
-try:
+if TYPE_CHECKING:
     # These imports improve editor experience if stubs are present.
-    # mypy type checking may not have stubs; we fallback to 'Any' types.
-    from github.Repository import Repository as _GhRepository
-    from github.PullRequest import PullRequest as _GhPullRequest
-    from github.Issue import Issue as _GhIssue
-    from github.IssueComment import IssueComment as _GhIssueComment
-except Exception:  # pragma: no cover - typing convenience
-    _GhRepository = Any  # type: ignore[assignment]
-    _GhPullRequest = Any  # type: ignore[assignment]
-    _GhIssue = Any  # type: ignore[assignment]
-    _GhIssueComment = Any  # type: ignore[assignment]
-
-GhRepository = _GhRepository
-GhPullRequest = _GhPullRequest
-GhIssue = _GhIssue
-GhIssueComment = _GhIssueComment
+    from github.Repository import Repository as GhRepository
+    from github.PullRequest import PullRequest as GhPullRequest
+    from github.Issue import Issue as GhIssue
+    from github.IssueComment import IssueComment as GhIssueComment
+else:  # pragma: no cover - typing convenience
+    # Provide runtime placeholders; type checkers ignore this branch.
+    GhRepository = object
+    GhPullRequest = object
+    GhIssue = object
+    GhIssueComment = object
 
 
 __all__ = [
@@ -76,9 +71,9 @@ def _getenv_str(name: str) -> str:
 
 def _backoff_delay(attempt: int, base: float = 0.5, cap: float = 6.0) -> float:
     # Exponential backoff with jitter; cap prevents unbounded waits.
-    delay = min(base * (2 ** max(0, attempt - 1)), cap)
-    jitter = random.uniform(0.0, delay / 2.0)
-    return delay + jitter
+    delay: float = float(min(base * (2 ** max(0, attempt - 1)), cap))
+    jitter: float = float(random.uniform(0.0, delay / 2.0))
+    return float(delay + jitter)
 
 
 def _should_retry(exc: BaseException) -> bool:
@@ -166,14 +161,14 @@ def get_repo_from_env(client: Github) -> GhRepository:
             "GITHUB_REPOSITORY environment must be set to 'owner/repo'"
         )
     repo = client.get_repo(full)
-    return cast(GhRepository, repo)
+    return repo
 
 
 @_retry_on_github()
 def get_pull(repo: GhRepository, number: int) -> GhPullRequest:
     """Fetch a pull request by number."""
     pr = repo.get_pull(number)
-    return cast(GhPullRequest, pr)
+    return pr
 
 
 def iter_open_pulls(repo: GhRepository) -> Generator[GhPullRequest, None, None]:
@@ -181,7 +176,7 @@ def iter_open_pulls(repo: GhRepository) -> Generator[GhPullRequest, None, None]:
     prs = repo.get_pulls(state="open")
     for pr in prs:
         # Cast to improve type awareness for callers
-        yield cast(GhPullRequest, pr)
+        yield pr
 
 
 def get_pr_title_body(pr: GhPullRequest) -> Tuple[str, str]:
@@ -198,7 +193,7 @@ _CHANGE_ID_RE = re.compile(r"Change-Id:\s*([A-Za-z0-9._-]+)")
 def _get_issue(pr: GhPullRequest) -> GhIssue:
     """Return the issue object corresponding to a pull request."""
     issue = pr.as_issue()
-    return cast(GhIssue, issue)
+    return issue
 
 
 @_retry_on_github()
@@ -222,7 +217,7 @@ def get_recent_change_ids_from_comments(
     # Collect last 'max_comments' by buffering and slicing at the end.
     buf: list[GhIssueComment] = []
     for c in comments:
-        buf.append(cast(GhIssueComment, c))
+        buf.append(c)
         # No early stop; PaginatedList can be large, we'll truncate after.
     # Truncate to the most recent 'max_comments'
     recent = buf[-max_comments:] if max_comments > 0 else buf

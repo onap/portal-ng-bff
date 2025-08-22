@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright:
-#   2025 The Linux Foundation
+# SPDX-FileCopyrightText: 2025 The Linux Foundation
 #
 # Subprocess and git helper utilities with logging and error handling.
 # - Strict typing
@@ -156,8 +155,8 @@ def _is_transient_git_error(stderr: str) -> bool:
 
 def _backoff_delay(attempt: int, base: float = 0.5, cap: float = 5.0) -> float:
     # Exponential backoff: base * 2^(attempt-1), capped
-    delay = base * (2 ** max(0, attempt - 1))
-    return min(delay, cap)
+    delay: float = float(base * (2 ** max(0, attempt - 1)))
+    return float(min(delay, cap))
 
 
 def run_cmd(
@@ -640,9 +639,9 @@ def enumerate_reviewer_emails() -> List[str]:
                 _add_email(part)
 
     # Fallback to user.email (local then global)
-    ue = git_config_get("user.email")
-    if ue:
-        _add_email(ue)
+    user_email = git_config_get("user.email")
+    if user_email:
+        _add_email(user_email)
     ue_g = git_config_get("user.email", global_=True)
     if ue_g:
         _add_email(ue_g)

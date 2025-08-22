@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright:
-#   2025 The Linux Foundation
+# SPDX-FileCopyrightText: 2025 The Linux Foundation
 
 from __future__ import annotations
 
@@ -12,7 +11,7 @@ import sys
 from .models import Inputs, GitHubContext
 from . import models
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from typing import Optional
 
 import typer
@@ -51,9 +50,9 @@ from .config import load_org_config, apply_config_to_env
 
 
 APP_NAME = "github2gerrit"
-app = typer.Typer(add_completion=False, no_args_is_help=True)
+app: typer.Typer = typer.Typer(add_completion=False, no_args_is_help=True)
 
-@app.callback(invoke_without_command=True)
+@app.callback(invoke_without_command=True)  # type: ignore[misc]
 def main(
     ctx: typer.Context,
     target_url: Optional[str] = typer.Argument(
@@ -62,7 +61,7 @@ def main(
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Validate settings; do not write to Gerrit."
     ),
-):
+) -> None:
     """
     Default entrypoint to support calling:
       github2gerrit https://github.com/org/repo[/pull/<num>]
@@ -274,7 +273,7 @@ def _load_event(path: Optional[Path]) -> dict[str, Any]:
     if not path or not path.exists():
         return {}
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        return cast(dict[str, Any], json.loads(path.read_text(encoding="utf-8")))
     except Exception as exc:
         log.warning("Failed to parse GITHUB_EVENT_PATH: %s", exc)
         return {}
@@ -284,12 +283,12 @@ def _extract_pr_number(evt: dict[str, Any]) -> Optional[int]:
     # Try standard pull_request payload
     pr = evt.get("pull_request")
     if isinstance(pr, dict) and isinstance(pr.get("number"), int):
-        return pr["number"]
+        return int(pr["number"])
 
     # Try issues payload (when used on issues events)
     issue = evt.get("issue")
     if isinstance(issue, dict) and isinstance(issue.get("number"), int):
-        return issue["number"]
+        return int(issue["number"])
 
     # Try a direct number field
     if isinstance(evt.get("number"), int):
@@ -400,7 +399,7 @@ def _resolve_org(default_org: Optional[str]) -> str:
     return ""
 
 
-@app.command()
+@app.command()  # type: ignore[misc]
 def run(
     submit_single_commits: bool = typer.Option(
         False,
@@ -532,133 +531,7 @@ def run(
     # Delegate to the common processing path to avoid OptionInfo leakage.
     _process()
     return
-    data = Inputs(
-        submit_single_commits=submit_single_commits,
-        use_pr_as_commit=use_pr_as_commit,
-        fetch_depth=fetch_depth,
-        gerrit_known_hosts=gerrit_known_hosts,
-        gerrit_ssh_privkey_g2g=gerrit_ssh_privkey_g2g,
-        gerrit_ssh_user_g2g=gerrit_ssh_user_g2g,
-        gerrit_ssh_user_g2g_email=gerrit_ssh_user_g2g_email,
-        organization=_resolve_org(organization),
-        reviewers_email=reviewers_email,
-        preserve_github_prs=preserve_github_prs,
-        dry_run=dry_run,
-        gerrit_server=gerrit_server,
-        gerrit_server_port=gerrit_server_port,
-        gerrit_project=gerrit_project,
-    )
 
-    # Load per-org configuration and apply to environment before validation
-    org_for_cfg = organization or os.getenv("ORGANIZATION") or os.getenv("GITHUB_REPOSITORY_OWNER")
-    cfg = load_org_config(org_for_cfg)
-    apply_config_to_env(cfg)
-    # If running locally/directly and REVIEWERS_EMAIL is not set,
-    # attempt to derive reviewers from local/global git config.
-    if not os.getenv("REVIEWERS_EMAIL") and (os.getenv("G2G_TARGET_URL") or not os.getenv("GITHUB_EVENT_NAME")):
-        try:
-            from .gitutils import enumerate_reviewer_emails
-            emails = enumerate_reviewer_emails()
-            if emails:
-                os.environ["REVIEWERS_EMAIL"] = ",".join(emails)
-                log.info("Derived reviewers: %s", os.environ["REVIEWERS_EMAIL"])
-        except Exception as exc:
-            log.debug("Could not derive reviewers from git config: %s", exc)
-    # Reflect any env updates back into the inputs object
-    if not data.reviewers_email:
-        env_reviewers = os.getenv("REVIEWERS_EMAIL", "")
-        if env_reviewers:
-            data = Inputs(
-                submit_single_commits=data.submit_single_commits,
-                use_pr_as_commit=data.use_pr_as_commit,
-                fetch_depth=data.fetch_depth,
-                gerrit_known_hosts=data.gerrit_known_hosts,
-                gerrit_ssh_privkey_g2g=data.gerrit_ssh_privkey_g2g,
-                gerrit_ssh_user_g2g=data.gerrit_ssh_user_g2g,
-                gerrit_ssh_user_g2g_email=data.gerrit_ssh_user_g2g_email,
-                organization=data.organization,
-                reviewers_email=env_reviewers,
-                preserve_github_prs=data.preserve_github_prs,
-                dry_run=data.dry_run,
-                gerrit_server=data.gerrit_server,
-                gerrit_server_port=data.gerrit_server_port,
-                gerrit_project=data.gerrit_project,
-            )
-    try:
-        _validate_inputs(data)
-    except typer.BadParameter as exc:
-        log.error("%s", exc)
-        raise typer.Exit(code=2)
-
-    gh = _read_github_context()
-    _log_effective_config(data, gh)
-
-    # Support bulk mode via workflow_dispatch when SYNC_ALL_OPEN_PRS is true
-    sync_all = os.getenv("SYNC_ALL_OPEN_PRS", "").strip().lower() in ("1", "true", "yes")
-    if sync_all and (gh.event_name == "workflow_dispatch" or os.getenv("G2G_TARGET_URL")):
-        client = build_client()
-        repo = get_repo_from_env(client)
-        orch = Orchestrator(workspace=Path.cwd())
-
-        all_urls: list[str] = []
-        all_nums: list[str] = []
-
-        for pr in iter_open_pulls(repo):
-            pr_number = int(getattr(pr, "number", 0) or 0)
-            if pr_number <= 0:
-                continue
-
-            per_ctx = models.GitHubContext(
-                event_name=gh.event_name,
-                event_action=gh.event_action,
-                event_path=gh.event_path,
-                repository=gh.repository,
-                repository_owner=gh.repository_owner,
-                server_url=gh.server_url,
-                run_id=gh.run_id,
-                sha=gh.sha,
-                base_ref=gh.base_ref,
-                head_ref=gh.head_ref,
-                pr_number=pr_number,
-            )
-
-            result_multi = orch.execute(inputs=data, gh=per_ctx)
-            if result_multi.change_urls:
-                all_urls.extend(result_multi.change_urls)
-            if result_multi.change_numbers:
-                all_nums.extend(result_multi.change_numbers)
-
-        if all_urls:
-            os.environ["GERRIT_CHANGE_REQUEST_URL"] = "\n".join(all_urls)
-        if all_nums:
-            os.environ["GERRIT_CHANGE_REQUEST_NUM"] = "\n".join(all_nums)
-
-        log.info("Submission pipeline complete (multi-PR).")
-        return
-
-    if not gh.pr_number:
-        # Match the guard used in the reusable workflow
-        log.error(
-            "PR_NUMBER is empty. This tool requires a valid pull request "
-            "context. Current event: %s",
-            gh.event_name,
-        )
-        raise typer.Exit(code=2)
-
-    # Test mode: short-circuit after validation and PR guard
-    if os.getenv("G2G_TEST_MODE", "").strip().lower() in ("1", "true", "yes"):
-        log.info("Validation complete. Ready to execute submission pipeline.")
-        return
-
-    # Execute single-PR submission
-    orch = Orchestrator(workspace=Path.cwd())
-    result = orch.execute(inputs=data, gh=gh)
-    if result.change_urls:
-        os.environ["GERRIT_CHANGE_REQUEST_URL"] = "\n".join(result.change_urls)
-    if result.change_numbers:
-        os.environ["GERRIT_CHANGE_REQUEST_NUM"] = "\n".join(result.change_numbers)
-    log.info("Submission pipeline complete.")
-    return
 
 
 # Backwards-friendly alias so entry point can be either cli:app or cli:run.

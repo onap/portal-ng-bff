@@ -9,7 +9,7 @@ Submit a GitHub pull request to a Gerrit repository, implemented in Python.
 
 This action is a drop‑in replacement for the shell‑based
 `lfit/github2gerrit` composite action. It mirrors the same inputs,
-outputs, environment variables, and secrets so it can be adopted without
+outputs, environment variables, and secrets so you can adopt it without
 changing existing configuration in your organizations.
 
 The tool expects a `.gitreview` file in the repository to derive Gerrit
@@ -18,8 +18,8 @@ and `git-review` semantics to push to `refs/for/<branch>` and relies on
 Gerrit `Change-Id` trailers to create or update changes.
 
 Note: the initial versions focus on compatibility and clear logging.
-The behavior matches the existing action, while the implementation is
-refactored to Python with typed modules and test support.
+The behavior matches the existing action, and this implementation
+refactors it to Python with typed modules and test support.
 
 ## How it works (high level)
 
@@ -48,7 +48,7 @@ refactored to Python with typed modules and test support.
 
 ## Usage
 
-This action is intended to run as part of a workflow that triggers on
+This action runs as part of a workflow that triggers on
 `pull_request_target` and also supports manual runs via
 `workflow_dispatch`.
 
@@ -73,7 +73,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # Use the PR HEAD SHA to ensure correct content is checked out
+          # Use the PR HEAD SHA to check out the correct content
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 10
 
@@ -107,7 +107,7 @@ jobs:
 
 The action reads `.gitreview`. If `.gitreview` is absent, you must
 supply Gerrit connection details through a reusable workflow or by
-setting the corresponding environment variables prior to invoking the
+setting the corresponding environment variables before invoking the
 action. The shell action enforces `.gitreview` for the composite
 variant; this Python action mirrors that behavior for compatibility.
 
@@ -135,7 +135,7 @@ All inputs are strings, matching the composite action.
   - Comma separated reviewer emails. If empty, defaults to
     `GERRIT_SSH_USER_G2G_EMAIL`.
 
-Additional optional inputs when `.gitreview` is not present (parity with
+Optional inputs when `.gitreview` is not present (parity with
 the reusable workflow):
 
 - GERRIT_SERVER
@@ -148,10 +148,9 @@ the reusable workflow):
 ## Outputs
 
 - url
-  - Gerrit change URL(s). Multi‑line when multiple changes are created.
+  - Gerrit change URL(s). Multi‑line when the action submits more than one change.
 - change_number
-  - Gerrit change number(s). Multi‑line when multiple changes are
-    created.
+  - Gerrit change number(s). Multi‑line when the action submits more than one change.
 
 These outputs mirror the composite action. They are also exported into
 the environment as:
@@ -168,10 +167,10 @@ the environment as:
   - Uses `GH-<repo>-<pr-number>` where `<repo>` replaces slashes with
     hyphens.
 - Change‑Id handling
-  - Single commits: each cherry‑picked commit is amended to include a
-    `Change-Id`. Values are collected for querying.
+  - Single commits: the process amends each cherry‑picked commit to include a
+    `Change-Id`. The tool collects these values for querying.
   - Squashed: collects trailers from original commits, preserves
-    `Signed-off-by`, and reuses `Change-Id` when PRs are reopened or
+    `Signed-off-by`, and reuses the `Change-Id` when PRs reopen or synchronize.
     synchronized.
 - Reviewers
   - If empty, defaults to the Gerrit SSH user email.
@@ -179,7 +178,7 @@ the environment as:
   - Adds a back‑reference comment in Gerrit with the GitHub PR and run
     URL. Adds a comment on the GitHub PR with the Gerrit change URL(s).
 - Closing PRs
-  - On `pull_request_target` the PR may be closed after submission to
+  - On `pull_request_target`, the workflow may close the PR after submission to
     match the shell action’s behavior.
 
 ## Security notes
@@ -188,14 +187,14 @@ the environment as:
   workflow secrets and known hosts via repository or org variables.
 - SSH config respects `known_hosts` and the SSH identity set by the
   workflow step that installs the key.
-- All external calls should implement retries and clear error reporting.
+- All external calls should use retries and clear error reporting.
 
 ## Development
 
 This repository follows the guidelines in `CLAUDE.md`.
 
 - Language and CLI
-  - Python 3.11. Typer is used for the CLI.
+  - Python 3.11. The CLI uses Typer.
 - Packaging
   - `pyproject.toml` with PDM backend. Use `uv` to install and run.
 - Structure
@@ -203,7 +202,7 @@ This repository follows the guidelines in `CLAUDE.md`.
   - `src/github2gerrit_python/core.py` (orchestration)
   - `src/github2gerrit_python/gitutils.py` (subprocess and git helpers)
 - Linting and type checking
-  - Ruff, Black, and MyPy are configured via `pyproject.toml`.
+  - Ruff and MyPy use settings in `pyproject.toml`.
   - Run from pre‑commit hooks and CI.
 - Tests
   - Pytest with coverage targets around 80%.

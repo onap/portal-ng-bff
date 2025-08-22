@@ -1,17 +1,20 @@
 # SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2025 The Linux Foundation
+
 
 import os
 from pathlib import Path
-from typing import List, Optional
 
-import pytest  # type: ignore[import-not-found]
+import pytest
 
 from github2gerrit_python.config import apply_config_to_env
 from github2gerrit_python.config import load_org_config
 from github2gerrit_python.gitutils import enumerate_reviewer_emails
 
 
-def test_config_loading_and_precedence(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_config_loading_and_precedence(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """
     Verify that:
     - INI values are loaded for the specified org and normalized
@@ -63,7 +66,9 @@ SUBMIT_SINGLE_COMMITS = "true"
     assert os.getenv("REVIEWERS_EMAIL") == "env_override@example.org"
 
 
-def test_enumerate_reviewer_emails_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_enumerate_reviewer_emails_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """
     Verify reviewer email enumeration from git config:
     - Reads from multiple keys
@@ -73,7 +78,7 @@ def test_enumerate_reviewer_emails_fallback(monkeypatch: pytest.MonkeyPatch) -> 
     """
 
     # Simulate git config getters used by enumeration without invoking git.
-    def fake_get_all(key: str, *, global_: bool = False) -> List[str]:
+    def fake_get_all(key: str, *, global_: bool = False) -> list[str]:
         if key == "github2gerrit.reviewersEmail" and not global_:
             return ["a@example.org,b@example.org"]
         if key == "g2g.reviewersEmail" and not global_:
@@ -83,7 +88,7 @@ def test_enumerate_reviewer_emails_fallback(monkeypatch: pytest.MonkeyPatch) -> 
             return []
         return []
 
-    def fake_get(key: str, *, global_: bool = False) -> Optional[str]:
+    def fake_get(key: str, *, global_: bool = False) -> str | None:
         # Only provide a global fallback for user.email
         if key == "user.email" and global_:
             return "d@example.org"

@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright:
-#   2025 The Linux Foundation
+# SPDX-FileCopyrightText: 2025 The Linux Foundation
 #
 # High-level orchestrator scaffold for the GitHub PR -> Gerrit flow.
 #
@@ -56,6 +55,7 @@ from .github_api import get_pr_title_body
 from .github_api import get_recent_change_ids_from_comments
 from .github_api import create_pr_comment
 from .github_api import close_pr
+from .github_api import iter_open_pulls
 from pygerrit2 import GerritRestAPI, HTTPBasicAuth
 
 
@@ -617,7 +617,9 @@ class Orchestrator:
         try:
             client = build_client()
             repo = get_repo_from_env(client)
-            pr_obj = get_pull(repo, int(gh.pr_number))
+            pr_number = gh.pr_number
+            assert pr_number is not None
+            pr_obj = get_pull(repo, pr_number)
             create_pr_comment(pr_obj, text)
         except Exception as exc:
             log.warning("Failed to add PR comment: %s", exc)
@@ -646,7 +648,9 @@ class Orchestrator:
         try:
             client = build_client()
             repo = get_repo_from_env(client)
-            pr_obj = get_pull(repo, int(gh.pr_number))
+            pr_number = gh.pr_number
+            assert pr_number is not None
+            pr_obj = get_pull(repo, pr_number)
             close_pr(pr_obj, comment="Auto-closing pull request")
         except Exception as exc:
             log.warning("Failed to close PR #%s: %s", gh.pr_number, exc)
@@ -731,8 +735,8 @@ class Orchestrator:
         try:
             client = build_client()
             repo_obj = get_repo_from_env(client)
-            if gh.pr_number:
-                pr_obj = get_pull(repo_obj, int(gh.pr_number))
+            if gh.pr_number is not None:
+                pr_obj = get_pull(repo_obj, gh.pr_number)
                 log.info("GitHub PR #%s metadata loaded successfully", gh.pr_number)
                 try:
                     title, _ = get_pr_title_body(pr_obj)

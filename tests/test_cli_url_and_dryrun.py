@@ -1,7 +1,10 @@
-from typing import Any, Dict, List, Tuple
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2025 The Linux Foundation
 
-import pytest  # type: ignore[import-not-found]
-from typer.testing import CliRunner  # type: ignore[import-not-found]
+from typing import Any
+
+import pytest
+from typer.testing import CliRunner
 
 from github2gerrit_python import cli as cli_mod
 from github2gerrit_python.cli import app
@@ -10,7 +13,7 @@ from github2gerrit_python.cli import app
 runner = CliRunner()
 
 
-def _base_env() -> Dict[str, str]:
+def _base_env() -> dict[str, str]:
     """
     Return baseline environment variables required by CLI validation.
     We simulate a local run (no GITHUB_EVENT_NAME) so URL mode is enabled.
@@ -31,7 +34,7 @@ def _base_env() -> Dict[str, str]:
 
 class _CallRecord:
     def __init__(self) -> None:
-        self.calls: List[Tuple[Any, Any]] = []
+        self.calls: list[tuple[Any, Any]] = []
 
     def add(self, inputs: Any, gh: Any) -> None:
         self.calls.append((inputs, gh))
@@ -48,6 +51,7 @@ class _DummyOrchestrator:
     def execute(self, *, inputs: Any, gh: Any) -> Any:
         # Capture via the test-patched global record
         _ORCH_RECORD.add(inputs, gh)
+
         # Return a minimal object with the expected attributes
         class _Result:
             def __init__(self) -> None:
@@ -62,7 +66,9 @@ class _DummyOrchestrator:
 _ORCH_RECORD = _CallRecord()
 
 
-def test_pr_url_dry_run_invokes_single_execution(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_pr_url_dry_run_invokes_single_execution(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """
     Given a PR URL and --dry-run, the CLI should:
       - Parse org/repo/pr number from URL
@@ -96,7 +102,9 @@ def test_pr_url_dry_run_invokes_single_execution(monkeypatch: pytest.MonkeyPatch
     assert result.exit_code == 0
 
 
-def test_repo_url_dry_run_invokes_for_each_open_pr(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_repo_url_dry_run_invokes_for_each_open_pr(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """
     Given a repository URL and --dry-run, the CLI (URL mode) should:
       - Parse org/repo from URL
@@ -122,22 +130,30 @@ def test_repo_url_dry_run_invokes_for_each_open_pr(monkeypatch: pytest.MonkeyPat
     # Patch PyGithub wrapper functions used by CLI bulk path
     monkeypatch.setattr(cli_mod, "build_client", lambda: object())
     monkeypatch.setattr(cli_mod, "get_repo_from_env", lambda _client: object())
-    monkeypatch.setattr(cli_mod, "iter_open_pulls", lambda _repo: iter(dummy_prs))
+    monkeypatch.setattr(
+        cli_mod, "iter_open_pulls", lambda _repo: iter(dummy_prs)
+    )
 
     result = runner.invoke(app, ["--dry-run", repo_url], env=env)
 
     assert result.exit_code == 0, result.stdout + result.stderr
     # Two calls for two open PRs
     assert len(_ORCH_RECORD.calls) == 2
-    pr_numbers = [getattr(call[1], "pr_number", None) for call in _ORCH_RECORD.calls]
+    pr_numbers = [
+        getattr(call[1], "pr_number", None) for call in _ORCH_RECORD.calls
+    ]
     assert pr_numbers == [5, 7]
 
     # Verify dry_run flag passed for both calls
-    dry_flags = [getattr(call[0], "dry_run", None) for call in _ORCH_RECORD.calls]
+    dry_flags = [
+        getattr(call[0], "dry_run", None) for call in _ORCH_RECORD.calls
+    ]
     assert dry_flags == [True, True]
 
 
-def test_url_mode_sets_environment_for_config_resolution(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_url_mode_sets_environment_for_config_resolution(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """
     URL mode should put ORGANIZATION and GITHUB_REPOSITORY into the environment,
     which the config loader will then use to locate the appropriate org stanza.
