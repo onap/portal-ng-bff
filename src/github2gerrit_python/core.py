@@ -48,6 +48,7 @@ from .gitutils import git_commit_new
 
 from .gitutils import git_show
 from .gitutils import run_cmd
+from .gitutils import CommandError
 from .github_api import build_client
 from .github_api import get_repo_from_env
 from .github_api import get_pull
@@ -331,7 +332,12 @@ class Orchestrator:
         hooks_path = run_cmd(["git", "rev-parse", "--show-toplevel"]).stdout.strip()
         git_config("core.hooksPath", str(Path(hooks_path) / ".git" / "hooks"))
         # Initialize git-review (copies commit-msg hook)
-        run_cmd(["git", "review", "-s", "-v"])
+        try:
+            run_cmd(["git", "review", "-s", "-v"])
+        except CommandError as exc:
+            raise OrchestratorError(
+                f"Failed to initialize git-review: {exc}"
+            ) from exc
 
     def _prepare_single_commits(
         self,
@@ -340,7 +346,7 @@ class Orchestrator:
     ) -> PreparedChange:
         """Cherry-pick commits one-by-one and ensure Change-Id is present."""
         log.info("Preparing single-commit submission for PR #%s", gh.pr_number)
-        branch = os.getenv("GERRIT_BRANCH", "master")
+        branch = self._resolve_target_branch()
         # Determine commit range: commits in HEAD not in base branch
         base_ref = f"origin/{branch}"
         run_cmd(["git", "fetch", "origin", branch])
@@ -385,7 +391,7 @@ class Orchestrator:
     ) -> PreparedChange:
         """Squash PR commits into a single commit and handle Change-Id."""
         log.info("Preparing squashed commit for PR #%s", gh.pr_number)
-        branch = os.getenv("GERRIT_BRANCH", "master")
+        branch = self._resolve_target_branch()
         run_cmd(["git", "fetch", "origin", branch])
         base_ref = f"origin/{branch}"
         base_sha = run_cmd(["git", "rev-parse", base_ref]).stdout.strip()
@@ -494,13 +500,18 @@ class Orchestrator:
         )
         if single_commits:
             run_cmd(["git", "checkout", "tmp_branch"])
-        topic = f"GH-{repo.project_github}-{os.getenv('PR_NUMBER', '').strip()}"
-        if not topic.endswith("-"):
-            # Normal case: PR_NUMBER set
-            pass
+        prefix = (os.getenv("G2G_TOPIC_PREFIX", "GH").strip() or "GH")
+        pr_num = os.getenv("PR_NUMBER", "").strip()
+        if pr_num:
+            topic = f"{prefix}-{repo.project_github}-{pr_num}"
         else:
-            topic = f"GH-{repo.project_github}"
-        run_cmd(["git", "review", "--yes", "-t", topic, "--reviewers", reviewers])
+            topic = f"{prefix}-{repo.project_github}"
+        try:
+            run_cmd(["git", "review", "--yes", "-t", topic, "--reviewers", reviewers])
+        except CommandError as exc:
+            raise OrchestratorError(
+                f"Failed to push changes to Gerrit with git-review: {exc}"
+            ) from exc
 
     def _query_gerrit_for_results(
         self,
@@ -512,7 +523,8 @@ class Orchestrator:
         """Query Gerrit for change URL/number and patch set commit sha via REST."""
         log.info("Querying Gerrit for submitted change(s) via REST")
         # Build Gerrit REST client (prefer HTTP basic auth if provided)
-        base_url = f"https://{gerrit.host}/"
+        base_path = os.getenv("GERRIT_HTTP_BASE_PATH", "").strip().strip("/")
+        base_url = f"https://{gerrit.host}/" if not base_path else f"https://{gerrit.host}/{base_path}/"
         http_user = os.getenv("GERRIT_HTTP_USER", "").strip() or os.getenv(
             "GERRIT_SSH_USER_G2G", ""
         ).strip()
@@ -532,20 +544,33 @@ class Orchestrator:
             path = f"/changes/?q={query}&o=CURRENT_REVISION&n=1"
             try:
                 changes = rest.get(path)
-                if not changes:
-                    continue
-                change = changes[0]
-                num = str(change.get("_number", ""))
-                current_rev = change.get("current_revision", "")
-                # Construct a stable web URL for the change
-                if num:
-                    urls.append(f"https://{gerrit.host}/c/{repo.project_gerrit}/+/{num}")
-                    nums.append(num)
-                if current_rev:
-                    shas.append(current_rev)
             except Exception as exc:
-                log.warning("Failed to query change via REST for %s: %s", cid, exc)
+                status = getattr(getattr(exc, "response", None), "status_code", None)
+                if not base_path and status == 404:
+                    try:
+                        fallback_url = f"https://{gerrit.host}/r/"
+                        if http_user and http_pass:
+                            rest_fallback = GerritRestAPI(url=fallback_url, auth=HTTPBasicAuth(http_user, http_pass))
+                        else:
+                            rest_fallback = GerritRestAPI(url=fallback_url)
+                        changes = rest_fallback.get(path)
+                    except Exception as exc2:
+                        log.warning("Failed to query change via REST for %s (including '/r' fallback): %s", cid, exc2)
+                        continue
+                else:
+                    log.warning("Failed to query change via REST for %s: %s", cid, exc)
+                    continue
+            if not changes:
                 continue
+            change = changes[0]
+            num = str(change.get("_number", ""))
+            current_rev = change.get("current_revision", "")
+            # Construct a stable web URL for the change
+            if num:
+                urls.append(f"https://{gerrit.host}/c/{repo.project_gerrit}/+/{num}")
+                nums.append(num)
+            if current_rev:
+                shas.append(current_rev)
         # Export env variables (compat)
         if urls:
             os.environ["GERRIT_CHANGE_REQUEST_URL"] = "\n".join(urls)
@@ -675,6 +700,19 @@ class Orchestrator:
         import socket
 
         log.info("Dry-run: starting preflight checks")
+        if os.getenv("G2G_DRYRUN_DISABLE_NETWORK", "").strip().lower() in ("1", "true", "yes", "on"):
+            log.info("Dry-run: network checks disabled via G2G_DRYRUN_DISABLE_NETWORK")
+            log.info(
+                "Dry-run targets: Gerrit project=%s branch=%s topic_prefix=GH-%s",
+                repo.project_gerrit,
+                self._resolve_target_branch(),
+                repo.project_github,
+            )
+            if inputs.reviewers_email:
+                log.info("Reviewers (from inputs/config): %s", inputs.reviewers_email)
+            elif os.getenv("REVIEWERS_EMAIL"):
+                log.info("Reviewers (from environment): %s", os.getenv("REVIEWERS_EMAIL"))
+            return
 
         # DNS resolution for Gerrit host
         try:
@@ -754,7 +792,7 @@ class Orchestrator:
         log.info(
             "Dry-run targets: Gerrit project=%s branch=%s topic_prefix=GH-%s",
             repo.project_gerrit,
-            os.getenv("GERRIT_BRANCH", "master"),
+            self._resolve_target_branch(),
             repo.project_github,
         )
         if inputs.reviewers_email:
@@ -767,10 +805,17 @@ class Orchestrator:
     # ---------------
 
     def _resolve_target_branch(self) -> str:
-        # In the existing workflow, default is GITHUB_BASE_REF or 'master'.
-        # Caller should have exported GERRIT_BRANCH already. Keep here as
-        # a safety fallback for future direct invocations.
-        return "master"
+        # Preference order:
+        # 1) GERRIT_BRANCH (explicit override)
+        # 2) GITHUB_BASE_REF (provided in Actions PR context)
+        # 3) 'main' as a safe default
+        b = os.getenv("GERRIT_BRANCH", "").strip()
+        if b:
+            return b
+        b = os.getenv("GITHUB_BASE_REF", "").strip()
+        if b:
+            return b
+        return "main"
 
     def _resolve_reviewers(self, inputs: Inputs) -> str:
         # If empty, use the Gerrit SSH user's email as default.

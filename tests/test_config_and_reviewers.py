@@ -55,6 +55,12 @@ SUBMIT_SINGLE_COMMITS = "true"
     assert cfg["GERRIT_SERVER_PORT"] == "29418"
     assert cfg["PRESERVE_GITHUB_PRS"] == "false"
 
+    # Clear any pre-existing org-specific env so apply_config_to_env can set them
+    monkeypatch.delenv("GERRIT_HTTP_USER", raising=False)
+    monkeypatch.delenv("GERRIT_HTTP_PASSWORD", raising=False)
+    monkeypatch.delenv("GERRIT_SERVER", raising=False)
+    monkeypatch.delenv("GERRIT_SERVER_PORT", raising=False)
+    monkeypatch.delenv("SUBMIT_SINGLE_COMMITS", raising=False)
     # Now apply to environment; REVIEWERS_EMAIL should stay as env value
     apply_config_to_env(cfg)
     assert os.getenv("GERRIT_HTTP_USER") == "user1"

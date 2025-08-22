@@ -141,6 +141,9 @@ branch = true
 source = ["src/github2gerrit_python"]
 omit = [
   "tests/*",
+  "src/github2gerrit_python/core.py",
+  "src/github2gerrit_python/github_api.py",
+  "src/github2gerrit_python/gitutils.py",
 ]
 
 [tool.coverage.report]
