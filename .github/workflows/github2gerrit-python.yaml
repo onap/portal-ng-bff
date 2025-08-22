@@ -7,12 +7,16 @@ name: github2gerrit-python
 # yamllint disable-line rule:truthy
 on:
     workflow_dispatch:
-    inputs:
-      preserve_github_prs:
-        description: "Do not close GitHub PRs after pushing to Gerrit"
-        required: false
-        default: false
-        type: boolean
+      inputs:
+        pull_request:
+          description: "Pull request number to process"
+          required: false
+          default: "0"
+        preserve_github_prs:
+          description: "Do not close GitHub PRs after pushing to Gerrit"
+          required: false
+          default: true
+          type: boolean
     pull_request_target:
         types: [opened, reopened, edited, synchronize]
         branches:
@@ -25,7 +29,7 @@ concurrency:
     cancel-in-progress: true
 
 jobs:
-    call-in-g2g-workflow:
+    github2gerrit-python:
         permissions:
             contents: read
             pull-requests: write
