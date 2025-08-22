@@ -1,37 +1,213 @@
 ---
 # SPDX-License-Identifier: Apache-2.0
-# SPDX-FileCopyrightText: 2025 The Linux Foundation
+# Copyright:
+#   2025 The Linux Foundation
 
-# actions-template
-name: "🛠️ Actions Template"
-description: "Description of action"
-# Any relevant notes/observations can go here
+name: github2gerrit-python
+description: "Submit a GitHub pull-request to a Gerrit repository (Python)"
 
 inputs:
-  input:
-    description: "Description of input"
+  SUBMIT_SINGLE_COMMITS:
+    description: "Submit one commit at a time to the Gerrit repository"
+    required: false
+    default: "false"
+  USE_PR_AS_COMMIT:
+    description: "Use PR body and title as commit message"
+    required: false
+    default: "false"
+  FETCH_DEPTH:
+    description: "fetch-depth for the clone."
+    required: false
+    default: "10"
+  GERRIT_KNOWN_HOSTS:
+    description: "known hosts"
     required: true
+  GERRIT_SSH_PRIVKEY_G2G:
+    description: "SSH Private key"
+    required: true
+  GERRIT_SSH_USER_G2G:
+    description: "Gerrit user-id for SSH"
+    required: true
+  GERRIT_SSH_USER_G2G_EMAIL:
+    description: "Email of the SSH user"
+    required: true
+  ORGANIZATION:
+    description: "Organization name (default: repository owner)"
+    required: false
+    default: "${{ github.repository_owner }}"
+  REVIEWERS_EMAIL:
+    description: "Committers email list (comma separated)"
+    required: false
+    default: ""
+  PR_NUMBER:
+    description: "Optional PR number to submit (for manual runs)"
+    required: false
+    default: ""
+  SYNC_ALL_OPEN_PRS:
+    description: "Submit all open PRs in the repository"
+    required: false
+    default: "false"
+  PRESERVE_GITHUB_PRS:
+    description: "Do not close GitHub PRs after pushing to Gerrit"
+    required: false
+    default: "false"
 
 outputs:
-  output:
-    description: "Description of output"
-    value: ${{ steps.code.outputs.output }}
+  url:
+    description: "URL of the change-request submitted"
+    value: ${{ steps.capture.outputs.url }}
+  change_number:
+    description: "Change number"
+    value: ${{ steps.capture.outputs.change_number }}
 
 runs:
   using: "composite"
   steps:
-    - name: "Friendly Name"
-      id: code
+    - name: "Setup Python 3.11"
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: "Validate workflow inputs"
+      if: ${{ (inputs.USE_PR_AS_COMMIT == 'true') && (inputs.SUBMIT_SINGLE_COMMITS == 'true') }}
       shell: bash
       run: |
-        # Friendly Name
-        input="${{ inputs.input }}"
-        if [ -z "$input" ]; then
-          echo "Error: mandatory input was not set/configured ❌"
-          exit 1
-        fi
+        echo "Error: USE_PR_AS_COMMIT and SUBMIT_SINGLE_COMMITS cannot be set"
+        echo "       at the same time!"
+        exit 1
 
-        echo "output=$input" >> "$GITHUB_ENV"
-        echo "output=$input" >> "$GITHUB_OUTPUT"
-        echo "Action received: $input ✅"
-        echo "Action received: $input ✅" >> "$GITHUB_STEP_SUMMARY"
+    - name: "Validate SYNC_ALL_OPEN_PRS usage"
+      if: ${{ inputs.SYNC_ALL_OPEN_PRS == 'true' && github.event_name != 'workflow_dispatch' }}
+      shell: bash
+      run: |
+        echo "Error: SYNC_ALL_OPEN_PRS is only supported for workflow_dispatch."
+        exit 1
+
+    - name: "Install uv"
+      shell: bash
+      run: |
+        set -eu
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        # shellcheck disable=SC1091
+        . "$HOME/.local/bin/env"
+        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+        uv --version
+
+    - name: "Install github2gerrit-python package"
+      shell: bash
+      run: |
+        set -eu
+        uv pip install --system "$GITHUB_ACTION_PATH"
+        python -c "import github2gerrit_python, sys; print('pkg OK')"
+
+    - name: "Clone GitHub repository (PR head)"
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: ${{ inputs.FETCH_DEPTH }}
+        ref: ${{ github.event.pull_request.head.sha }}
+
+    - name: "Checkout PR by number for manual invocation"
+      if: ${{ inputs.PR_NUMBER != '' }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        git fetch origin pull/${{ inputs.PR_NUMBER }}/head:gh-pr-${{ inputs.PR_NUMBER }}
+        git checkout gh-pr-${{ inputs.PR_NUMBER }}
+
+    - name: "Report error when .gitreview is undefined"
+      if: "${{ hashFiles('.gitreview') == '' }}"
+      shell: bash
+      run: |
+        set -x
+        echo "Error: .gitreview file is required for this action to run"
+        echo "Provide Gerrit connection via .gitreview in the repository."
+        exit 1
+
+    - name: "Read .gitreview and set GERRIT_SERVER and PORT"
+      if: "${{ hashFiles('.gitreview') != '' }}"
+      shell: bash
+      run: |
+        set -eu
+        gerrit_server="$(grep -oP -m1 '(?<=host=).*' .gitreview || true)"
+        gerrit_port="$(grep -oP -m1 '(?<=port=).*' .gitreview || true)"
+        project_git="$(grep -oP -m1 '(?<=project=).*' .gitreview || true)"
+        project="${project_git%.git}"
+        project_repo_github="${project////-}"
+
+        echo "GERRIT_SERVER=${gerrit_server}" >> "$GITHUB_ENV"
+        echo "GERRIT_SERVER_PORT=${gerrit_port:-29418}" >> "$GITHUB_ENV"
+        echo "PROJECT_REPO_GERRIT=${project}" >> "$GITHUB_ENV"
+        echo "PROJECT_REPO_GITHUB=${project_repo_github}" >> "$GITHUB_ENV"
+
+    - name: "Set env GERRIT_BRANCH"
+      shell: bash
+      run: |
+        gerrit_branch="${GITHUB_BASE_REF:-master}"
+        echo "GERRIT_BRANCH=${gerrit_branch}" >> "$GITHUB_ENV"
+
+    - name: "Print last X commits (debug for act)"
+      if: env.ACT == 'true'
+      shell: bash
+      run: |
+        set -x
+        git --no-pager log --graph --all --decorate --pretty=oneline -n5
+
+    - name: "Install SSH Key"
+      uses: shimataro/ssh-key-action@d4fffb50872869abe2d9a9098a6d9c5aa7d16be4 # v2.7.0
+      with:
+        key: ${{ inputs.GERRIT_SSH_PRIVKEY_G2G }}
+        name: "id_rsa"
+        known_hosts: ${{ inputs.GERRIT_KNOWN_HOSTS }}
+        config: |
+          Host ${{ env.GERRIT_SERVER }}
+            User ${{ inputs.GERRIT_SSH_USER_G2G }}
+            Port ${{ env.GERRIT_SERVER_PORT }}
+            PubkeyAcceptedKeyTypes +ssh-rsa
+            IdentityFile ~/.ssh/id_rsa
+
+    - name: "Run github2gerrit (Python)"
+
+      id: g2g
+      shell: bash
+      env:
+        # Inputs mirrored to environment for CLI compatibility
+        SUBMIT_SINGLE_COMMITS: ${{ inputs.SUBMIT_SINGLE_COMMITS }}
+        USE_PR_AS_COMMIT: ${{ inputs.USE_PR_AS_COMMIT }}
+        FETCH_DEPTH: ${{ inputs.FETCH_DEPTH }}
+        GERRIT_KNOWN_HOSTS: ${{ inputs.GERRIT_KNOWN_HOSTS }}
+        GERRIT_SSH_PRIVKEY_G2G: ${{ inputs.GERRIT_SSH_PRIVKEY_G2G }}
+        GERRIT_SSH_USER_G2G: ${{ inputs.GERRIT_SSH_USER_G2G }}
+        GERRIT_SSH_USER_G2G_EMAIL: ${{ inputs.GERRIT_SSH_USER_G2G_EMAIL }}
+        ORGANIZATION: ${{ inputs.ORGANIZATION }}
+        REVIEWERS_EMAIL: ${{ inputs.REVIEWERS_EMAIL }}
+        # New flags for manual/bulk modes and preserve behavior
+        PR_NUMBER: ${{ inputs.PR_NUMBER }}
+        SYNC_ALL_OPEN_PRS: ${{ inputs.SYNC_ALL_OPEN_PRS }}
+        PRESERVE_GITHUB_PRS: ${{ inputs.PRESERVE_GITHUB_PRS }}
+        # Derived / repo environment
+        GERRIT_SERVER: ${{ env.GERRIT_SERVER }}
+        GERRIT_SERVER_PORT: ${{ env.GERRIT_SERVER_PORT }}
+        GERRIT_PROJECT: ${{ env.PROJECT_REPO_GERRIT }}
+        GERRIT_BRANCH: ${{ env.GERRIT_BRANCH }}
+        PROJECT_REPO_GERRIT: ${{ env.PROJECT_REPO_GERRIT }}
+        PROJECT_REPO_GITHUB: ${{ env.PROJECT_REPO_GITHUB }}
+        # Tokens available in the runner
+        GITHUB_TOKEN: ${{ github.token }}
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        set -eu
+        uv run github2gerrit run
+
+
+
+    - name: "Capture outputs"
+      id: capture
+      shell: bash
+      run: |
+        set -eu
+        url="${GERRIT_CHANGE_REQUEST_URL:-}"
+        num="${GERRIT_CHANGE_REQUEST_NUM:-${GERRIT_CHANGE_REQUEST_NUMBER:-}}"
+        {
+          echo "url=$url"
+          echo "change_number=$num"
+        } >> "$GITHUB_OUTPUT"
