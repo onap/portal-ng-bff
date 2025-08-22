@@ -1,0 +1,155 @@
+[build-system]
+requires = ["pdm-backend>=2.3.3"]
+build-backend = "pdm.backend"
+
+[project]
+name = "github2gerrit-python"
+dynamic = ["version"]
+description = "Submit a GitHub pull request to a Gerrit repository."
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+license = { text = "Apache-2.0" }
+authors = [
+  { name = "Matthew Watkins", email = "mwatkins@linuxfoundation.org" }
+]
+keywords = ["github", "gerrit", "ci", "actions", "typer", "cli"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.11",
+  "Topic :: Software Development :: Build Tools",
+  "Topic :: Software Development :: Version Control",
+  "Typing :: Typed",
+]
+dependencies = [
+  # CLI framework (Typer) and runtime deps
+  "typer>=0.12.5",
+  "rich>=13.7.1",
+
+  # GitHub API client
+  "PyGithub>=2.3.0",
+
+  # Gerrit REST client
+  "pygerrit2>=2.0.0",
+
+  # Core HTTP with retries/backoff (used for REST fallbacks)
+  "httpx>=0.27.2",
+
+  # Process execution and git helpers
+  "anyio>=4.4.0",
+
+  # YAML for central settings, if configured
+  "PyYAML>=6.0.2",
+]
+
+[project.urls]
+Homepage = "https://github.com/lfit/github2gerrit-python"
+Repository = "https://github.com/lfit/github2gerrit-python"
+Issues = "https://github.com/lfit/github2gerrit-python/issues"
+
+[project.scripts]
+github2gerrit = "github2gerrit_python.cli:app"
+
+[tool.pdm]
+# PDM is the build backend and project manager.
+# We use a src/ layout as per modern packaging norms.
+distribution = true
+
+# Required for dynamic versioning support
+[tool.pdm.version]
+source = "scm"
+
+[tool.pdm.build]
+package-dir = "src"
+includes = ["github2gerrit_python"]
+
+[tool.pdm.dev-dependencies]
+dev = [
+  # Test
+  "pytest>=8.3.2",
+  "pytest-cov>=5.0.0",
+  "coverage[toml]>=7.6.1",
+
+  # Lint/format
+  "ruff>=0.6.3",
+  "black>=24.8.0",
+  "mypy>=1.11.2",
+  "types-PyYAML>=6.0.12.20240808",
+  "types-requests>=2.32.0.20240712",
+
+  # Type checking helpers
+  "pytest-mock>=3.14.0",
+]
+
+[tool.ruff]
+line-length = 80
+target-version = "py311"
+# Keep default rules strict; allow incremental adoption via ignores if needed.
+select = [
+  "E", "F", "I", "UP", "ASYNC", "S", "B", "A",
+  "C4", "DTZ", "EXE", "G", "PIE", "PLE", "PLW",
+  "RUF", "SIM", "T20", "TID", "TRY"
+]
+ignore = [
+  # Allow module-level prints for CLI feedback (T201)
+  "T201",
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["github2gerrit_python"]
+lines-after-imports = 2
+force-single-line = true
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unreachable = true
+warn_unused_ignores = true
+disallow_any_generics = true
+disallow_subclassing_any = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+disallow_untyped_calls = true
+no_implicit_optional = true
+show_error_codes = true
+pretty = true
+exclude = [
+  "build/",
+  "dist/",
+  "docs/",
+  "scripts/",
+  "tests/fixtures/",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["src/github2gerrit_python"]
+omit = [
+  "tests/*",
+]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+skip_covered = true
+precision = 1
+
+[tool.coverage.html]
+directory = "coverage_html_report"
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = "-ra -q --cov=github2gerrit_python --cov-report=term-missing --cov-report=html"
+testpaths = ["tests"]
+
+[tool.uv]
+# uv will manage installation based on this pyproject and lockfile.
+# No extra settings are required here; this stanza reserves the
+# namespace for future use if needed.
+managed = true

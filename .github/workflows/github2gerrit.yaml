@@ -1,0 +1,76 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2025 The Linux Foundation
+
+name: github2gerrit-python
+
+on:
+  pull_request_target:
+    types: [opened, reopened, edited, synchronize]
+    branches:
+      - master
+      - main
+  workflow_dispatch:
+    inputs:
+      pull_request_number:
+        description: "Optional PR number to submit manually"
+        required: false
+        type: string
+        default: ""
+      sync_all_open_prs:
+        description: "Submit all open PRs in the repository (workflow_dispatch only)"
+        required: false
+        type: boolean
+        default: false
+      preserve_github_prs:
+        description: "Do not close GitHub PRs after pushing to Gerrit"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: g2g-${{ github.workflow }}-${{ github.ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  submit-to-gerrit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 1
+
+      - name: Submit PR(s) to Gerrit using local action
+        id: g2g
+        uses: ModeSevenIndustrialSolutions/github2gerrit-python@main # Testing
+        with:
+          # Standard inputs mirrored from github2gerrit
+          SUBMIT_SINGLE_COMMITS: "false"
+          USE_PR_AS_COMMIT: "false"
+          FETCH_DEPTH: "10"
+          GERRIT_KNOWN_HOSTS: ${{ vars.GERRIT_KNOWN_HOSTS }}
+          GERRIT_SSH_PRIVKEY_G2G: ${{ secrets.GERRIT_SSH_PRIVKEY_G2G }}
+          GERRIT_SSH_USER_G2G: ${{ vars.GERRIT_SSH_USER_G2G }}
+          GERRIT_SSH_USER_G2G_EMAIL: ${{ vars.GERRIT_SSH_USER_G2G_EMAIL }}
+          ORGANIZATION: ${{ github.repository_owner }}
+          REVIEWERS_EMAIL: ${{ vars.REVIEWERS_EMAIL }}
+          # New hooks to support manual runs and bulk sync
+          # SYNC_ALL_OPEN_PRS is only meaningful for workflow_dispatch
+          PR_NUMBER: ${{ inputs.pull_request_number }}
+          SYNC_ALL_OPEN_PRS: ${{ inputs.sync_all_open_prs }}
+          PRESERVE_GITHUB_PRS: ${{ inputs.preserve_github_prs }}
+
+      - name: Summarize results
+        if: always()
+        run: |
+          echo "Gerrit URL(s): ${{ steps.g2g.outputs.url }}" \
+            >> "$GITHUB_STEP_SUMMARY"
+          echo "Change number(s): ${{ steps.g2g.outputs.change_number }}" \
+            >> "$GITHUB_STEP_SUMMARY"
