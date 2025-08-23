@@ -692,6 +692,8 @@ Host *
                 reuse_cid = ""
         # Compose final commit message
         commit_msg = "\n".join(message_lines).strip()
+        # Add Issue-ID for ONAP compliance (testing)
+        commit_msg += "\n\nIssue-ID: CIMAN-33"
         if signed_off:
             commit_msg += "\n\n" + "\n".join(signed_off)
         if reuse_cid:
