@@ -365,7 +365,7 @@ def _process() -> None:
     ):
         client = build_client()
         repo = get_repo_from_env(client)
-        
+
         # Create temporary directory for git operations
         with tempfile.TemporaryDirectory() as temp_dir:
             workspace = Path(temp_dir)
@@ -472,7 +472,7 @@ def _process() -> None:
     # Create temporary directory for all git operations
     with tempfile.TemporaryDirectory() as temp_dir:
         workspace = Path(temp_dir)
-        
+
         try:
             repo_full = gh.repository.strip() if gh.repository else ""
             server_url = gh.server_url or os.getenv(
@@ -480,19 +480,22 @@ def _process() -> None:
             )
             server_url = (server_url or "https://github.com").rstrip("/")
             base_ref = gh.base_ref or ""
-            pr_number = str(gh.pr_number) if gh.pr_number else ""
-            
+            pr_num_str: str = str(gh.pr_number) if gh.pr_number else "0"
+
             if repo_full:
                 # Clone the repo if we don't already have it checked out
                 repo_url = f"{server_url}/{repo_full}.git"
                 run_cmd(["git", "init"], cwd=workspace)
-                run_cmd(["git", "remote", "add", "origin", repo_url], cwd=workspace)
-                
+                run_cmd(
+                    ["git", "remote", "add", "origin", repo_url], cwd=workspace
+                )
+
                 # Fetch base branch and PR head
                 if base_ref:
                     try:
                         branch_ref = (
-                            f"refs/heads/{base_ref}:refs/remotes/origin/{base_ref}"
+                            f"refs/heads/{base_ref}:"
+                            f"refs/remotes/origin/{base_ref}"
                         )
                         run_cmd(
                             [
@@ -502,14 +505,17 @@ def _process() -> None:
                                 "origin",
                                 branch_ref,
                             ],
-                            cwd=workspace
+                            cwd=workspace,
                         )
                     except Exception as exc:
                         log.debug(
                             "Base branch fetch failed for %s: %s", base_ref, exc
                         )
-                if pr_number:
-                    pr_ref = f"refs/pull/{pr_number}/head:refs/remotes/origin/pr/{pr_number}/head"
+                if pr_num_str:
+                    pr_ref = (
+                        f"refs/pull/{pr_num_str}/head:refs/remotes/origin/pr/"
+                        f"{pr_num_str}/head"
+                    )
                     run_cmd(
                         [
                             "git",
@@ -518,7 +524,7 @@ def _process() -> None:
                             "origin",
                             pr_ref,
                         ],
-                        cwd=workspace
+                        cwd=workspace,
                     )
                     run_cmd(
                         [
@@ -526,9 +532,9 @@ def _process() -> None:
                             "checkout",
                             "-B",
                             "g2g_pr_head",
-                            f"refs/remotes/origin/pr/{pr_number}/head",
+                            f"refs/remotes/origin/pr/{pr_num_str}/head",
                         ],
-                        cwd=workspace
+                        cwd=workspace,
                     )
         except Exception as exc:
             log.debug("Local checkout preparation failed: %s", exc)
@@ -543,7 +549,9 @@ def _process() -> None:
                 change_urls=[], change_numbers=[], commit_shas=[]
             )
         if result.change_urls:
-            os.environ["GERRIT_CHANGE_REQUEST_URL"] = "\n".join(result.change_urls)
+            os.environ["GERRIT_CHANGE_REQUEST_URL"] = "\n".join(
+                result.change_urls
+            )
         if result.change_numbers:
             os.environ["GERRIT_CHANGE_REQUEST_NUM"] = "\n".join(
                 result.change_numbers

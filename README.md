@@ -121,7 +121,7 @@ github2gerrit --help
 Key options include:
 
 - `--verbose` / `-v`: Enable verbose debug logging
-- `--dry-run`: Validate configuration without making changes
+- `--dry-run`: Check configuration without making changes
 - `--submit-single-commits`: Submit each commit individually
 - `--use-pr-as-commit`: Use PR title/body as commit message
 - `--preserve-github-prs`: Don't close GitHub PRs after submission
@@ -142,6 +142,7 @@ G2G_VERBOSE=true github2gerrit https://github.com/owner/repo/pull/123
 ```
 
 Debug output includes:
+
 - Git command execution and output
 - SSH connection attempts
 - Gerrit API interactions
@@ -150,7 +151,8 @@ Debug output includes:
 
 Common issues and solutions:
 
-1. **SSH Permission Denied**: Ensure `GERRIT_SSH_PRIVKEY_G2G` and `GERRIT_KNOWN_HOSTS` are properly set
+1. **SSH Permission Denied**: Ensure `GERRIT_SSH_PRIVKEY_G2G` and
+   `GERRIT_KNOWN_HOSTS` are properly set
 2. **Branch Not Found**: Check that the target branch exists in both GitHub and Gerrit
 3. **Change-Id Issues**: Enable debug logging to see Change-Id generation and validation
 4. **Gerrit API Errors**: Verify Gerrit server connectivity and project permissions
@@ -164,7 +166,7 @@ The tool respects these environment variables for configuration:
 - `GERRIT_SSH_PRIVKEY_G2G`: SSH private key content
 - `GERRIT_KNOWN_HOSTS`: SSH known hosts entries
 - `GERRIT_SSH_USER_G2G`: Gerrit SSH username
-- `DRY_RUN`: Set to `true` for validation-only mode
+- `DRY_RUN`: Set to `true` for check mode
 
 ## Advanced usage
 
