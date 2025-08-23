@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import tempfile
 from pathlib import Path
 from typing import Any
 from typing import cast
@@ -166,6 +167,13 @@ def main(
         envvar="GERRIT_PROJECT",
         help="Gerrit project (optional; .gitreview preferred).",
     ),
+    verbose: bool = typer.Option(
+        False,
+        "--verbose",
+        "-v",
+        envvar="G2G_VERBOSE",
+        help="Enable verbose debug logging.",
+    ),
 ) -> None:
     """
     Root entrypoint supporting three scenarios:
@@ -173,6 +181,10 @@ def main(
       2) Repo URL: process all open PRs for that repository.
       3) PR URL: process the specified PR for that repository.
     """
+    # Set up logging level based on verbose flag
+    if verbose:
+        os.environ["G2G_LOG_LEVEL"] = "DEBUG"
+        _reconfigure_logging()
     # Normalize CLI options into environment for unified processing.
     if submit_single_commits:
         os.environ["SUBMIT_SINGLE_COMMITS"] = "true"
@@ -236,6 +248,15 @@ def _setup_logging() -> logging.Logger:
     )
     logging.basicConfig(level=level, format=fmt)
     return logging.getLogger(APP_NAME)
+
+
+def _reconfigure_logging() -> None:
+    """Reconfigure logging level based on current environment variables."""
+    level_name = os.getenv("G2G_LOG_LEVEL", "INFO").upper()
+    level = getattr(logging, level_name, logging.INFO)
+    logging.getLogger().setLevel(level)
+    for handler in logging.getLogger().handlers:
+        handler.setLevel(level)
 
 
 log = _setup_logging()
@@ -344,7 +365,11 @@ def _process() -> None:
     ):
         client = build_client()
         repo = get_repo_from_env(client)
-        orch = Orchestrator(workspace=Path.cwd())
+        
+        # Create temporary directory for git operations
+        with tempfile.TemporaryDirectory() as temp_dir:
+            workspace = Path(temp_dir)
+            orch = Orchestrator(workspace=workspace)
 
         all_urls: list[str] = []
         all_nums: list[str] = []
@@ -374,30 +399,27 @@ def _process() -> None:
             if result_multi.change_numbers:
                 all_nums.extend(result_multi.change_numbers)
 
-        if all_urls:
-            os.environ["GERRIT_CHANGE_REQUEST_URL"] = "\n".join(all_urls)
-        if all_nums:
-            os.environ["GERRIT_CHANGE_REQUEST_NUM"] = "\n".join(all_nums)
+            if all_urls:
+                os.environ["GERRIT_CHANGE_REQUEST_URL"] = "\n".join(all_urls)
+            if all_nums:
+                os.environ["GERRIT_CHANGE_REQUEST_NUM"] = "\n".join(all_nums)
 
-        # Also write outputs to GITHUB_OUTPUT if available
-        gh_out = os.getenv("GITHUB_OUTPUT")
-        if gh_out:
-            try:
-                with open(gh_out, "a", encoding="utf-8") as fh:
-                    v = os.getenv("GERRIT_CHANGE_REQUEST_URL", "")
-                    if v:
-                        fh.write(f"gerrit_change_request_url={v}\n")
-                    v = os.getenv("GERRIT_CHANGE_REQUEST_NUM", "")
-                    if v:
-                        fh.write(f"gerrit_change_request_num={v}\n")
-                    v = os.getenv("GERRIT_COMMIT_SHA", "")
-                    if v:
-                        fh.write(f"gerrit_commit_sha={v}\n")
-            except Exception as exc:
-                log.debug("Failed to write GITHUB_OUTPUT: %s", exc)
+            # Also write outputs to GITHUB_OUTPUT if available
+            gh_out = os.getenv("GITHUB_OUTPUT")
+            if gh_out:
+                try:
+                    with open(gh_out, "a", encoding="utf-8") as fh:
+                        v = os.getenv("GERRIT_CHANGE_REQUEST_URL", "")
+                        if v:
+                            fh.write(f"gerrit_change_request_url={v}\n")
+                        v = os.getenv("GERRIT_CHANGE_REQUEST_NUM", "")
+                        if v:
+                            fh.write(f"gerrit_change_request_num={v}\n")
+                except Exception as exc:
+                    log.debug("Failed to write GITHUB_OUTPUT: %s", exc)
 
-        log.info("Submission pipeline complete (multi-PR).")
-        return
+            log.info("Submission pipeline complete (multi-PR).")
+            return
 
     if not gh.pr_number:
         log.error(
@@ -456,93 +478,95 @@ def _process() -> None:
             )
             server_url = (server_url or "https://github.com").rstrip("/")
             if repo_full:
-                repo_url = f"{server_url}/{repo_full}.git"
-                if not (Path.cwd() / ".git").exists():
-                    run_cmd(["git", "init"])
-                res = run_cmd(
-                    ["git", "remote", "get-url", "origin"], check=False
-                )
-                if res.returncode != 0:
-                    run_cmd(["git", "remote", "add", "origin", repo_url])
-                else:
-                    run_cmd(["git", "remote", "set-url", "origin", repo_url])
-                # Fetch base branch and PR head
-                branch = os.getenv("GERRIT_BRANCH") or gh.base_ref or "master"
-                depth = str(data.fetch_depth or 10)
-                try:
-                    run_cmd(
-                        [
-                            "git",
-                            "fetch",
-                            "--depth",
-                            depth,
-                            "origin",
-                            f"refs/heads/{branch}:refs/remotes/origin/{branch}",
-                        ]
-                    )
-                except Exception as exc:
-                    log.debug(
-                        "Base branch fetch failed for %s: %s", branch, exc
-                    )
-                if gh.pr_number:
-                    prnum = str(int(gh.pr_number))
-                    run_cmd(
-                        [
-                            "git",
-                            "fetch",
-                            "--depth",
-                            depth,
-                            "origin",
-                            f"refs/pull/{prnum}/head:refs/remotes/origin/pr/{prnum}/head",
-                        ]
-                    )
-                    run_cmd(
-                        [
-                            "git",
-                            "checkout",
-                            "-B",
-                            "g2g_pr_head",
-                            f"refs/remotes/origin/pr/{prnum}/head",
-                        ]
-                    )
+                # Create temporary directory for git operations
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    workspace = Path(temp_dir)
+                    
+                    # Clone the repo if we don't already have it checked out
+                    repo_url = f"{server_url}/{repo_full}.git"
+                    run_cmd(["git", "init"], cwd=workspace)
+                    run_cmd(["git", "remote", "add", "origin", repo_url], cwd=workspace)
+                    
+                    # Fetch base branch and PR head
+                    if base_ref:
+                        try:
+                            branch_ref = (
+                                f"refs/heads/{base_ref}:refs/remotes/origin/{base_ref}"
+                            )
+                            run_cmd(
+                                [
+                                    "git",
+                                    "fetch",
+                                    f"--depth={data.fetch_depth}",
+                                    "origin",
+                                    branch_ref,
+                                ],
+                                cwd=workspace
+                            )
+                        except Exception as exc:
+                            log.debug(
+                                "Base branch fetch failed for %s: %s", base_ref, exc
+                            )
+                    if pr_number:
+                        pr_ref = f"refs/pull/{pr_number}/head:refs/remotes/origin/pr/{pr_number}/head"
+                        run_cmd(
+                            [
+                                "git",
+                                "fetch",
+                                f"--depth={data.fetch_depth}",
+                                "origin",
+                                pr_ref,
+                            ],
+                            cwd=workspace
+                        )
+                        run_cmd(
+                            [
+                                "git",
+                                "checkout",
+                                "-B",
+                                "g2g_pr_head",
+                                f"refs/remotes/origin/pr/{pr_number}/head",
+                            ],
+                            cwd=workspace
+                        )
         except Exception as exc:
             log.debug("Local checkout preparation failed: %s", exc)
 
-    orch = Orchestrator(workspace=Path.cwd())
-    try:
-        result = orch.execute(inputs=data, gh=gh)
-    except Exception as exc:
-        log.debug("Execution failed; continuing to write outputs: %s", exc)
-
-        result = SubmissionResult(
-            change_urls=[], change_numbers=[], commit_shas=[]
-        )
-    if result.change_urls:
-        os.environ["GERRIT_CHANGE_REQUEST_URL"] = "\n".join(result.change_urls)
-    if result.change_numbers:
-        os.environ["GERRIT_CHANGE_REQUEST_NUM"] = "\n".join(
-            result.change_numbers
-        )
-
-    # Also write outputs to GITHUB_OUTPUT if available
-    gh_out = os.getenv("GITHUB_OUTPUT")
-    if gh_out:
+        orch = Orchestrator(workspace=workspace)
         try:
-            with open(gh_out, "a", encoding="utf-8") as fh:
-                v = os.getenv("GERRIT_CHANGE_REQUEST_URL", "")
-                if v:
-                    fh.write(f"gerrit_change_request_url={v}\n")
-                v = os.getenv("GERRIT_CHANGE_REQUEST_NUM", "")
-                if v:
-                    fh.write(f"gerrit_change_request_num={v}\n")
-                v = os.getenv("GERRIT_COMMIT_SHA", "")
-                if v:
-                    fh.write(f"gerrit_commit_sha={v}\n")
+            result = orch.execute(inputs=data, gh=gh)
         except Exception as exc:
-            log.debug("Failed to write GITHUB_OUTPUT: %s", exc)
+            log.debug("Execution failed; continuing to write outputs: %s", exc)
 
-    log.info("Submission pipeline complete.")
-    return
+            result = SubmissionResult(
+                change_urls=[], change_numbers=[], commit_shas=[]
+            )
+        if result.change_urls:
+            os.environ["GERRIT_CHANGE_REQUEST_URL"] = "\n".join(result.change_urls)
+        if result.change_numbers:
+            os.environ["GERRIT_CHANGE_REQUEST_NUM"] = "\n".join(
+                result.change_numbers
+            )
+
+        # Also write outputs to GITHUB_OUTPUT if available
+        gh_out = os.getenv("GITHUB_OUTPUT")
+        if gh_out:
+            try:
+                with open(gh_out, "a", encoding="utf-8") as fh:
+                    v = os.getenv("GERRIT_CHANGE_REQUEST_URL", "")
+                    if v:
+                        fh.write(f"gerrit_change_request_url={v}\n")
+                    v = os.getenv("GERRIT_CHANGE_REQUEST_NUM", "")
+                    if v:
+                        fh.write(f"gerrit_change_request_num={v}\n")
+                    v = os.getenv("GERRIT_COMMIT_SHA", "")
+                    if v:
+                        fh.write(f"gerrit_commit_sha={v}\n")
+            except Exception as exc:
+                log.debug("Failed to write GITHUB_OUTPUT: %s", exc)
+
+        log.info("Submission pipeline complete.")
+        return
 
 
 def _mask_secret(value: str, keep: int = 4) -> str:
