@@ -483,7 +483,7 @@ def git_show(
     """Show a commit content or its formatted output."""
     args: list[str] = ["show", rev]
     if fmt:
-        args.extend(["--format", fmt, "-s"])
+        args.extend([f"--format={fmt}", "-s"])
     try:
         res = git(args, cwd=cwd)
     except CommandError as exc:

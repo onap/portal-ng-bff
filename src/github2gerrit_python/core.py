@@ -640,11 +640,25 @@ Host *
             cwd=self.workspace
         ).stdout
         lines = [ln for ln in body.splitlines() if ln.strip()]
-        # Separate trailers
+        # Separate trailers and filter out metadata after Change-Id
         change_ids: list[str] = []
         signed_off: list[str] = []
         message_lines: list[str] = []
+        in_metadata_section = False
+        
         for ln in lines:
+            # Check for metadata separators (like "---" in dependency bot commits)
+            if ln.strip() in ("---", "```") or ln.startswith("updated-dependencies:"):
+                in_metadata_section = True
+                continue
+            if in_metadata_section:
+                # Skip lines that are part of dependency metadata
+                if ln.startswith(("- dependency-", "  dependency-")):
+                    continue
+                # Exit metadata section if we see a normal commit message line
+                if not ln.startswith(("  ", "-", "dependency-")) and ln.strip():
+                    in_metadata_section = False
+            
             if ln.startswith("Change-Id:"):
                 cid = ln.split(":", 1)[1].strip()
                 if cid:
@@ -653,7 +667,9 @@ Host *
             if ln.startswith("Signed-off-by:"):
                 signed_off.append(ln)
                 continue
-            message_lines.append(ln)
+            # Only add to message lines if not in metadata section
+            if not in_metadata_section:
+                message_lines.append(ln)
         # Deduplicate Signed-off-by
         signed_off = sorted(set(signed_off))
         # Reuse Change-Id if PR reopened/synchronized and prior CID exists
@@ -676,20 +692,27 @@ Host *
                 reuse_cid = ""
         # Compose final commit message
         commit_msg = "\n".join(message_lines).strip()
-        if reuse_cid:
-            commit_msg += f"\n\nChange-Id: {reuse_cid}"
         if signed_off:
             commit_msg += "\n\n" + "\n".join(signed_off)
+        if reuse_cid:
+            commit_msg += f"\n\nChange-Id: {reuse_cid}"
         # Preserve primary author from the PR head commit
         author = run_cmd(
             ["git", "show", "-s", "--pretty=format:%an <%ae>", head_sha],
             cwd=self.workspace
         ).stdout.strip()
         git_commit_new(message=commit_msg, author=author, signoff=True, cwd=self.workspace)
+        # Debug: Check commit message after creation
+        actual_msg = run_cmd(["git", "show", "-s", "--pretty=format:%B", "HEAD"], cwd=self.workspace).stdout.strip()
+        log.debug("Commit message after creation:\n%s", actual_msg)
         # Ensure Change-Id via commit-msg hook (amend if needed)
         trailers = git_last_commit_trailers(keys=["Change-Id"], cwd=self.workspace)
         if not trailers.get("Change-Id"):
+            log.debug("No Change-Id found, amending commit to trigger commit-msg hook")
             git_commit_amend(no_edit=True, signoff=True, author=author, cwd=self.workspace)
+            # Debug: Check commit message after amend
+            actual_msg = run_cmd(["git", "show", "-s", "--pretty=format:%B", "HEAD"], cwd=self.workspace).stdout.strip()
+            log.debug("Commit message after amend:\n%s", actual_msg)
             trailers = git_last_commit_trailers(keys=["Change-Id"], cwd=self.workspace)
         cids = [c for c in trailers.get("Change-Id", []) if c]
         return PreparedChange(change_ids=cids, commit_shas=[])
