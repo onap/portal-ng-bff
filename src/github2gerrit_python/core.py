@@ -278,6 +278,39 @@ class Orchestrator:
                     or ""
                 ).strip()
                 branches: list[str] = []
+                # Prefer PR head/base refs via GitHub API when running
+                # from a direct URL when a token is available
+                try:
+                    if (
+                        gh
+                        and gh.pr_number
+                        and os.getenv("G2G_TARGET_URL")
+                        and (os.getenv("GITHUB_TOKEN") or os.getenv("GH_TOKEN"))
+                    ):
+                        client = build_client()
+                        repo_obj = get_repo_from_env(client)
+                        pr_obj = get_pull(repo_obj, int(gh.pr_number))
+                        api_head = str(
+                            getattr(
+                                getattr(pr_obj, "head", object()), "ref", ""
+                            )
+                            or ""
+                        )
+                        api_base = str(
+                            getattr(
+                                getattr(pr_obj, "base", object()), "ref", ""
+                            )
+                            or ""
+                        )
+                        if api_head:
+                            branches.append(api_head)
+                        if api_base:
+                            branches.append(api_base)
+                except Exception as exc_api:
+                    log.debug(
+                        "Could not resolve PR refs via API for .gitreview: %s",
+                        exc_api,
+                    )
                 if gh and gh.head_ref:
                     branches.append(gh.head_ref)
                 if gh and gh.base_ref:
@@ -367,11 +400,8 @@ class Orchestrator:
         if not repo_full or "/" not in repo_full:
             raise OrchestratorError("bad repository context")  # noqa: TRY003
         owner, name = repo_full.split("/", 1)
-        # Fallback: replace only the last '-' with '/' (e.g., 'portal-ng/bff')
-        dash = name.rfind("-")
-        gerrit_name = (
-            f"{name[:dash]}/{name[dash + 1 :]}" if dash != -1 else name
-        )
+        # Fallback: map all '-' to '/' for Gerrit path (e.g., 'my/repo/name')
+        gerrit_name = name.replace("-", "/")
         names = RepoNames(project_gerrit=gerrit_name, project_github=name)
         log.debug("Derived names from context: %s", names)
         return names
@@ -1115,13 +1145,51 @@ class Orchestrator:
         # Preference order:
         # 1) GERRIT_BRANCH (explicit override)
         # 2) GITHUB_BASE_REF (provided in Actions PR context)
-        # 3) 'master' as a safe default
+        # 3) origin/HEAD default (if available)
+        # 4) 'main' as a common default
+        # 5) 'master' as a legacy default
         b = os.getenv("GERRIT_BRANCH", "").strip()
         if b:
             return b
         b = os.getenv("GITHUB_BASE_REF", "").strip()
         if b:
             return b
+        # Try resolve origin/HEAD -> origin/&lt;branch&gt;
+        try:
+            res = run_cmd(
+                ["git", "rev-parse", "--abbrev-ref", "origin/HEAD"],
+                check=False,
+                cwd=self.workspace,
+            )
+            if res.returncode == 0:
+                name = (res.stdout or "").strip()
+                branch = name.split("/", 1)[1] if "/" in name else name
+                if branch:
+                    return branch
+        except Exception as exc:
+            log.debug("origin/HEAD probe failed: %s", exc)
+        # Prefer 'master' when present
+        try:
+            res3 = run_cmd(
+                ["git", "show-ref", "--verify", "refs/remotes/origin/master"],
+                check=False,
+                cwd=self.workspace,
+            )
+            if res3.returncode == 0:
+                return "master"
+        except Exception as exc:
+            log.debug("origin/master probe failed: %s", exc)
+        # Fall back to 'main' if present
+        try:
+            res2 = run_cmd(
+                ["git", "show-ref", "--verify", "refs/remotes/origin/main"],
+                check=False,
+                cwd=self.workspace,
+            )
+            if res2.returncode == 0:
+                return "main"
+        except Exception as exc:
+            log.debug("origin/main probe failed: %s", exc)
         return "master"
 
     def _resolve_reviewers(self, inputs: Inputs) -> str:

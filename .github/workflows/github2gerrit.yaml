@@ -63,7 +63,7 @@ on:
       ALLOW_GHE_URLS:
         description: "Allow GitHub Enterprise URLs in direct URL mode"
         required: false
-        default: true
+        default: false
         type: boolean
       PRESERVE_GITHUB_PRS:
         description: "Do not close GitHub PRs after pushing to Gerrit"

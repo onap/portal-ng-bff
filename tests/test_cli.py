@@ -20,7 +20,7 @@ def test_conflicting_options_error_message_in_stderr(tmp_path: Path) -> None:
     env["SUBMIT_SINGLE_COMMITS"] = "true"
     env["USE_PR_AS_COMMIT"] = "true"
 
-    result = runner.invoke(app, ["run"], env=env)
+    result = runner.invoke(app, [], env=env)
     assert result.exit_code == 2
     assert "cannot be enabled at the same time" in result.stderr
 
@@ -30,7 +30,7 @@ def test_missing_required_input_error_message_in_stderr(tmp_path: Path) -> None:
     # Remove a required input to trigger a validation error path
     env.pop("GERRIT_KNOWN_HOSTS", None)
 
-    result = runner.invoke(app, ["run"], env=env)
+    result = runner.invoke(app, [], env=env)
     assert result.exit_code == 2
     assert "Missing required input" in result.stderr
 
@@ -70,7 +70,7 @@ def test_conflicting_options_exits_2(tmp_path: Path) -> None:
     env["SUBMIT_SINGLE_COMMITS"] = "true"
     env["USE_PR_AS_COMMIT"] = "true"
 
-    result = runner.invoke(app, ["run"], env=env)
+    result = runner.invoke(app, [], env=env)
     assert result.exit_code == 2
     assert (
         "cannot be enabled at the same time" in result.stdout
@@ -83,7 +83,7 @@ def test_missing_required_inputs_exits_2(tmp_path: Path) -> None:
     # Remove one required input to trigger validation error
     env.pop("GERRIT_KNOWN_HOSTS", None)
 
-    result = runner.invoke(app, ["run"], env=env)
+    result = runner.invoke(app, [], env=env)
     assert result.exit_code == 2
     assert "Missing required input" in (result.stdout + result.stderr)
 
@@ -95,7 +95,7 @@ def test_parses_pr_number_and_returns_zero(tmp_path: Path) -> None:
     env["USE_PR_AS_COMMIT"] = "false"
     env["FETCH_DEPTH"] = "10"
 
-    result = runner.invoke(app, ["run"], env=env)
+    result = runner.invoke(app, [], env=env)
     assert result.exit_code == 0
     # The CLI currently only validates and exits cleanly
     assert "Validation complete" in (result.stdout + result.stderr)
@@ -115,7 +115,7 @@ def test_no_pr_context_exits_2(tmp_path: Path) -> None:
     # Force non-bulk path to avoid GitHub API token requirement
     env["SYNC_ALL_OPEN_PRS"] = "false"
 
-    result = runner.invoke(app, ["run"], env=env)
+    result = runner.invoke(app, [], env=env)
     assert result.exit_code == 2
     assert "requires a valid pull request context" in (
         result.stdout + result.stderr

@@ -176,8 +176,9 @@ Notes:
 
 ## GitHub Enterprise support
 
-- Direct-URL mode accepts enterprise GitHub hosts when you set
-  ALLOW_GHE_URLS to "true".
+- Direct-URL mode accepts enterprise GitHub hosts when explicitly enabled.
+  Default: off (use github.com by default). Enable via the CLI flag
+  --allow-ghe-urls or by setting ALLOW_GHE_URLS="true".
 - In GitHub Actions, this action works with GitHub Enterprise when the
   workflow runs in that enterprise environment and provides a valid
   GITHUB_TOKEN. For direct-URL runs outside Actions, ensure ORGANIZATION
@@ -242,9 +243,10 @@ the environment as:
   - Uses `GH-<repo>-<pr-number>` where `<repo>` replaces slashes with
     hyphens.
 - GitHub Enterprise support
-  - Direct URL mode accepts enterprise GitHub hosts when ALLOW_GHE_URLS is
-    "true". The tool determines the GitHub API base URL from GITHUB_API_URL
-    or GITHUB_SERVER_URL/api/v3.
+  - Direct URL mode accepts enterprise GitHub hosts when explicitly enabled
+    (default: off; use github.com by default). Enable via --allow-ghe-urls or
+    ALLOW_GHE_URLS="true". The tool determines the GitHub API base URL from
+    GITHUB_API_URL or GITHUB_SERVER_URL/api/v3.
 - Change‑Id handling
   - Single commits: the process amends each cherry‑picked commit to include a
     `Change-Id`. The tool collects these values for querying.

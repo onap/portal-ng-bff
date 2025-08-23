@@ -17,9 +17,12 @@ from . import models
 from .config import apply_config_to_env
 from .config import load_org_config
 from .core import Orchestrator
+from .core import SubmissionResult
 from .github_api import build_client
+from .github_api import get_pull
 from .github_api import get_repo_from_env
 from .github_api import iter_open_pulls
+from .gitutils import run_cmd
 from .models import GitHubContext
 from .models import Inputs
 
@@ -37,6 +40,14 @@ def _parse_github_target(url: str) -> tuple[str | None, str | None, int | None]:
         return None, None, None
 
     allow_ghe = _env_bool("ALLOW_GHE_URLS", False)
+    bad_hosts = {
+        "gitlab.com",
+        "www.gitlab.com",
+        "bitbucket.org",
+        "www.bitbucket.org",
+    }
+    if u.netloc in bad_hosts:
+        return None, None, None
     if not allow_ghe and u.netloc not in ("github.com", "www.github.com"):
         return None, None, None
 
@@ -56,7 +67,7 @@ def _parse_github_target(url: str) -> tuple[str | None, str | None, int | None]:
 
 
 APP_NAME = "github2gerrit"
-app: typer.Typer = typer.Typer(add_completion=False, no_args_is_help=True)
+app: typer.Typer = typer.Typer(add_completion=False, no_args_is_help=False)
 
 
 @app.callback(invoke_without_command=True)  # type: ignore[misc]
@@ -65,14 +76,134 @@ def main(
     target_url: str | None = typer.Argument(
         None, help="GitHub repository or PR URL"
     ),
+    submit_single_commits: bool = typer.Option(
+        False,
+        "--submit-single-commits",
+        envvar="SUBMIT_SINGLE_COMMITS",
+        help="Submit one commit at a time to the Gerrit repository.",
+    ),
+    use_pr_as_commit: bool = typer.Option(
+        False,
+        "--use-pr-as-commit",
+        envvar="USE_PR_AS_COMMIT",
+        help="Use PR title and body as the commit message.",
+    ),
+    fetch_depth: int = typer.Option(
+        10,
+        "--fetch-depth",
+        envvar="FETCH_DEPTH",
+        help="Fetch-depth for the clone.",
+    ),
+    gerrit_known_hosts: str = typer.Option(
+        "",
+        "--gerrit-known-hosts",
+        envvar="GERRIT_KNOWN_HOSTS",
+        help="Known hosts entries for Gerrit SSH.",
+    ),
+    gerrit_ssh_privkey_g2g: str = typer.Option(
+        "",
+        "--gerrit-ssh-privkey-g2g",
+        envvar="GERRIT_SSH_PRIVKEY_G2G",
+        help="SSH private key for Gerrit (string content).",
+    ),
+    gerrit_ssh_user_g2g: str = typer.Option(
+        "",
+        "--gerrit-ssh-user-g2g",
+        envvar="GERRIT_SSH_USER_G2G",
+        help="Gerrit SSH user.",
+    ),
+    gerrit_ssh_user_g2g_email: str = typer.Option(
+        "",
+        "--gerrit-ssh-user-g2g-email",
+        envvar="GERRIT_SSH_USER_G2G_EMAIL",
+        help="Email address for the Gerrit SSH user.",
+    ),
+    organization: str | None = typer.Option(
+        None,
+        "--organization",
+        envvar="ORGANIZATION",
+        help=("Organization (defaults to GITHUB_REPOSITORY_OWNER when unset)."),
+    ),
+    reviewers_email: str = typer.Option(
+        "",
+        "--reviewers-email",
+        envvar="REVIEWERS_EMAIL",
+        help="Comma-separated list of reviewer emails.",
+    ),
+    allow_ghe_urls: bool = typer.Option(
+        False,
+        "--allow-ghe-urls/--no-allow-ghe-urls",
+        envvar="ALLOW_GHE_URLS",
+        help="Allow non-github.com GitHub Enterprise URLs in direct URL mode.",
+    ),
+    preserve_github_prs: bool = typer.Option(
+        False,
+        "--preserve-github-prs",
+        envvar="PRESERVE_GITHUB_PRS",
+        help="Do not close GitHub PRs after pushing to Gerrit.",
+    ),
     dry_run: bool = typer.Option(
-        False, "--dry-run", help="Validate settings; do not write to Gerrit."
+        False,
+        "--dry-run",
+        envvar="DRY_RUN",
+        help="Validate settings and PR metadata; do not write to Gerrit.",
+    ),
+    gerrit_server: str = typer.Option(
+        "",
+        "--gerrit-server",
+        envvar="GERRIT_SERVER",
+        help="Gerrit server hostname (optional; .gitreview preferred).",
+    ),
+    gerrit_server_port: str = typer.Option(
+        "29418",
+        "--gerrit-server-port",
+        envvar="GERRIT_SERVER_PORT",
+        help="Gerrit SSH port (default: 29418).",
+    ),
+    gerrit_project: str = typer.Option(
+        "",
+        "--gerrit-project",
+        envvar="GERRIT_PROJECT",
+        help="Gerrit project (optional; .gitreview preferred).",
     ),
 ) -> None:
     """
-    Default entrypoint to support calling:
-      github2gerrit https://github.com/org/repo[/pull/<num>]
+    Root entrypoint supporting three scenarios:
+      1) No arguments (CI): read context and inputs from environment.
+      2) Repo URL: process all open PRs for that repository.
+      3) PR URL: process the specified PR for that repository.
     """
+    # Normalize CLI options into environment for unified processing.
+    if submit_single_commits:
+        os.environ["SUBMIT_SINGLE_COMMITS"] = "true"
+    if use_pr_as_commit:
+        os.environ["USE_PR_AS_COMMIT"] = "true"
+    os.environ["FETCH_DEPTH"] = str(fetch_depth)
+    if gerrit_known_hosts:
+        os.environ["GERRIT_KNOWN_HOSTS"] = gerrit_known_hosts
+    if gerrit_ssh_privkey_g2g:
+        os.environ["GERRIT_SSH_PRIVKEY_G2G"] = gerrit_ssh_privkey_g2g
+    if gerrit_ssh_user_g2g:
+        os.environ["GERRIT_SSH_USER_G2G"] = gerrit_ssh_user_g2g
+    if gerrit_ssh_user_g2g_email:
+        os.environ["GERRIT_SSH_USER_G2G_EMAIL"] = gerrit_ssh_user_g2g_email
+    resolved_org = _resolve_org(organization)
+    if resolved_org:
+        os.environ["ORGANIZATION"] = resolved_org
+    if reviewers_email:
+        os.environ["REVIEWERS_EMAIL"] = reviewers_email
+    if preserve_github_prs:
+        os.environ["PRESERVE_GITHUB_PRS"] = "true"
+    if dry_run:
+        os.environ["DRY_RUN"] = "true"
+    os.environ["ALLOW_GHE_URLS"] = "true" if allow_ghe_urls else "false"
+    if gerrit_server:
+        os.environ["GERRIT_SERVER"] = gerrit_server
+    if gerrit_server_port:
+        os.environ["GERRIT_SERVER_PORT"] = gerrit_server_port
+    if gerrit_project:
+        os.environ["GERRIT_PROJECT"] = gerrit_project
+    # URL mode handling
     if target_url:
         org, repo, pr = _parse_github_target(target_url)
         if org:
@@ -83,14 +214,17 @@ def main(
             os.environ["PR_NUMBER"] = str(pr)
             os.environ["SYNC_ALL_OPEN_PRS"] = "false"
         else:
-            # Repository URL => process all open PRs
             os.environ["SYNC_ALL_OPEN_PRS"] = "true"
-        # Mark that this was a direct URL invocation (not GH event)
         os.environ["G2G_TARGET_URL"] = "1"
-        if dry_run:
-            os.environ["DRY_RUN"] = "true"
+    # Delegate to common processing path
+    try:
         _process()
-        return
+    except typer.Exit:
+        # Propagate expected exit codes (e.g., validation errors)
+        raise
+    except Exception as exc:
+        log.debug("main(): _process failed: %s", exc)
+    return
 
 
 def _setup_logging() -> logging.Logger:
@@ -281,8 +415,108 @@ def _process() -> None:
     # Test mode handled earlier
 
     # Execute single-PR submission
+    # Augment PR refs via API when in URL mode and token present
+    if (
+        os.getenv("G2G_TARGET_URL")
+        and gh.pr_number
+        and (not gh.head_ref or not gh.base_ref)
+    ):
+        try:
+            client = build_client()
+            repo = get_repo_from_env(client)
+            pr_obj = get_pull(repo, int(gh.pr_number))
+            base_ref = str(
+                getattr(getattr(pr_obj, "base", object()), "ref", "") or ""
+            )
+            head_ref = str(
+                getattr(getattr(pr_obj, "head", object()), "ref", "") or ""
+            )
+            head_sha = str(
+                getattr(getattr(pr_obj, "head", object()), "sha", "") or ""
+            )
+            if base_ref:
+                os.environ["GITHUB_BASE_REF"] = base_ref
+                log.info("Resolved base_ref via GitHub API: %s", base_ref)
+            if head_ref:
+                os.environ["GITHUB_HEAD_REF"] = head_ref
+                log.info("Resolved head_ref via GitHub API: %s", head_ref)
+            if head_sha:
+                os.environ["GITHUB_SHA"] = head_sha
+                log.info("Resolved head sha via GitHub API: %s", head_sha)
+            gh = _read_github_context()
+        except Exception as exc:
+            log.debug("Could not resolve PR refs via GitHub API: %s", exc)
+
+    # Ensure local checkout and refs exist only in direct-URL mode
+    if os.getenv("G2G_TARGET_URL"):
+        try:
+            repo_full = gh.repository or os.getenv("GITHUB_REPOSITORY", "")
+            server_url = gh.server_url or os.getenv(
+                "GITHUB_SERVER_URL", "https://github.com"
+            )
+            server_url = (server_url or "https://github.com").rstrip("/")
+            if repo_full:
+                repo_url = f"{server_url}/{repo_full}.git"
+                if not (Path.cwd() / ".git").exists():
+                    run_cmd(["git", "init"])
+                res = run_cmd(
+                    ["git", "remote", "get-url", "origin"], check=False
+                )
+                if res.returncode != 0:
+                    run_cmd(["git", "remote", "add", "origin", repo_url])
+                else:
+                    run_cmd(["git", "remote", "set-url", "origin", repo_url])
+                # Fetch base branch and PR head
+                branch = os.getenv("GERRIT_BRANCH") or gh.base_ref or "master"
+                depth = str(data.fetch_depth or 10)
+                try:
+                    run_cmd(
+                        [
+                            "git",
+                            "fetch",
+                            "--depth",
+                            depth,
+                            "origin",
+                            f"refs/heads/{branch}:refs/remotes/origin/{branch}",
+                        ]
+                    )
+                except Exception as exc:
+                    log.debug(
+                        "Base branch fetch failed for %s: %s", branch, exc
+                    )
+                if gh.pr_number:
+                    prnum = str(int(gh.pr_number))
+                    run_cmd(
+                        [
+                            "git",
+                            "fetch",
+                            "--depth",
+                            depth,
+                            "origin",
+                            f"refs/pull/{prnum}/head:refs/remotes/origin/pr/{prnum}/head",
+                        ]
+                    )
+                    run_cmd(
+                        [
+                            "git",
+                            "checkout",
+                            "-B",
+                            "g2g_pr_head",
+                            f"refs/remotes/origin/pr/{prnum}/head",
+                        ]
+                    )
+        except Exception as exc:
+            log.debug("Local checkout preparation failed: %s", exc)
+
     orch = Orchestrator(workspace=Path.cwd())
-    result = orch.execute(inputs=data, gh=gh)
+    try:
+        result = orch.execute(inputs=data, gh=gh)
+    except Exception as exc:
+        log.debug("Execution failed; continuing to write outputs: %s", exc)
+
+        result = SubmissionResult(
+            change_urls=[], change_numbers=[], commit_shas=[]
+        )
     if result.change_urls:
         os.environ["GERRIT_CHANGE_REQUEST_URL"] = "\n".join(result.change_urls)
     if result.change_numbers:
@@ -457,153 +691,8 @@ def _resolve_org(default_org: str | None) -> str:
     return ""
 
 
-@app.command()  # type: ignore[misc]
-def run(
-    submit_single_commits: bool = typer.Option(
-        False,
-        "--submit-single-commits",
-        envvar="SUBMIT_SINGLE_COMMITS",
-        help="Submit one commit at a time to the Gerrit repository.",
-    ),
-    use_pr_as_commit: bool = typer.Option(
-        False,
-        "--use-pr-as-commit",
-        envvar="USE_PR_AS_COMMIT",
-        help="Use PR title and body as the commit message.",
-    ),
-    fetch_depth: int = typer.Option(
-        10,
-        "--fetch-depth",
-        envvar="FETCH_DEPTH",
-        help="Fetch-depth for the clone.",
-    ),
-    gerrit_known_hosts: str = typer.Option(
-        "",
-        "--gerrit-known-hosts",
-        envvar="GERRIT_KNOWN_HOSTS",
-        help="Known hosts entries for Gerrit SSH.",
-    ),
-    gerrit_ssh_privkey_g2g: str = typer.Option(
-        "",
-        "--gerrit-ssh-privkey-g2g",
-        envvar="GERRIT_SSH_PRIVKEY_G2G",
-        help="SSH private key for Gerrit (string content).",
-    ),
-    gerrit_ssh_user_g2g: str = typer.Option(
-        "",
-        "--gerrit-ssh-user-g2g",
-        envvar="GERRIT_SSH_USER_G2G",
-        help="Gerrit SSH user.",
-    ),
-    gerrit_ssh_user_g2g_email: str = typer.Option(
-        "",
-        "--gerrit-ssh-user-g2g-email",
-        envvar="GERRIT_SSH_USER_G2G_EMAIL",
-        help="Email address for the Gerrit SSH user.",
-    ),
-    organization: str | None = typer.Option(
-        None,
-        "--organization",
-        envvar="ORGANIZATION",
-        help=("Organization (defaults to GITHUB_REPOSITORY_OWNER when unset)."),
-    ),
-    reviewers_email: str = typer.Option(
-        "",
-        "--reviewers-email",
-        envvar="REVIEWERS_EMAIL",
-        help="Comma-separated list of reviewer emails.",
-    ),
-    allow_ghe_urls: bool = typer.Option(
-        True,
-        "--allow-ghe-urls/--no-allow-ghe-urls",
-        envvar="ALLOW_GHE_URLS",
-        help="Allow non-github.com GitHub Enterprise URLs in direct URL mode.",
-    ),
-    preserve_github_prs: bool = typer.Option(
-        False,
-        "--preserve-github-prs",
-        envvar="PRESERVE_GITHUB_PRS",
-        help="Do not close GitHub PRs after pushing to Gerrit.",
-    ),
-    dry_run: bool = typer.Option(
-        False,
-        "--dry-run",
-        envvar="DRY_RUN",
-        help="Validate settings and PR metadata; do not write to Gerrit.",
-    ),
-    # Reusable workflow compatibility inputs (optional)
-    gerrit_server: str = typer.Option(
-        "",
-        "--gerrit-server",
-        envvar="GERRIT_SERVER",
-        help="Gerrit server hostname (optional; .gitreview preferred).",
-    ),
-    gerrit_server_port: str = typer.Option(
-        "29418",
-        "--gerrit-server-port",
-        envvar="GERRIT_SERVER_PORT",
-        help="Gerrit SSH port (default: 29418).",
-    ),
-    gerrit_project: str = typer.Option(
-        "",
-        "--gerrit-project",
-        envvar="GERRIT_PROJECT",
-        help="Gerrit project (optional; .gitreview preferred).",
-    ),
-) -> None:
-    """
-    Prepare and submit a GitHub pull request to Gerrit as a change.
-
-    This initial skeleton mirrors the inputs and environment variables used
-    by the existing shell-based composite action, validates them, and
-    captures the GitHub event context. The submission workflow will be
-    implemented in subsequent iterations.
-    """
-    # Normalize CLI options into environment for unified processing,
-    # then delegate.
-    if submit_single_commits:
-        os.environ["SUBMIT_SINGLE_COMMITS"] = "true"
-    if use_pr_as_commit:
-        os.environ["USE_PR_AS_COMMIT"] = "true"
-    os.environ["FETCH_DEPTH"] = str(fetch_depth)
-    if gerrit_known_hosts:
-        os.environ["GERRIT_KNOWN_HOSTS"] = gerrit_known_hosts
-    if gerrit_ssh_privkey_g2g:
-        os.environ["GERRIT_SSH_PRIVKEY_G2G"] = gerrit_ssh_privkey_g2g
-    if gerrit_ssh_user_g2g:
-        os.environ["GERRIT_SSH_USER_G2G"] = gerrit_ssh_user_g2g
-    if gerrit_ssh_user_g2g_email:
-        os.environ["GERRIT_SSH_USER_G2G_EMAIL"] = gerrit_ssh_user_g2g_email
-    # Resolve default org from GITHUB_REPOSITORY_OWNER when empty
-    resolved_org = _resolve_org(organization)
-    if resolved_org:
-        os.environ["ORGANIZATION"] = resolved_org
-    if reviewers_email:
-        os.environ["REVIEWERS_EMAIL"] = reviewers_email
-    if preserve_github_prs:
-        os.environ["PRESERVE_GITHUB_PRS"] = "true"
-    if dry_run:
-        os.environ["DRY_RUN"] = "true"
-    # Propagate allow_ghe_urls explicitly to the environment
-    os.environ["ALLOW_GHE_URLS"] = "true" if allow_ghe_urls else "false"
-    if gerrit_server:
-        os.environ["GERRIT_SERVER"] = gerrit_server
-    if gerrit_server_port:
-        os.environ["GERRIT_SERVER_PORT"] = gerrit_server_port
-    if gerrit_project:
-        os.environ["GERRIT_PROJECT"] = gerrit_project
-
-    # Delegate to the common processing path to avoid OptionInfo leakage.
-    _process()
-    return
-
-
-# Backwards-friendly alias so entry point can be either cli:app or cli:run.
-# Expose the Typer app object for console_script usage.
-app.command("submit")(run)
-
 if __name__ == "__main__":
     # Invoke the Typer app when executed as a script.
     # Example:
-    #   python -m github2gerrit_python.cli run --help
+    #   python -m github2gerrit_python.cli --help
     app()
