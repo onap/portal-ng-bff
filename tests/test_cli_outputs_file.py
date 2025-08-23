@@ -91,8 +91,8 @@ def test_single_pr_path_writes_outputs_file(
     # Patch Orchestrator used by CLI to a dummy that returns a single result
     monkeypatch.setattr(cli_mod, "Orchestrator", _DummyOrchestratorSingle)
 
-    # Invoke the CLI subcommand 'run' to use the single-PR path
-    result = runner.invoke(app, ["run"], env=env)
+    # Invoke the CLI root to use the single-PR path
+    result = runner.invoke(app, [], env=env)
     assert result.exit_code == 0, result.stdout + result.stderr
 
     # Read and validate outputs written to $GITHUB_OUTPUT

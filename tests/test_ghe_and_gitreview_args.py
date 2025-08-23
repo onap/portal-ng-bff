@@ -17,22 +17,23 @@ from github2gerrit_python.core import RepoNames
 def test_ghe_url_parsing_toggle(monkeypatch: pytest.MonkeyPatch) -> None:
     """
     Verify that:
-      - By default, GHE (non-github.com) URLs are accepted.
-      - When ALLOW_GHE_URLS is set to false, non-github.com URLs are rejected.
+      - By default, GHE (non-github.com) URLs are rejected.
+      - When ALLOW_GHE_URLS is set to true, non-github.com URLs are accepted.
       - With ALLOW_GHE_URLS=false, github.com URLs are still accepted.
     """
     ghe_url = "https://ghe.example.org/org/repo/pull/123"
     gh_url = "https://github.com/org/repo/pull/456"
 
-    # Default: allow GHE (env unset -> default True)
+    # Default: reject GHE (env unset -> default False)
     monkeypatch.delenv("ALLOW_GHE_URLS", raising=False)
-    assert _parse_github_target(ghe_url) == ("org", "repo", 123)
-
-    # Disable GHE: reject non-github.com hosts
-    monkeypatch.setenv("ALLOW_GHE_URLS", "false")
     assert _parse_github_target(ghe_url) == (None, None, None)
 
+    # Enable GHE: accept non-github.com hosts
+    monkeypatch.setenv("ALLOW_GHE_URLS", "true")
+    assert _parse_github_target(ghe_url) == ("org", "repo", 123)
+
     # With ALLOW_GHE_URLS=false, standard github.com URL still parses
+    monkeypatch.setenv("ALLOW_GHE_URLS", "false")
     assert _parse_github_target(gh_url) == ("org", "repo", 456)
 
 

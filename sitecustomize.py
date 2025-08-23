@@ -24,10 +24,10 @@ from __future__ import annotations
 
 import os
 import sys
-from pathlib import Path
 import tempfile
 import uuid
-from typing import Iterable
+from collections.abc import Iterable
+from pathlib import Path
 
 
 def _is_pytest_session() -> bool:

@@ -95,16 +95,16 @@ def test_add_backref_comment_invokes_ssh_with_expected_args(
     for idx, sha in enumerate(shas):
         cmd = recorder.calls[idx]
         # Basic skeleton and fixed positions
-        assert cmd[0:4] == ["ssh", "-n", "-p"]
-        assert cmd[4] == str(gerrit.port)
-        assert cmd[5] == f"gerrit-bot@{gerrit.host}"
+        assert cmd[0:3] == ["ssh", "-n", "-p"]
+        assert cmd[3] == str(gerrit.port)
+        assert cmd[4] == f"gerrit-bot@{gerrit.host}"
         # Remaining program and options
         # ["gerrit", "review", "-m", message, "--branch", branch, "--project", repo.project_gerrit, sha]
-        assert cmd[6:9] == ["gerrit", "review", "-m"]
-        assert cmd[9] == expected_message
+        assert cmd[5:8] == ["gerrit", "review", "-m"]
+        assert cmd[8] == expected_message
         # Branch and project flags
-        assert cmd[10:12] == ["--branch", branch]
-        assert cmd[12:14] == ["--project", repo.project_gerrit]
+        assert cmd[9:11] == ["--branch", branch]
+        assert cmd[11:13] == ["--project", repo.project_gerrit]
         # Final argument is the target commit SHA
         assert cmd[-1] == sha
 
