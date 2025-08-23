@@ -214,9 +214,10 @@ def run_cmd(
 
     if result.returncode != 0:
         log.debug(
-            "Command failed (rc=%s): %s\nstderr: %s",
+            "Command failed (rc=%s): %s\nstdout: %s\nstderr: %s",
             result.returncode,
             _format_cmd_for_log(cmd, masks),
+            mask_text(result.stdout, masks),
             mask_text(result.stderr, masks),
         )
         if check:

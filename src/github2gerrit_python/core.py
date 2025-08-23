@@ -496,19 +496,19 @@ Host *
         # Prefer repo-local config; fallback to global if needed
         try:
             git_config(
-                "gitreview.username", inputs.gerrit_ssh_user_g2g, global_=False
+                "gitreview.username", inputs.gerrit_ssh_user_g2g, global_=False, cwd=self.workspace
             )
         except GitError:
             git_config(
                 "gitreview.username", inputs.gerrit_ssh_user_g2g, global_=True
             )
         try:
-            git_config("user.name", inputs.gerrit_ssh_user_g2g, global_=False)
+            git_config("user.name", inputs.gerrit_ssh_user_g2g, global_=False, cwd=self.workspace)
         except GitError:
             git_config("user.name", inputs.gerrit_ssh_user_g2g, global_=True)
         try:
             git_config(
-                "user.email", inputs.gerrit_ssh_user_g2g_email, global_=False
+                "user.email", inputs.gerrit_ssh_user_g2g_email, global_=False, cwd=self.workspace
             )
         except GitError:
             git_config(
@@ -518,9 +518,9 @@ Host *
         # Ensure git-review host/port/project are configured
         # when .gitreview is absent
         try:
-            git_config("gitreview.hostname", gerrit.host, global_=False)
-            git_config("gitreview.port", str(gerrit.port), global_=False)
-            git_config("gitreview.project", gerrit.project, global_=False)
+            git_config("gitreview.hostname", gerrit.host, global_=False, cwd=self.workspace)
+            git_config("gitreview.port", str(gerrit.port), global_=False, cwd=self.workspace)
+            git_config("gitreview.project", gerrit.project, global_=False, cwd=self.workspace)
         except GitError:
             git_config("gitreview.hostname", gerrit.host, global_=True)
             git_config("gitreview.port", str(gerrit.port), global_=True)
@@ -528,22 +528,22 @@ Host *
 
         # Add 'gerrit' remote if missing (required by git-review)
         try:
-            run_cmd(["git", "config", "--get", "remote.gerrit.url"])
+            run_cmd(["git", "config", "--get", "remote.gerrit.url"], cwd=self.workspace)
         except CommandError:
             ssh_user = inputs.gerrit_ssh_user_g2g.strip()
             remote_url = (
                 f"ssh://{ssh_user}@{gerrit.host}:{gerrit.port}/{gerrit.project}"
             )
             log.info("Adding 'gerrit' remote: %s", remote_url)
-            run_cmd(["git", "remote", "add", "gerrit", remote_url], check=False)
+            run_cmd(["git", "remote", "add", "gerrit", remote_url], check=False, cwd=self.workspace)
 
         # Workaround for submodules commit-msg hook
         hooks_path = run_cmd(
-            ["git", "rev-parse", "--show-toplevel"]
+            ["git", "rev-parse", "--show-toplevel"], cwd=self.workspace
         ).stdout.strip()
         try:
             git_config(
-                "core.hooksPath", str(Path(hooks_path) / ".git" / "hooks")
+                "core.hooksPath", str(Path(hooks_path) / ".git" / "hooks"), cwd=self.workspace
             )
         except GitError:
             git_config(
@@ -553,7 +553,7 @@ Host *
             )
         # Initialize git-review (copies commit-msg hook)
         try:
-            run_cmd(["git", "review", "-s", "-v"])
+            run_cmd(["git", "review", "-s", "-v"], cwd=self.workspace)
         except CommandError as exc:
             msg = f"Failed to initialize git-review: {exc}"
             raise OrchestratorError(msg) from exc
@@ -570,35 +570,37 @@ Host *
         branch = self._resolve_target_branch()
         # Determine commit range: commits in HEAD not in base branch
         base_ref = f"origin/{branch}"
-        run_cmd(["git", "fetch", "origin", branch])
+        run_cmd(["git", "fetch", "origin", branch], cwd=self.workspace)
         revs = run_cmd(
-            ["git", "rev-list", "--reverse", f"{base_ref}..HEAD"]
+            ["git", "rev-list", "--reverse", f"{base_ref}..HEAD"],
+            cwd=self.workspace
         ).stdout
         commit_list = [c for c in revs.splitlines() if c.strip()]
         if not commit_list:
             log.info("No commits to submit; returning empty PreparedChange")
             return PreparedChange(change_ids=[], commit_shas=[])
         # Create temp branch from base sha; export for downstream
-        base_sha = run_cmd(["git", "rev-parse", base_ref]).stdout.strip()
+        base_sha = run_cmd(["git", "rev-parse", base_ref], cwd=self.workspace).stdout.strip()
         tmp_branch = f"g2g_tmp_{gh.pr_number or 'pr'!s}_{os.getpid()}"
         os.environ["G2G_TMP_BRANCH"] = tmp_branch
-        run_cmd(["git", "checkout", "-b", tmp_branch, base_sha])
+        run_cmd(["git", "checkout", "-b", tmp_branch, base_sha], cwd=self.workspace)
         change_ids: list[str] = []
         for csha in commit_list:
-            run_cmd(["git", "checkout", tmp_branch])
-            git_cherry_pick(csha)
+            run_cmd(["git", "checkout", tmp_branch], cwd=self.workspace)
+            git_cherry_pick(csha, cwd=self.workspace)
             # Preserve author of the original commit
             author = run_cmd(
-                ["git", "show", "-s", "--pretty=format:%an <%ae>", csha]
+                ["git", "show", "-s", "--pretty=format:%an <%ae>", csha],
+                cwd=self.workspace
             ).stdout.strip()
-            git_commit_amend(author=author, no_edit=True, signoff=True)
+            git_commit_amend(author=author, no_edit=True, signoff=True, cwd=self.workspace)
             # Extract newly added Change-Id from last commit trailers
-            trailers = git_last_commit_trailers(keys=["Change-Id"])
+            trailers = git_last_commit_trailers(keys=["Change-Id"], cwd=self.workspace)
             for cid in trailers.get("Change-Id", []):
                 if cid:
                     change_ids.append(cid)
             # Return to base branch for next iteration context
-            run_cmd(["git", "checkout", branch])
+            run_cmd(["git", "checkout", branch], cwd=self.workspace)
         # Deduplicate while preserving order
         seen = set()
         uniq_ids = []
@@ -606,7 +608,7 @@ Host *
             if cid not in seen:
                 uniq_ids.append(cid)
                 seen.add(cid)
-        run_cmd(["git", "log", "-n3", tmp_branch])
+        run_cmd(["git", "log", "-n3", tmp_branch], cwd=self.workspace)
         return PreparedChange(change_ids=uniq_ids, commit_shas=[])
 
     def _prepare_squashed_commit(
@@ -617,15 +619,15 @@ Host *
         """Squash PR commits into a single commit and handle Change-Id."""
         log.info("Preparing squashed commit for PR #%s", gh.pr_number)
         branch = self._resolve_target_branch()
-        run_cmd(["git", "fetch", "origin", branch])
+        run_cmd(["git", "fetch", "origin", branch], cwd=self.workspace)
         base_ref = f"origin/{branch}"
-        base_sha = run_cmd(["git", "rev-parse", base_ref]).stdout.strip()
-        head_sha = run_cmd(["git", "rev-parse", "HEAD"]).stdout.strip()
+        base_sha = run_cmd(["git", "rev-parse", base_ref], cwd=self.workspace).stdout.strip()
+        head_sha = run_cmd(["git", "rev-parse", "HEAD"], cwd=self.workspace).stdout.strip()
         # Create temp branch from base and merge-squash PR head
         tmp_branch = f"g2g_tmp_{gh.pr_number or 'pr'!s}_{os.getpid()}"
         os.environ["G2G_TMP_BRANCH"] = tmp_branch
-        run_cmd(["git", "checkout", "-b", tmp_branch, base_sha])
-        run_cmd(["git", "merge", "--squash", head_sha])
+        run_cmd(["git", "checkout", "-b", tmp_branch, base_sha], cwd=self.workspace)
+        run_cmd(["git", "merge", "--squash", head_sha], cwd=self.workspace)
         # Build commit message from commits between base and head
         body = run_cmd(
             [
@@ -634,7 +636,8 @@ Host *
                 "--format=%B",
                 "--reverse",
                 f"{base_ref}..{head_sha}",
-            ]
+            ],
+            cwd=self.workspace
         ).stdout
         lines = [ln for ln in body.splitlines() if ln.strip()]
         # Separate trailers
@@ -679,14 +682,15 @@ Host *
             commit_msg += "\n\n" + "\n".join(signed_off)
         # Preserve primary author from the PR head commit
         author = run_cmd(
-            ["git", "show", "-s", "--pretty=format:%an <%ae>", head_sha]
+            ["git", "show", "-s", "--pretty=format:%an <%ae>", head_sha],
+            cwd=self.workspace
         ).stdout.strip()
-        git_commit_new(message=commit_msg, author=author, signoff=True)
+        git_commit_new(message=commit_msg, author=author, signoff=True, cwd=self.workspace)
         # Ensure Change-Id via commit-msg hook (amend if needed)
-        trailers = git_last_commit_trailers(keys=["Change-Id"])
+        trailers = git_last_commit_trailers(keys=["Change-Id"], cwd=self.workspace)
         if not trailers.get("Change-Id"):
-            git_commit_amend(no_edit=True, signoff=True, author=author)
-            trailers = git_last_commit_trailers(keys=["Change-Id"])
+            git_commit_amend(no_edit=True, signoff=True, author=author, cwd=self.workspace)
+            trailers = git_last_commit_trailers(keys=["Change-Id"], cwd=self.workspace)
         cids = [c for c in trailers.get("Change-Id", []) if c]
         return PreparedChange(change_ids=cids, commit_shas=[])
 
@@ -749,7 +753,7 @@ Host *
         )
         if single_commits:
             tmp_branch = os.getenv("G2G_TMP_BRANCH", "tmp_branch")
-            run_cmd(["git", "checkout", tmp_branch])
+            run_cmd(["git", "checkout", tmp_branch], cwd=self.workspace)
         prefix = os.getenv("G2G_TOPIC_PREFIX", "GH").strip() or "GH"
         pr_num = os.getenv("PR_NUMBER", "").strip()
         if pr_num:
@@ -761,17 +765,18 @@ Host *
                 "git",
                 "review",
                 "--yes",
+                "-v",
                 "-t",
                 topic,
-                "-b",
-                branch,
             ]
             revs = [
                 r.strip() for r in (reviewers or "").split(",") if r.strip()
             ]
             for r in revs:
                 args.extend(["--reviewer", r])
-            run_cmd(args)
+            # Branch is positional argument at the end
+            args.append(branch)
+            run_cmd(args, cwd=self.workspace)
         except CommandError as exc:
             msg = f"Failed to push changes to Gerrit with git-review: {exc}"
             raise OrchestratorError(msg) from exc
@@ -779,8 +784,8 @@ Host *
         tmp_branch = (os.getenv("G2G_TMP_BRANCH", "") or "").strip()
         if tmp_branch:
             # Switch back to the target branch, then delete the temp branch
-            run_cmd(["git", "checkout", branch], check=False)
-            run_cmd(["git", "branch", "-D", tmp_branch], check=False)
+            run_cmd(["git", "checkout", branch], check=False, cwd=self.workspace)
+            run_cmd(["git", "branch", "-D", tmp_branch], check=False, cwd=self.workspace)
 
     def _query_gerrit_for_results(
         self,
