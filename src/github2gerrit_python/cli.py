@@ -469,66 +469,67 @@ def _process() -> None:
         except Exception as exc:
             log.debug("Could not resolve PR refs via GitHub API: %s", exc)
 
-    # Ensure local checkout and refs exist only in direct-URL mode
-    if os.getenv("G2G_TARGET_URL"):
+    # Create temporary directory for all git operations
+    with tempfile.TemporaryDirectory() as temp_dir:
+        workspace = Path(temp_dir)
+        
         try:
-            repo_full = gh.repository or os.getenv("GITHUB_REPOSITORY", "")
+            repo_full = gh.repository.strip() if gh.repository else ""
             server_url = gh.server_url or os.getenv(
                 "GITHUB_SERVER_URL", "https://github.com"
             )
             server_url = (server_url or "https://github.com").rstrip("/")
+            base_ref = gh.base_ref or ""
+            pr_number = str(gh.pr_number) if gh.pr_number else ""
+            
             if repo_full:
-                # Create temporary directory for git operations
-                with tempfile.TemporaryDirectory() as temp_dir:
-                    workspace = Path(temp_dir)
-                    
-                    # Clone the repo if we don't already have it checked out
-                    repo_url = f"{server_url}/{repo_full}.git"
-                    run_cmd(["git", "init"], cwd=workspace)
-                    run_cmd(["git", "remote", "add", "origin", repo_url], cwd=workspace)
-                    
-                    # Fetch base branch and PR head
-                    if base_ref:
-                        try:
-                            branch_ref = (
-                                f"refs/heads/{base_ref}:refs/remotes/origin/{base_ref}"
-                            )
-                            run_cmd(
-                                [
-                                    "git",
-                                    "fetch",
-                                    f"--depth={data.fetch_depth}",
-                                    "origin",
-                                    branch_ref,
-                                ],
-                                cwd=workspace
-                            )
-                        except Exception as exc:
-                            log.debug(
-                                "Base branch fetch failed for %s: %s", base_ref, exc
-                            )
-                    if pr_number:
-                        pr_ref = f"refs/pull/{pr_number}/head:refs/remotes/origin/pr/{pr_number}/head"
+                # Clone the repo if we don't already have it checked out
+                repo_url = f"{server_url}/{repo_full}.git"
+                run_cmd(["git", "init"], cwd=workspace)
+                run_cmd(["git", "remote", "add", "origin", repo_url], cwd=workspace)
+                
+                # Fetch base branch and PR head
+                if base_ref:
+                    try:
+                        branch_ref = (
+                            f"refs/heads/{base_ref}:refs/remotes/origin/{base_ref}"
+                        )
                         run_cmd(
                             [
                                 "git",
                                 "fetch",
                                 f"--depth={data.fetch_depth}",
                                 "origin",
-                                pr_ref,
+                                branch_ref,
                             ],
                             cwd=workspace
                         )
-                        run_cmd(
-                            [
-                                "git",
-                                "checkout",
-                                "-B",
-                                "g2g_pr_head",
-                                f"refs/remotes/origin/pr/{pr_number}/head",
-                            ],
-                            cwd=workspace
+                    except Exception as exc:
+                        log.debug(
+                            "Base branch fetch failed for %s: %s", base_ref, exc
                         )
+                if pr_number:
+                    pr_ref = f"refs/pull/{pr_number}/head:refs/remotes/origin/pr/{pr_number}/head"
+                    run_cmd(
+                        [
+                            "git",
+                            "fetch",
+                            f"--depth={data.fetch_depth}",
+                            "origin",
+                            pr_ref,
+                        ],
+                        cwd=workspace
+                    )
+                    run_cmd(
+                        [
+                            "git",
+                            "checkout",
+                            "-B",
+                            "g2g_pr_head",
+                            f"refs/remotes/origin/pr/{pr_number}/head",
+                        ],
+                        cwd=workspace
+                    )
         except Exception as exc:
             log.debug("Local checkout preparation failed: %s", exc)
 

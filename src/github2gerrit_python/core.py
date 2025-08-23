@@ -176,6 +176,7 @@ class Orchestrator:
             return SubmissionResult(
                 change_urls=[], change_numbers=[], commit_shas=[]
             )
+        self._setup_ssh(inputs)
         self._configure_git(gerrit, inputs)
 
         if inputs.submit_single_commits:
@@ -444,6 +445,47 @@ class Orchestrator:
         log.debug("Resolved Gerrit info: %s", info)
         return info
 
+    def _setup_ssh(self, inputs: Inputs) -> None:
+        """Set up SSH key and known hosts for Gerrit access."""
+        if not inputs.gerrit_ssh_privkey_g2g or not inputs.gerrit_known_hosts:
+            log.debug("SSH key or known hosts not provided, skipping SSH setup")
+            return
+            
+        log.info("Setting up SSH key and known hosts for Gerrit")
+        
+        # Ensure ~/.ssh directory exists
+        ssh_dir = Path.home() / ".ssh"
+        ssh_dir.mkdir(mode=0o700, exist_ok=True)
+        
+        # Write SSH private key
+        key_path = ssh_dir / "id_rsa"
+        with open(key_path, "w", encoding="utf-8") as f:
+            f.write(inputs.gerrit_ssh_privkey_g2g.strip() + "\n")
+        key_path.chmod(0o600)
+        log.debug("SSH private key written to %s", key_path)
+        
+        # Write known hosts
+        known_hosts_path = ssh_dir / "known_hosts"
+        with open(known_hosts_path, "a", encoding="utf-8") as f:
+            f.write(inputs.gerrit_known_hosts.strip() + "\n")
+        known_hosts_path.chmod(0o644)
+        log.debug("Known hosts appended to %s", known_hosts_path)
+        
+        # Create SSH config if it doesn't exist
+        config_path = ssh_dir / "config"
+        if not config_path.exists():
+            config_content = """# Auto-generated SSH config for github2gerrit
+Host *
+    StrictHostKeyChecking yes
+    UserKnownHostsFile ~/.ssh/known_hosts
+    IdentityFile ~/.ssh/id_rsa
+    PubkeyAcceptedKeyTypes +ssh-rsa
+"""
+            with open(config_path, "w", encoding="utf-8") as f:
+                f.write(config_content)
+            config_path.chmod(0o600)
+            log.debug("SSH config created at %s", config_path)
+
     def _configure_git(
         self,
         gerrit: GerritInfo,
@@ -515,7 +557,8 @@ class Orchestrator:
         except CommandError as exc:
             msg = f"Failed to initialize git-review: {exc}"
             raise OrchestratorError(msg) from exc
-            raise OrchestratorError(msg) from exc
+
+
 
     def _prepare_single_commits(
         self,
