@@ -3,7 +3,7 @@ pluginManagement {
     // https://docs.gradle.org/current/userguide/plugins.html#sec:plugin_version_management
     plugins {
         id 'io.spring.dependency-management' version '1.1.7'
-        id 'org.springframework.boot' version '3.3.10'
+        id 'org.springframework.boot' version '3.5.4'
         id 'org.openapi.generator' version '7.4.0'
         id 'com.github.johnrengelman.shadow' version '8.1.1'
         id 'com.gorylenko.gradle-git-properties' version '2.4.1'
