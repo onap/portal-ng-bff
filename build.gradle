@@ -10,7 +10,7 @@ ext {
     problemSpringVersion = '0.29.1'
     mapStructVersion = '1.6.3'
     mapStructExtensionsVersion = '1.0.2'
-    logbackVersion = '7.4'
+    logbackVersion = '8.1'
     lombokVersion = '1.18.36'
     swaggerV3Version = '2.2.21'
     lombokMapStructBindingVersion = '0.2.0'
