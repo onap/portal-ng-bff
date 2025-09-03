@@ -35,7 +35,7 @@ jobs:
             contents: read
             pull-requests: write
         # yamllint disable rule:line-length
-        uses: modeseven-lfreleng-actions/github2gerrit/.github/workflows/github2gerrit.yaml@main
+        uses: modeseven-lfreleng-actions/github2gerrit-action/.github/workflows/github2gerrit.yaml@main
         with:
             USE_PR_AS_COMMIT: true
             ISSUE_ID: "CIMAN-33"
