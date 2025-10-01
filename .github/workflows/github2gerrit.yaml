@@ -32,17 +32,25 @@ concurrency:
 jobs:
   github2gerrit:
     name: 'GitHub2Gerrit Python'
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       pull-requests: write
       issues: write
     timeout-minutes: 12
-    # yamllint disable rule:line-length
-    uses: modeseven-lfreleng-actions/github2gerrit-action/.github/workflows/github2gerrit.yaml@main
-    with:
-        USE_PR_AS_COMMIT: true
-        ISSUE_ID: "CIMAN-33"
-        ALLOW_DUPLICATES: "${{ inputs.allow_duplicates }}"
-        PRESERVE_GITHUB_PRS: "${{ inputs.preserve_github_prs }}"
-    secrets:
-        GERRIT_SSH_PRIVKEY_G2G: "${{ secrets.GERRIT_SSH_PRIVKEY_G2G }}"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
+        with:
+          fetch-depth: 10
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Run GitHub2Gerrit Action
+        uses: modeseven-lfreleng-actions/github2gerrit-action@main
+        with:
+          USE_PR_AS_COMMIT: true
+          ALLOW_DUPLICATES: ${{ inputs.allow_duplicates }}
+          PRESERVE_GITHUB_PRS: ${{ inputs.preserve_github_prs }}
+          ISSUE_ID_LOOKUP: true
+          ISSUE_ID_LOOKUP_JSON: ${{ vars.ISSUE_ID_LOOKUP_JSON }}
+          GERRIT_SSH_PRIVKEY_G2G: ${{ secrets.GERRIT_SSH_PRIVKEY_G2G }}
