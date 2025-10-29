@@ -39,14 +39,23 @@ jobs:
       issues: write
     timeout-minutes: 12
     steps:
-      - name: Checkout repository
+      # Harden the runner used by this workflow
+      # yamllint disable-line rule:line-length
+      - uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        name: 'Harden runner'
+        with:
+          egress-policy: audit
+
+      - name: 'Checkout repository'
+        # yamllint disable-line rule:line-length
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
         with:
           fetch-depth: 10
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
-      - name: Run GitHub2Gerrit Action
-        uses: modeseven-lfreleng-actions/github2gerrit-action@main
+      - name: 'Run GitHub2Gerrit Action'
+        # yamllint disable-line rule:line-length
+        uses: lfreleng-actions/github2gerrit-action@f3ec169f35720fd2169110f55cc91e68f99f3a73  # v0.1.20
         with:
           USE_PR_AS_COMMIT: true
           ALLOW_DUPLICATES: ${{ inputs.allow_duplicates }}
