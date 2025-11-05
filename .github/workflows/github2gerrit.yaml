@@ -41,7 +41,7 @@ jobs:
     steps:
       # Harden the runner used by this workflow
       # yamllint disable-line rule:line-length
-      - uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+      - uses: step-security/harden-runner@95d9a5deda9de15063e7595e9719c11c38c90ae2  # v2.13.2
         name: 'Harden runner'
         with:
           egress-policy: audit
@@ -55,12 +55,11 @@ jobs:
 
       - name: 'Run GitHub2Gerrit Action'
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/github2gerrit-action@37cf18ec9b6276b5c59d5b4a6d4cc0734275b6c2  # v0.1.21
+        uses: lfreleng-actions/github2gerrit-action@260cddcd3f96af3e46a84e46fd6c10d6574b45d7  # v0.1.22
         with:
           USE_PR_AS_COMMIT: true
           ALLOW_DUPLICATES: ${{ inputs.allow_duplicates }}
           PRESERVE_GITHUB_PRS: ${{ inputs.preserve_github_prs }}
-          ISSUE_ID_LOOKUP: true
           ISSUE_ID_LOOKUP_JSON: ${{ vars.ISSUE_ID_LOOKUP_JSON }}
           GERRIT_SSH_PRIVKEY_G2G: ${{ secrets.GERRIT_SSH_PRIVKEY_G2G }}
           GERRIT_KNOWN_HOSTS: ${{ vars.GERRIT_KNOWN_HOSTS }}
