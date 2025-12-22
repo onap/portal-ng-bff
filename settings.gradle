@@ -8,7 +8,7 @@ pluginManagement {
         id 'com.github.johnrengelman.shadow' version '8.1.1'
         id 'com.gorylenko.gradle-git-properties' version '2.4.1'
         id 'com.diffplug.spotless' version '7.0.2'
-        id 'com.github.spotbugs' version '5.0.14'
+        id 'com.github.spotbugs' version '6.4.5'
     }
     // https://docs.gradle.org/current/userguide/plugins.html#sec:custom_plugin_repositories
     repositories {
