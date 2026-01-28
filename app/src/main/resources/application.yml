@@ -23,7 +23,7 @@ management:
 
 spring:
   application:
-    name: bff
+    name: ${APPLICATION_NAME:portal-ng-bff}
   profiles:
     include:
       - access-control
