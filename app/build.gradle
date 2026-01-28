@@ -10,7 +10,7 @@ plugins {
 group = 'org.onap.portalng'
 
 java {
-	sourceCompatibility = JavaVersion.VERSION_17
+	sourceCompatibility = JavaVersion.VERSION_21
 }
 
 configurations {
@@ -76,7 +76,7 @@ spotless {
     java {
         removeUnusedImports()
         trimTrailingWhitespace()
-        googleJavaFormat('1.15.0')
+        googleJavaFormat('1.17.0')
     }
 }
 tasks.withType(JavaCompile) {

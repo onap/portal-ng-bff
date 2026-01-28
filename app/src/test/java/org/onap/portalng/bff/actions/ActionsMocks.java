@@ -114,6 +114,7 @@ public class ActionsMocks extends BaseIntegrationTest {
                     .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                     .withBody(objectMapper.writeValueAsString(actionsListResponseHistoryDto))));
   }
+
   // used for test thatActionCanBeRetrieved
   protected ActionsListResponseApiDto getActions(String userId) {
     return requestSpecification()
@@ -140,6 +141,7 @@ public class ActionsMocks extends BaseIntegrationTest {
                     .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                     .withBody(objectMapper.writeValueAsString(actionsListResponseHistoryDto))));
   }
+
   // used for test thatActionCanBeRetrievedWithoutParameterShowLastHours
   protected ActionsListResponseApiDto getActionsWithoutParameterShowLastHours(String userId) {
     return requestSpecification()
@@ -200,6 +202,7 @@ public class ActionsMocks extends BaseIntegrationTest {
                     .withStatus(500)
                     .withBody(objectMapper.writeValueAsString(problemHistoryDto))));
   }
+
   // Used for thatActionCanNotBeCreated
   protected ProblemApiDto createActionProblem(
       CreateActionRequestApiDto createActionRequestApiDto, String userId)
