@@ -24,9 +24,6 @@ management:
 spring:
   application:
     name: ${APPLICATION_NAME:portal-ng-bff}
-  profiles:
-    include:
-      - access-control
   security:
     oauth2:
       client:
