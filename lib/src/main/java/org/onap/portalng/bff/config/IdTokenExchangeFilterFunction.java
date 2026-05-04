@@ -21,10 +21,7 @@
 
 package org.onap.portalng.bff.config;
 
-import com.nimbusds.jwt.JWTParser;
-import java.text.ParseException;
 import java.util.List;
-import java.util.Set;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
@@ -35,14 +32,12 @@ import org.springframework.web.reactive.function.client.ExchangeFunction;
 import org.springframework.web.server.ServerWebExchange;
 import org.zalando.problem.Problem;
 import org.zalando.problem.Status;
-import reactor.core.Exceptions;
 import reactor.core.publisher.Mono;
 
 @Component
 public class IdTokenExchangeFilterFunction implements ExchangeFilterFunction {
 
   public static final String X_AUTH_IDENTITY_HEADER = "X-Auth-Identity";
-  public static final String CLAIM_NAME_ROLES = "roles";
 
   private final List<String> rbacExcludedPatterns;
 
@@ -84,45 +79,5 @@ public class IdTokenExchangeFilterFunction implements ExchangeFilterFunction {
     return Mono.just(exchange)
         .map(exch -> exch.getRequest().getHeaders().getOrEmpty(X_AUTH_IDENTITY_HEADER).get(0))
         .onErrorResume(ex -> Mono.error(Problem.valueOf(Status.FORBIDDEN, "ID token is missing")));
-  }
-
-  private static Mono<String> extractIdToken(ServerWebExchange exchange) {
-    return extractIdentityHeader(exchange)
-        .map(identityHeader -> identityHeader.replace("Bearer ", ""));
-  }
-
-  public static Mono<Void> validateAccess(
-      ServerWebExchange exchange, Set<String> rolesListForMethod) {
-
-    return extractRoles(exchange)
-        .map(roles -> roles.stream().anyMatch(rolesListForMethod::contains))
-        .flatMap(
-            match ->
-                Boolean.TRUE.equals(match)
-                    ? Mono.empty()
-                    : Mono.error(Problem.valueOf(Status.FORBIDDEN)));
-  }
-
-  private static Mono<List<String>> extractRoles(ServerWebExchange exchange) {
-    return extractIdToken(exchange)
-        .map(
-            token -> {
-              try {
-                return JWTParser.parse(token);
-              } catch (ParseException e) {
-                throw Exceptions.propagate(e);
-              }
-            })
-        .map(
-            jwt -> {
-              try {
-                return jwt.getJWTClaimsSet().getClaim(CLAIM_NAME_ROLES);
-              } catch (ParseException e) {
-                throw Exceptions.propagate(e);
-              }
-            })
-        .filter(List.class::isInstance)
-        .map(roles -> (List<String>) roles)
-        .switchIfEmpty(Mono.just(List.<String>of()));
   }
 }

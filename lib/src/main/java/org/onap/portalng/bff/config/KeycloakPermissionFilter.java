@@ -21,8 +21,22 @@
 
 package org.onap.portalng.bff.config;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.Expiry;
+import com.nimbusds.jwt.JWTParser;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.text.ParseException;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
+import java.util.Set;
+import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -40,18 +54,54 @@ import reactor.core.publisher.Mono;
 public class KeycloakPermissionFilter implements WebFilter {
 
   private final WebClient webClient;
-
   private final ObjectMapper objectMapper;
   private final BffConfig bffConfig;
-
-  @Value("${bff.rbac.endpoints-excluded}")
-  private String[] EXCLUDED_PATHS;
+  private final List<Pattern> excludedPatterns;
+  private final Cache<String, List<CachedPermission>> permissionCache;
 
   public KeycloakPermissionFilter(
-      WebClient.Builder webClientBuilder, ObjectMapper objectMapper, BffConfig bffConfig) {
+      WebClient.Builder webClientBuilder,
+      ObjectMapper objectMapper,
+      BffConfig bffConfig,
+      @Value("${bff.rbac.endpoints-excluded}") String[] excludedPaths) {
     this.webClient = webClientBuilder.build();
     this.objectMapper = objectMapper;
     this.bffConfig = bffConfig;
+    this.excludedPatterns =
+        Arrays.stream(excludedPaths).map(p -> Pattern.compile(p.replace("**", ".*"))).toList();
+    this.permissionCache =
+        Caffeine.newBuilder()
+            .maximumSize(10_000)
+            .expireAfter(
+                new Expiry<String, List<CachedPermission>>() {
+                  @Override
+                  public long expireAfterCreate(
+                      String key, List<CachedPermission> value, long currentTime) {
+                    return value.isEmpty()
+                        ? Duration.ofMinutes(1).toNanos()
+                        : Duration.ofMinutes(5)
+                            .toNanos(); // safe fallback, overridden by policy.put()
+                  }
+
+                  @Override
+                  public long expireAfterUpdate(
+                      String key,
+                      List<CachedPermission> value,
+                      long currentTime,
+                      long currentDuration) {
+                    return currentDuration;
+                  }
+
+                  @Override
+                  public long expireAfterRead(
+                      String key,
+                      List<CachedPermission> value,
+                      long currentTime,
+                      long currentDuration) {
+                    return currentDuration;
+                  }
+                })
+            .build();
   }
 
   @Override
@@ -60,25 +110,60 @@ public class KeycloakPermissionFilter implements WebFilter {
     String uri = exchange.getRequest().getURI().getPath();
     String method = exchange.getRequest().getMethod().toString();
 
-    for (String excludedPath : EXCLUDED_PATHS) {
-      if (uri.matches(excludedPath.replace("**", ".*"))) {
+    for (Pattern pattern : excludedPatterns) {
+      if (pattern.matcher(uri).matches()) {
         return chain.filter(exchange);
       }
     }
 
+    if (accessToken == null || !accessToken.startsWith("Bearer ")) {
+      exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+      return exchange.getResponse().setComplete();
+    }
+
+    String tokenValue = accessToken.substring("Bearer ".length());
+    String jti;
+    Duration ttl;
+    try {
+      var claims = JWTParser.parse(tokenValue).getJWTClaimsSet();
+      jti = claims.getJWTID();
+      Date exp = claims.getExpirationTime();
+      ttl =
+          (exp != null) ? Duration.between(Instant.now(), exp.toInstant()) : Duration.ofMinutes(5);
+      if (ttl.isNegative() || ttl.isZero()) {
+        exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+        return exchange.getResponse().setComplete();
+      }
+    } catch (ParseException e) {
+      log.error("Error parsing JWT token", e);
+      exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+      return exchange.getResponse().setComplete();
+    }
+
+    if (jti != null) {
+      List<CachedPermission> cached = permissionCache.getIfPresent(jti);
+      if (cached != null) {
+        return evaluatePermission(cached, uri, method, exchange, chain);
+      }
+    }
+
+    return fetchPermissions(accessToken, jti, ttl)
+        .flatMap(permissions -> evaluatePermission(permissions, uri, method, exchange, chain))
+        .onErrorResume(
+            ex -> {
+              log.error("Permission check failed", ex);
+              exchange.getResponse().setStatusCode(HttpStatus.FORBIDDEN);
+              return exchange.getResponse().setComplete();
+            });
+  }
+
+  private Mono<List<CachedPermission>> fetchPermissions(
+      String accessToken, String jti, Duration ttl) {
     String body =
-        new StringBuilder()
-            .append("grant_type=urn:ietf:params:oauth:grant-type:uma-ticket")
-            .append("&audience=")
-            .append(bffConfig.getKeycloakClientId())
-            .append("&permission_resource_format=uri")
-            .append("&permission_resource_matching_uri=true")
-            .append("&permission=")
-            .append(uri)
-            .append("#")
-            .append(method)
-            .append("&response_mode=decision")
-            .toString();
+        "grant_type=urn:ietf:params:oauth:grant-type:uma-ticket"
+            + "&audience="
+            + URLEncoder.encode(bffConfig.getKeycloakClientId(), StandardCharsets.UTF_8)
+            + "&response_mode=permissions";
 
     return webClient
         .post()
@@ -92,31 +177,55 @@ public class KeycloakPermissionFilter implements WebFilter {
         .bodyValue(body)
         .retrieve()
         .bodyToMono(String.class)
-        .flatMap(
-            response -> {
-              if (isPermissionGranted(response)) {
-                return chain.filter(exchange);
-              } else {
-                exchange.getResponse().setStatusCode(HttpStatus.FORBIDDEN);
-                return exchange.getResponse().setComplete();
+        .flatMap(this::parsePermissions)
+        .doOnNext(
+            permissions -> {
+              if (jti != null) {
+                permissionCache
+                    .policy()
+                    .expireVariably()
+                    .ifPresent(
+                        policy -> {
+                          policy.put(jti, permissions, ttl);
+                        });
               }
-            })
-        .onErrorResume(
-            ex -> {
-              exchange.getResponse().setStatusCode(HttpStatus.FORBIDDEN);
-              return exchange.getResponse().setComplete();
             });
   }
 
-  private boolean isPermissionGranted(String response) {
+  private Mono<List<CachedPermission>> parsePermissions(String response) {
     try {
-      JsonNode jsonNode = objectMapper.readTree(response);
-      if (jsonNode.has("result") && jsonNode.get("result").asBoolean()) {
-        return true;
-      }
+      return Mono.just(
+          objectMapper.readValue(response, new TypeReference<List<CachedPermission>>() {}));
     } catch (Exception e) {
-      log.error("Error parsing JSON response", e);
+      log.error("Error parsing permissions response", e);
+      return Mono.error(e);
     }
-    return false;
   }
+
+  private Mono<Void> evaluatePermission(
+      List<CachedPermission> permissions,
+      String uri,
+      String method,
+      ServerWebExchange exchange,
+      WebFilterChain chain) {
+    boolean granted =
+        permissions.stream()
+            .anyMatch(
+                p -> matchesResource(p, uri) && p.scopes() != null && p.scopes().contains(method));
+    if (granted) {
+      return chain.filter(exchange);
+    }
+    exchange.getResponse().setStatusCode(HttpStatus.FORBIDDEN);
+    return exchange.getResponse().setComplete();
+  }
+
+  private boolean matchesResource(CachedPermission permission, String uri) {
+    String rsname = permission.rsname();
+    if (rsname == null) {
+      return false;
+    }
+    return uri.startsWith("/" + rsname);
+  }
+
+  record CachedPermission(String rsname, Set<String> scopes) {}
 }
