@@ -117,7 +117,7 @@ public abstract class BaseIntegrationTest {
                             .toString())));
 
     /*
-     * MockAuth for new RBAC permission via keycloak
+     * MockAuth for RBAC permission via keycloak - returns all permissions for the user
      */
     WireMock.stubFor(
         WireMock.post(
@@ -127,7 +127,11 @@ public abstract class BaseIntegrationTest {
             .willReturn(
                 WireMock.aResponse()
                     .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
-                    .withBody(objectMapper.createObjectNode().put("result", "true").toString())));
+                    .withBody(
+                        "[{\"rsname\":\"users\",\"scopes\":[\"GET\",\"POST\",\"PUT\",\"DELETE\"]},"
+                            + "{\"rsname\":\"roles\",\"scopes\":[\"GET\"]},"
+                            + "{\"rsname\":\"preferences\",\"scopes\":[\"GET\",\"PUT\",\"POST\"]},"
+                            + "{\"rsname\":\"actions\",\"scopes\":[\"GET\",\"POST\"]}]")));
   }
 
   /**

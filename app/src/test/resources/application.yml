@@ -2,9 +2,6 @@ management:
   tracing:
     enabled: false
 spring:
-  profiles:
-    include:
-      - access-control
   security:
     oauth2:
       client:

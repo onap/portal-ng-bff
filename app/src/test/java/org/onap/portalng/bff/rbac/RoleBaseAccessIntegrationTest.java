@@ -31,8 +31,51 @@ import org.springframework.http.MediaType;
 public class RoleBaseAccessIntegrationTest extends BaseIntegrationTest {
 
   @Test
-  void thatRoleIsNotSufficient() {
+  void thatEmptyPermissionsResultInForbidden() {
+    WireMock.stubFor(
+        WireMock.post(
+                WireMock.urlMatching("/realms/%s/protocol/openid-connect/token".formatted(realm)))
+            .withRequestBody(
+                WireMock.containing("grant_type=urn:ietf:params:oauth:grant-type:uma-ticket"))
+            .willReturn(
+                WireMock.aResponse()
+                    .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
+                    .withBody("[]")));
 
+    requestSpecification()
+        .given()
+        .accept(MediaType.APPLICATION_JSON_VALUE)
+        .header(new Header("X-Request-Id", "addf6005-3075-4c80-b7bc-2c70b7d42b57"))
+        .when()
+        .get("/roles")
+        .then()
+        .statusCode(HttpStatus.FORBIDDEN.value());
+  }
+
+  @Test
+  void thatMissingScopeResultsInForbidden() {
+    WireMock.stubFor(
+        WireMock.post(
+                WireMock.urlMatching("/realms/%s/protocol/openid-connect/token".formatted(realm)))
+            .withRequestBody(
+                WireMock.containing("grant_type=urn:ietf:params:oauth:grant-type:uma-ticket"))
+            .willReturn(
+                WireMock.aResponse()
+                    .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
+                    .withBody("[{\"rsname\":\"roles\",\"scopes\":[\"POST\"]}]")));
+
+    requestSpecification()
+        .given()
+        .accept(MediaType.APPLICATION_JSON_VALUE)
+        .header(new Header("X-Request-Id", "addf6005-3075-4c80-b7bc-2c70b7d42b57"))
+        .when()
+        .get("/roles")
+        .then()
+        .statusCode(HttpStatus.FORBIDDEN.value());
+  }
+
+  @Test
+  void thatKeycloakErrorResultsInForbidden() {
     WireMock.stubFor(
         WireMock.post(
                 WireMock.urlMatching("/realms/%s/protocol/openid-connect/token".formatted(realm)))
@@ -54,8 +97,7 @@ public class RoleBaseAccessIntegrationTest extends BaseIntegrationTest {
   }
 
   @Test
-  void thatResourceIsNotAvailable() {
-
+  void thatMalformedResponseResultsInForbidden() {
     WireMock.stubFor(
         WireMock.post(
                 WireMock.urlMatching("/realms/%s/protocol/openid-connect/token".formatted(realm)))
@@ -64,30 +106,7 @@ public class RoleBaseAccessIntegrationTest extends BaseIntegrationTest {
             .willReturn(
                 WireMock.aResponse()
                     .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
-                    .withStatus(HttpStatus.BAD_REQUEST.value())));
-
-    requestSpecification()
-        .given()
-        .accept(MediaType.APPLICATION_JSON_VALUE)
-        .header(new Header("X-Request-Id", "addf6005-3075-4c80-b7bc-2c70b7d42b57"))
-        .when()
-        .get("/roles")
-        .then()
-        .statusCode(HttpStatus.FORBIDDEN.value());
-  }
-
-  @Test
-  void thatRoleBaseCheckIsMalformed() {
-
-    WireMock.stubFor(
-        WireMock.post(
-                WireMock.urlMatching("/realms/%s/protocol/openid-connect/token".formatted(realm)))
-            .withRequestBody(
-                WireMock.containing("grant_type=urn:ietf:params:oauth:grant-type:uma-ticket"))
-            .willReturn(
-                WireMock.aResponse()
-                    .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
-                    .withBody(objectMapper.createObjectNode().put("result", "false").toString())));
+                    .withBody("{\"invalid\":\"response\"}")));
 
     requestSpecification()
         .given()
