@@ -151,7 +151,136 @@
         }
       } ],
       "defaultClientScopes" : [ "web-origins", "acr", "profile", "roles", "email" ],
-      "optionalClientScopes" : [ "address", "phone", "offline_access", "microprofile-jwt" ]
+      "optionalClientScopes" : [ "address", "phone", "offline_access", "microprofile-jwt" ],
+      "authorizationServicesEnabled" : true,
+      "authorizationSettings" : {
+        "allowRemoteResourceManagement" : true,
+        "policyEnforcementMode" : "ENFORCING",
+        "decisionStrategy" : "AFFIRMATIVE",
+        "scopes" : [
+          { "name" : "GET" },
+          { "name" : "POST" },
+          { "name" : "PUT" },
+          { "name" : "DELETE" }
+        ],
+        "resources" : [
+          {
+            "name" : "users",
+            "type" : "",
+            "ownerManagedAccess" : false,
+            "uris" : [ "/users/*" ],
+            "scopes" : [
+              { "name" : "GET" },
+              { "name" : "POST" },
+              { "name" : "PUT" },
+              { "name" : "DELETE" }
+            ]
+          },
+          {
+            "name" : "roles",
+            "type" : "",
+            "ownerManagedAccess" : false,
+            "uris" : [ "/roles/*" ],
+            "scopes" : [
+              { "name" : "GET" }
+            ]
+          },
+          {
+            "name" : "preferences",
+            "type" : "",
+            "ownerManagedAccess" : false,
+            "uris" : [ "/preferences/*" ],
+            "scopes" : [
+              { "name" : "GET" },
+              { "name" : "PUT" },
+              { "name" : "POST" }
+            ]
+          },
+          {
+            "name" : "actions",
+            "type" : "",
+            "ownerManagedAccess" : false,
+            "uris" : [ "/actions/*" ],
+            "scopes" : [
+              { "name" : "GET" },
+              { "name" : "POST" }
+            ]
+          }
+        ],
+        "policies" : [
+          {
+            "name" : "admin-policy",
+            "type" : "role",
+            "logic" : "POSITIVE",
+            "decisionStrategy" : "UNANIMOUS",
+            "config" : {
+              "roles" : "[{\"id\":\"portal_admin\",\"required\":false}]"
+            }
+          },
+          {
+            "name" : "operator-policy",
+            "type" : "role",
+            "logic" : "POSITIVE",
+            "decisionStrategy" : "UNANIMOUS",
+            "config" : {
+              "roles" : "[{\"id\":\"portal_operator\",\"required\":false}]"
+            }
+          },
+          {
+            "name" : "designer-policy",
+            "type" : "role",
+            "logic" : "POSITIVE",
+            "decisionStrategy" : "UNANIMOUS",
+            "config" : {
+              "roles" : "[{\"id\":\"portal_designer\",\"required\":false}]"
+            }
+          },
+          {
+            "name" : "users-admin-permission",
+            "type" : "scope",
+            "logic" : "POSITIVE",
+            "decisionStrategy" : "AFFIRMATIVE",
+            "config" : {
+              "resources" : "[\"users\"]",
+              "scopes" : "[\"GET\",\"POST\",\"PUT\",\"DELETE\"]",
+              "applyPolicies" : "[\"admin-policy\"]"
+            }
+          },
+          {
+            "name" : "roles-read-permission",
+            "type" : "scope",
+            "logic" : "POSITIVE",
+            "decisionStrategy" : "AFFIRMATIVE",
+            "config" : {
+              "resources" : "[\"roles\"]",
+              "scopes" : "[\"GET\"]",
+              "applyPolicies" : "[\"admin-policy\",\"operator-policy\"]"
+            }
+          },
+          {
+            "name" : "preferences-permission",
+            "type" : "scope",
+            "logic" : "POSITIVE",
+            "decisionStrategy" : "AFFIRMATIVE",
+            "config" : {
+              "resources" : "[\"preferences\"]",
+              "scopes" : "[\"GET\",\"PUT\",\"POST\"]",
+              "applyPolicies" : "[\"admin-policy\",\"operator-policy\"]"
+            }
+          },
+          {
+            "name" : "actions-permission",
+            "type" : "scope",
+            "logic" : "POSITIVE",
+            "decisionStrategy" : "AFFIRMATIVE",
+            "config" : {
+              "resources" : "[\"actions\"]",
+              "scopes" : "[\"GET\",\"POST\"]",
+              "applyPolicies" : "[\"admin-policy\",\"operator-policy\"]"
+            }
+          }
+        ]
+      }
     }],
   "users": [
     {
