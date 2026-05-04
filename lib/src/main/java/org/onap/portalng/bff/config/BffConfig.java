@@ -23,14 +23,8 @@ package org.onap.portalng.bff.config;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import java.util.Map;
-import java.util.Set;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.zalando.problem.Problem;
-import org.zalando.problem.Status;
-import reactor.core.publisher.Mono;
 
 /**
  * Class that contains configuration of the downstream apis. This could be username and password or
@@ -46,16 +40,4 @@ public class BffConfig {
   @NotBlank private final String historyUrl;
   @NotBlank private final String keycloakUrl;
   @NotBlank private final String keycloakClientId;
-
-  @NotNull private final Map<String, Set<String>> accessControl;
-
-  public Mono<Set<String>> getRoles(String method) {
-    return Mono.just(accessControl)
-        .map(control -> control.get(method))
-        .onErrorResume(
-            e ->
-                Mono.error(
-                    Problem.valueOf(
-                        Status.FORBIDDEN, "The user does not have the necessary access rights")));
-  }
 }
