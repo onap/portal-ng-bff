@@ -26,23 +26,21 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Expiry;
-import com.nimbusds.jwt.JWTParser;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.text.ParseException;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 import java.util.Set;
-import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Component;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilter;
@@ -56,7 +54,8 @@ public class KeycloakPermissionFilter implements WebFilter {
   private final WebClient webClient;
   private final ObjectMapper objectMapper;
   private final BffConfig bffConfig;
-  private final List<Pattern> excludedPatterns;
+  private final List<String> excludedPatterns;
+  private final AntPathMatcher antPathMatcher = new AntPathMatcher();
   private final Cache<String, List<CachedPermission>> permissionCache;
 
   public KeycloakPermissionFilter(
@@ -67,8 +66,7 @@ public class KeycloakPermissionFilter implements WebFilter {
     this.webClient = webClientBuilder.build();
     this.objectMapper = objectMapper;
     this.bffConfig = bffConfig;
-    this.excludedPatterns =
-        Arrays.stream(excludedPaths).map(p -> Pattern.compile(p.replace("**", ".*"))).toList();
+    this.excludedPatterns = List.of(excludedPaths);
     this.permissionCache =
         Caffeine.newBuilder()
             .maximumSize(10_000)
@@ -106,49 +104,48 @@ public class KeycloakPermissionFilter implements WebFilter {
 
   @Override
   public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
-    String accessToken = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
     String uri = exchange.getRequest().getURI().getPath();
     String method = exchange.getRequest().getMethod().toString();
 
-    for (Pattern pattern : excludedPatterns) {
-      if (pattern.matcher(uri).matches()) {
+    for (String pattern : excludedPatterns) {
+      if (antPathMatcher.match(pattern, uri)) {
         return chain.filter(exchange);
       }
     }
 
-    if (accessToken == null || !accessToken.startsWith("Bearer ")) {
-      exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-      return exchange.getResponse().setComplete();
-    }
+    return exchange
+        .getPrincipal()
+        .switchIfEmpty(
+            Mono.defer(
+                () -> {
+                  exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+                  return exchange.getResponse().setComplete().then(Mono.empty());
+                }))
+        .cast(JwtAuthenticationToken.class)
+        .flatMap(
+            auth -> {
+              Jwt jwt = auth.getToken();
+              String accessToken = "Bearer " + jwt.getTokenValue();
+              String jti = jwt.getId();
+              Instant exp = jwt.getExpiresAt();
+              Duration ttl =
+                  (exp != null) ? Duration.between(Instant.now(), exp) : Duration.ofMinutes(5);
+              if (ttl.isNegative() || ttl.isZero()) {
+                exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+                return exchange.getResponse().setComplete();
+              }
 
-    String tokenValue = accessToken.substring("Bearer ".length());
-    String jti;
-    Duration ttl;
-    try {
-      var claims = JWTParser.parse(tokenValue).getJWTClaimsSet();
-      jti = claims.getJWTID();
-      Date exp = claims.getExpirationTime();
-      ttl =
-          (exp != null) ? Duration.between(Instant.now(), exp.toInstant()) : Duration.ofMinutes(5);
-      if (ttl.isNegative() || ttl.isZero()) {
-        exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-        return exchange.getResponse().setComplete();
-      }
-    } catch (ParseException e) {
-      log.error("Error parsing JWT token", e);
-      exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-      return exchange.getResponse().setComplete();
-    }
+              if (jti != null) {
+                List<CachedPermission> cached = permissionCache.getIfPresent(jti);
+                if (cached != null) {
+                  return evaluatePermission(cached, uri, method, exchange, chain);
+                }
+              }
 
-    if (jti != null) {
-      List<CachedPermission> cached = permissionCache.getIfPresent(jti);
-      if (cached != null) {
-        return evaluatePermission(cached, uri, method, exchange, chain);
-      }
-    }
-
-    return fetchPermissions(accessToken, jti, ttl)
-        .flatMap(permissions -> evaluatePermission(permissions, uri, method, exchange, chain))
+              return fetchPermissions(accessToken, jti, ttl)
+                  .flatMap(
+                      permissions -> evaluatePermission(permissions, uri, method, exchange, chain));
+            })
         .onErrorResume(
             ex -> {
               log.error("Permission check failed", ex);
@@ -224,7 +221,8 @@ public class KeycloakPermissionFilter implements WebFilter {
     if (rsname == null) {
       return false;
     }
-    return uri.startsWith("/" + rsname);
+    String prefix = "/" + rsname;
+    return uri.equals(prefix) || uri.startsWith(prefix + "/");
   }
 
   record CachedPermission(String rsname, Set<String> scopes) {}

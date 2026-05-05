@@ -25,10 +25,14 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import io.restassured.http.Header;
 import org.junit.jupiter.api.Test;
 import org.onap.portalng.bff.BaseIntegrationTest;
+import org.onap.portalng.bff.TokenGenerator;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 
 public class RoleBaseAccessIntegrationTest extends BaseIntegrationTest {
+
+  @Autowired private TokenGenerator tokenGenerator;
 
   @Test
   void thatEmptyPermissionsResultInForbidden() {
@@ -116,5 +120,30 @@ public class RoleBaseAccessIntegrationTest extends BaseIntegrationTest {
         .get("/roles")
         .then()
         .statusCode(HttpStatus.FORBIDDEN.value());
+  }
+
+  @Test
+  void thatPermissionCheckWorksWithoutIdTokenHeader() {
+    WireMock.stubFor(
+        WireMock.get(WireMock.urlMatching("/admin/realms/%s/roles".formatted(realm)))
+            .willReturn(
+                WireMock.aResponse()
+                    .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
+                    .withBody("[{\"id\":\"1\",\"name\":\"role1\"}]")));
+
+    final String accessToken =
+        tokenGenerator.generateToken(getTokenGeneratorConfig("portal_admin"));
+
+    unauthenticatedRequestSpecification()
+        .auth()
+        .preemptive()
+        .oauth2(accessToken)
+        .given()
+        .accept(MediaType.APPLICATION_JSON_VALUE)
+        .header(new Header("X-Request-Id", "addf6005-3075-4c80-b7bc-2c70b7d42b57"))
+        .when()
+        .get("/roles")
+        .then()
+        .statusCode(HttpStatus.OK.value());
   }
 }

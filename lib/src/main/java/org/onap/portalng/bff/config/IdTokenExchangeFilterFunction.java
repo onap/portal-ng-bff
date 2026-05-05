@@ -40,6 +40,7 @@ public class IdTokenExchangeFilterFunction implements ExchangeFilterFunction {
   public static final String X_AUTH_IDENTITY_HEADER = "X-Auth-Identity";
 
   private final List<String> rbacExcludedPatterns;
+  private final String keycloakBaseUrl;
 
   private static final Mono<ServerWebExchange> serverWebExchangeFromContext =
       Mono.deferContextual(Mono::just)
@@ -49,8 +50,10 @@ public class IdTokenExchangeFilterFunction implements ExchangeFilterFunction {
   private final AntPathMatcher antPathMatcher = new AntPathMatcher();
 
   public IdTokenExchangeFilterFunction(
-      @Value("${bff.rbac.endpoints-excluded}") List<String> rbacExcludedPatterns) {
+      @Value("${bff.rbac.endpoints-excluded}") List<String> rbacExcludedPatterns,
+      BffConfig bffConfig) {
     this.rbacExcludedPatterns = rbacExcludedPatterns;
+    this.keycloakBaseUrl = bffConfig.getKeycloakUrl();
   }
 
   @Override
@@ -61,6 +64,10 @@ public class IdTokenExchangeFilterFunction implements ExchangeFilterFunction {
                 excludedPath -> antPathMatcher.match(excludedPath, request.url().getRawPath()));
     if (shouldNotFilter) {
       return next.exchange(request).switchIfEmpty(Mono.defer(() -> next.exchange(request)));
+    }
+    // Keycloak does not use the X-Auth-Identity header; skip for all Keycloak-bound requests
+    if (request.url().toString().startsWith(keycloakBaseUrl)) {
+      return next.exchange(request);
     }
     return extractServerWebExchange(request)
         .flatMap(IdTokenExchangeFilterFunction::extractIdentityHeader)

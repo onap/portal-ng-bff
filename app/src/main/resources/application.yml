@@ -54,4 +54,4 @@ bff:
     unauthenticated: /api-docs.html, /api.yaml, /webjars/**, /actuator/**
 
   rbac:
-    endpoints-excluded: ${RBAC_EXCLUDED_ENDPOINTS}:-/api-docs.html, /api.yaml, /webjars/**, /actuator/**, /users**, /roles**, /preferences**, /actions**}
+    endpoints-excluded: ${RBAC_EXCLUDED_ENDPOINTS:/api-docs.html, /api.yaml, /webjars/**, /actuator/**}
