@@ -30,12 +30,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
+import org.springframework.security.oauth2.client.AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager;
 import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientManager;
 import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientProvider;
 import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientProviderBuilder;
+import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.registration.ReactiveClientRegistrationRepository;
-import org.springframework.security.oauth2.client.web.DefaultReactiveOAuth2AuthorizedClientManager;
-import org.springframework.security.oauth2.client.web.server.ServerOAuth2AuthorizedClientRepository;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 
 @Configuration
@@ -72,14 +72,14 @@ public class SecurityConfig {
   @Bean
   ReactiveOAuth2AuthorizedClientManager reactiveOAuth2AuthorizedClientManager(
       ReactiveClientRegistrationRepository clientRegistrationRepository,
-      ServerOAuth2AuthorizedClientRepository authorizedClientRepository) {
+      ReactiveOAuth2AuthorizedClientService authorizedClientService) {
 
     final ReactiveOAuth2AuthorizedClientProvider authorizedClientProvider =
         ReactiveOAuth2AuthorizedClientProviderBuilder.builder().clientCredentials().build();
 
-    final DefaultReactiveOAuth2AuthorizedClientManager authorizedClientManager =
-        new DefaultReactiveOAuth2AuthorizedClientManager(
-            clientRegistrationRepository, authorizedClientRepository);
+    final AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager authorizedClientManager =
+        new AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager(
+            clientRegistrationRepository, authorizedClientService);
     authorizedClientManager.setAuthorizedClientProvider(authorizedClientProvider);
 
     return authorizedClientManager;
