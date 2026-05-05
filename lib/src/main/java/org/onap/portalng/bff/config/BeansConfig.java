@@ -40,8 +40,12 @@ import org.springframework.http.codec.ClientCodecConfigurer;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.http.codec.json.Jackson2JsonEncoder;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.oauth2.client.OAuth2AuthorizeRequest;
 import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientManager;
-import org.springframework.security.oauth2.client.web.reactive.function.client.ServerOAuth2AuthorizedClientExchangeFilterFunction;
+import org.springframework.web.reactive.function.client.ClientRequest;
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.zalando.problem.jackson.ProblemModule;
@@ -64,14 +68,33 @@ public class BeansConfig {
   private static final String CLIENT_REGISTRATION_ID = "keycloak";
   private static final ObjectMapper objectMapper = new ObjectMapper();
 
+  private static final Authentication CLIENT_CREDENTIALS_AUTHENTICATION =
+      new AnonymousAuthenticationToken(
+          "client-credentials",
+          "client-credentials",
+          AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"));
+
   @Bean(name = OAUTH2_EXCHANGE_FILTER_FUNCTION)
   ExchangeFilterFunction oauth2ExchangeFilterFunction(
       ReactiveOAuth2AuthorizedClientManager authorizedClientManager) {
-    final ServerOAuth2AuthorizedClientExchangeFilterFunction oauth2Filter =
-        new ServerOAuth2AuthorizedClientExchangeFilterFunction(authorizedClientManager);
-    oauth2Filter.setDefaultClientRegistrationId(CLIENT_REGISTRATION_ID);
-
-    return oauth2Filter;
+    return (request, next) -> {
+      OAuth2AuthorizeRequest authorizeRequest =
+          OAuth2AuthorizeRequest.withClientRegistrationId(CLIENT_REGISTRATION_ID)
+              .principal(CLIENT_CREDENTIALS_AUTHENTICATION)
+              .build();
+      return authorizedClientManager
+          .authorize(authorizeRequest)
+          .map(
+              authorizedClient ->
+                  ClientRequest.from(request)
+                      .headers(
+                          headers ->
+                              headers.setBearerAuth(
+                                  authorizedClient.getAccessToken().getTokenValue()))
+                      .build())
+          .defaultIfEmpty(request)
+          .flatMap(next::exchange);
+    };
   }
 
   @Bean(name = ERROR_HANDLING_EXCHANGE_FILTER_FUNCTION)
