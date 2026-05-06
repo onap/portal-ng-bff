@@ -53,8 +53,28 @@ jar {
     enabled = true
 }
 
+publishing {
+    publications {
+        shadow(MavenPublication) { publication ->
+            project.shadow.component(publication)
+            groupId = 'org.onap.portal-ng'
+            artifactId = 'bff'
+        }
+    }
+    repositories {
+        maven {
+            url = 'https://nexus.onap.org/content/repositories/releases'
+            credentials {
+                username = System.getenv('NEXUS_USERNAME') ?: ''
+                password = System.getenv('NEXUS_PASSWORD') ?: ''
+            }
+        }
+    }
+}
+
 shadowJar {
     archiveBaseName.set('bff')
+    archiveClassifier.set('') // this affects the jar name (bff-<version> instead of bff-<version>-all)
     dependencies {
         include(project(':openapi:server'))
         include(project(':openapi:client-history'))
