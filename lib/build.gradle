@@ -57,8 +57,8 @@ publishing {
     publications {
         shadow(MavenPublication) { publication ->
             project.shadow.component(publication)
-            groupId = 'org.onap.portal-ng'
-            artifactId = 'bff'
+            groupId = 'org.onap'
+            artifactId = 'portal-ng-bff'
         }
     }
     repositories {
