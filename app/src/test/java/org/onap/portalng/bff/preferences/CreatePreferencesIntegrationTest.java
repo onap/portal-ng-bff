@@ -34,11 +34,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 
 class CreatePreferencesIntegrationTest extends PreferencesMocks {
-  @Test
-  void thatPreferencesCanBeCreated() throws Exception {
-    PreferencesPreferencesDto preferencesPreferencesDto = new PreferencesPreferencesDto();
-    preferencesPreferencesDto.setProperties(
-        """
+  private static final String PREFERENCE_PROPERTIES_VALUE =
+      """
         {
         "properties": {
         "appStarter": "value1",
@@ -46,21 +43,16 @@ class CreatePreferencesIntegrationTest extends PreferencesMocks {
         }
 
         }\
-        """);
+        """;
+
+  @Test
+  void thatPreferencesCanBeCreated() throws Exception {
+    PreferencesPreferencesDto preferencesPreferencesDto = new PreferencesPreferencesDto();
+    preferencesPreferencesDto.setProperties(PREFERENCE_PROPERTIES_VALUE);
     mockCreatePreferences(preferencesPreferencesDto);
 
     final CreatePreferencesRequestApiDto request =
-        new CreatePreferencesRequestApiDto()
-            .properties(
-                """
-                {
-                "properties": {
-                "appStarter": "value1",
-                "dashboard": {"key1:" : "value2"}
-                }
-
-                }\
-                """);
+        new CreatePreferencesRequestApiDto().properties(PREFERENCE_PROPERTIES_VALUE);
     final PreferencesResponseApiDto response = createPreferences(request);
     assertThat(response).isNotNull();
     assertThat(response.getProperties()).isEqualTo(preferencesPreferencesDto.getProperties());
@@ -74,31 +66,11 @@ class CreatePreferencesIntegrationTest extends PreferencesMocks {
     problemPreferencesDto.setDetail("Some details");
 
     final PreferencesPreferencesDto preferencesPreferencesDto =
-        new PreferencesPreferencesDto()
-            .properties(
-                """
-                {
-                "properties": {
-                "appStarter": "value1",
-                "dashboard": {"key1:" : "value2"}
-                }
-
-                }\
-                """);
+        new PreferencesPreferencesDto().properties(PREFERENCE_PROPERTIES_VALUE);
     mockCreatePreferencesError(preferencesPreferencesDto, problemPreferencesDto);
 
     CreatePreferencesRequestApiDto responseBody =
-        new CreatePreferencesRequestApiDto()
-            .properties(
-                """
-                {
-                "properties": {
-                "appStarter": "value1",
-                "dashboard": {"key1:" : "value2"}
-                }
-
-                }\
-                """);
+        new CreatePreferencesRequestApiDto().properties(PREFERENCE_PROPERTIES_VALUE);
     final ProblemApiDto response =
         requestSpecification()
             .given()
@@ -116,6 +88,36 @@ class CreatePreferencesIntegrationTest extends PreferencesMocks {
 
     assertThat(response.getStatus()).isEqualTo(HttpStatus.BAD_GATEWAY.value());
     assertThat(response.getDetail()).isEqualTo(problemPreferencesDto.getDetail());
+    assertThat(response.getDownstreamSystem())
+        .isEqualTo(ProblemApiDto.DownstreamSystemEnum.PREFERENCES);
+    assertThat(response.getDownstreamStatus()).isEqualTo(HttpStatus.BAD_REQUEST.value());
+  }
+
+  @Test
+  void thatPreferencesExceptionsAreHandledForResponseWithoutBody() throws Exception {
+    final PreferencesPreferencesDto preferencesPreferencesDto =
+        new PreferencesPreferencesDto().properties(PREFERENCE_PROPERTIES_VALUE);
+    mockCreatePreferencesErrorWithoutBody(preferencesPreferencesDto);
+
+    CreatePreferencesRequestApiDto responseBody =
+        new CreatePreferencesRequestApiDto().properties(PREFERENCE_PROPERTIES_VALUE);
+    final ProblemApiDto response =
+        requestSpecification()
+            .given()
+            .accept(MediaType.APPLICATION_PROBLEM_JSON_VALUE)
+            .contentType(MediaType.APPLICATION_JSON_VALUE)
+            .header(new Header("X-Request-Id", X_REQUEST_ID))
+            .body(responseBody)
+            .when()
+            .post("/preferences")
+            .then()
+            .statusCode(HttpStatus.BAD_GATEWAY.value())
+            .extract()
+            .body()
+            .as(ProblemApiDto.class);
+
+    assertThat(response.getStatus()).isEqualTo(HttpStatus.BAD_GATEWAY.value());
+    assertThat(response.getDetail()).isNull();
     assertThat(response.getDownstreamSystem())
         .isEqualTo(ProblemApiDto.DownstreamSystemEnum.PREFERENCES);
     assertThat(response.getDownstreamStatus()).isEqualTo(HttpStatus.BAD_REQUEST.value());

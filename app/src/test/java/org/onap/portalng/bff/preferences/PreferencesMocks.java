@@ -135,6 +135,20 @@ public class PreferencesMocks extends BaseIntegrationTest {
                     .withBody(objectMapper.writeValueAsString(problemPreferencesDto))));
   }
 
+  protected void mockCreatePreferencesErrorWithoutBody(
+      PreferencesPreferencesDto preferencesPreferencesDto) throws Exception {
+    WireMock.stubFor(
+        WireMock.post(WireMock.urlEqualTo("/v1/preferences"))
+            .withHeader("X-Request-Id", new EqualToPattern(X_REQUEST_ID))
+            .withRequestBody(
+                WireMock.equalToJson(
+                    objectMapper.writeValueAsString(preferencesPreferencesDto), true, false))
+            .willReturn(
+                WireMock.aResponse()
+                    .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                    .withStatus(HttpStatus.BAD_REQUEST.value())));
+  }
+
   protected PreferencesResponseApiDto updatePreferences(CreatePreferencesRequestApiDto request) {
     return requestSpecification()
         .given()
