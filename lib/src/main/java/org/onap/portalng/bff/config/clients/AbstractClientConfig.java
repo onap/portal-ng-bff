@@ -46,6 +46,7 @@ public abstract class AbstractClientConfig<E> {
           if (clientResponse.statusCode().isError()) {
             return clientResponse
                 .bodyToMono(errorResponseTypeClass)
+                .switchIfEmpty(emptyBodyErrorFallback(clientResponse.statusCode()))
                 .doOnNext(s -> log.error("Received error response from downstream: {}", s))
                 .flatMap(
                     problemResponse ->
@@ -82,6 +83,22 @@ public abstract class AbstractClientConfig<E> {
     return webClientBuilder
         .filter(errorHandlingExchangeFilterFunction())
         .clientConnector(getClientHttpConnector())
+        .build();
+  }
+
+  private Mono<E> emptyBodyErrorFallback(HttpStatusCode statusCode) {
+    try {
+      E fallbackValue = errorResponseTypeClass.getDeclaredConstructor().newInstance();
+      return Mono.just(fallbackValue);
+    } catch (ReflectiveOperationException ex) {
+      return Mono.error(mapStatusOnlyException(statusCode));
+    }
+  }
+
+  protected DownstreamApiProblemException mapStatusOnlyException(HttpStatusCode statusCode) {
+    return DownstreamApiProblemException.builder()
+        .title("Downstream error without body.")
+        .downstreamStatus(statusCode.value())
         .build();
   }
 }
