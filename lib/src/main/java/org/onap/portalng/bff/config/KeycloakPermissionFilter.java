@@ -21,7 +21,7 @@
 
 package org.onap.portalng.bff.config;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -31,7 +31,6 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -47,6 +46,20 @@ import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 
+/**
+ * Enforces RBAC by asking Keycloak, for each authenticated request, whether the caller may access
+ * the requested URI with the requested HTTP method.
+ *
+ * <p>The URI-to-resource matching is delegated to Keycloak via an UMA-ticket request with {@code
+ * response_mode=decision} and {@code permission_resource_matching_uri=true}: Keycloak matches the
+ * request URI against the {@code uris} attribute of each authorization resource and returns a
+ * single {@code {"result":true}} decision when access is granted (or HTTP 403 when denied). Doing
+ * the matching in Keycloak — rather than reimplementing it here — keeps the filter agnostic of how
+ * resources are named and how their URI patterns are written.
+ *
+ * <p>Each decision is cached per token (keyed by the JWT id together with the HTTP method and URI)
+ * until the token expires, so a given endpoint is evaluated by Keycloak only once per token.
+ */
 @Component
 @Slf4j
 public class KeycloakPermissionFilter implements WebFilter {
@@ -56,7 +69,7 @@ public class KeycloakPermissionFilter implements WebFilter {
   private final BffConfig bffConfig;
   private final List<String> excludedPatterns;
   private final AntPathMatcher antPathMatcher = new AntPathMatcher();
-  private final Cache<String, List<CachedPermission>> permissionCache;
+  private final Cache<String, Boolean> decisionCache;
 
   public KeycloakPermissionFilter(
       WebClient.Builder webClientBuilder,
@@ -67,35 +80,26 @@ public class KeycloakPermissionFilter implements WebFilter {
     this.objectMapper = objectMapper;
     this.bffConfig = bffConfig;
     this.excludedPatterns = List.of(excludedPaths);
-    this.permissionCache =
+    this.decisionCache =
         Caffeine.newBuilder()
             .maximumSize(10_000)
             .expireAfter(
-                new Expiry<String, List<CachedPermission>>() {
+                new Expiry<String, Boolean>() {
                   @Override
-                  public long expireAfterCreate(
-                      String key, List<CachedPermission> value, long currentTime) {
-                    return value.isEmpty()
-                        ? Duration.ofMinutes(1).toNanos()
-                        : Duration.ofMinutes(5)
-                            .toNanos(); // safe fallback, overridden by policy.put()
+                  public long expireAfterCreate(String key, Boolean value, long currentTime) {
+                    // Safe fallback, overridden by the explicit per-token ttl in policy().put().
+                    return Duration.ofMinutes(5).toNanos();
                   }
 
                   @Override
                   public long expireAfterUpdate(
-                      String key,
-                      List<CachedPermission> value,
-                      long currentTime,
-                      long currentDuration) {
+                      String key, Boolean value, long currentTime, long currentDuration) {
                     return currentDuration;
                   }
 
                   @Override
                   public long expireAfterRead(
-                      String key,
-                      List<CachedPermission> value,
-                      long currentTime,
-                      long currentDuration) {
+                      String key, Boolean value, long currentTime, long currentDuration) {
                     return currentDuration;
                   }
                 })
@@ -136,15 +140,18 @@ public class KeycloakPermissionFilter implements WebFilter {
               }
 
               if (jti != null) {
-                List<CachedPermission> cached = permissionCache.getIfPresent(jti);
+                Boolean cached = decisionCache.getIfPresent(cacheKey(jti, method, uri));
                 if (cached != null) {
-                  return evaluatePermission(cached, uri, method, exchange, chain);
+                  return applyDecision(cached, exchange, chain);
                 }
               }
 
-              return fetchPermissions(accessToken, jti, ttl)
+              return fetchDecision(accessToken, uri, method)
                   .flatMap(
-                      permissions -> evaluatePermission(permissions, uri, method, exchange, chain));
+                      granted -> {
+                        cacheDecision(jti, method, uri, granted, ttl);
+                        return applyDecision(granted, exchange, chain);
+                      });
             })
         .onErrorResume(
             ex -> {
@@ -154,13 +161,28 @@ public class KeycloakPermissionFilter implements WebFilter {
             });
   }
 
-  private Mono<List<CachedPermission>> fetchPermissions(
-      String accessToken, String jti, Duration ttl) {
+  /**
+   * Asks Keycloak whether the given URI and method are allowed for the caller.
+   *
+   * @return a {@link Mono} emitting {@code true} (granted) or {@code false} (denied) for a
+   *     definitive decision; the {@link Mono} errors for any non-decision response (e.g. a Keycloak
+   *     outage or an unparseable body) so that the outcome is not cached and the request is
+   *     rejected with 403.
+   */
+  private Mono<Boolean> fetchDecision(String accessToken, String uri, String method) {
+    // permission=<uri>#<method> is sent unencoded on purpose: Keycloak splits the resource from the
+    // scope on the '#' separator and matches <uri> against each resource's configured uris.
     String body =
         "grant_type=urn:ietf:params:oauth:grant-type:uma-ticket"
             + "&audience="
             + URLEncoder.encode(bffConfig.getKeycloakClientId(), StandardCharsets.UTF_8)
-            + "&response_mode=permissions";
+            + "&permission_resource_format=uri"
+            + "&permission_resource_matching_uri=true"
+            + "&permission="
+            + uri
+            + "#"
+            + method
+            + "&response_mode=decision";
 
     return webClient
         .post()
@@ -172,43 +194,42 @@ public class KeycloakPermissionFilter implements WebFilter {
         .header(HttpHeaders.AUTHORIZATION, accessToken)
         .contentType(MediaType.APPLICATION_FORM_URLENCODED)
         .bodyValue(body)
-        .retrieve()
-        .bodyToMono(String.class)
-        .flatMap(this::parsePermissions)
-        .doOnNext(
-            permissions -> {
-              if (jti != null) {
-                permissionCache
-                    .policy()
-                    .expireVariably()
-                    .ifPresent(
-                        policy -> {
-                          policy.put(jti, permissions, ttl);
-                        });
+        .exchangeToMono(
+            response -> {
+              if (response.statusCode().is2xxSuccessful()) {
+                return response.bodyToMono(String.class).map(this::isGranted);
               }
+              // Keycloak answers a denied UMA-ticket request with 403; treat that as a definitive
+              // "deny" decision (cacheable) rather than an error.
+              if (response.statusCode().value() == HttpStatus.FORBIDDEN.value()) {
+                return response.releaseBody().thenReturn(Boolean.FALSE);
+              }
+              return response.createException().flatMap(Mono::error);
             });
   }
 
-  private Mono<List<CachedPermission>> parsePermissions(String response) {
+  private boolean isGranted(String response) {
     try {
-      return Mono.just(
-          objectMapper.readValue(response, new TypeReference<List<CachedPermission>>() {}));
+      JsonNode jsonNode = objectMapper.readTree(response);
+      return jsonNode.has("result") && jsonNode.get("result").asBoolean();
     } catch (Exception e) {
-      log.error("Error parsing permissions response", e);
-      return Mono.error(e);
+      // An unparseable body is not a decision; surface it as an error so it is not cached.
+      throw new IllegalStateException("Could not parse Keycloak decision response", e);
     }
   }
 
-  private Mono<Void> evaluatePermission(
-      List<CachedPermission> permissions,
-      String uri,
-      String method,
-      ServerWebExchange exchange,
-      WebFilterChain chain) {
-    boolean granted =
-        permissions.stream()
-            .anyMatch(
-                p -> matchesResource(p, uri) && p.scopes() != null && p.scopes().contains(method));
+  private void cacheDecision(String jti, String method, String uri, boolean granted, Duration ttl) {
+    if (jti == null) {
+      return;
+    }
+    decisionCache
+        .policy()
+        .expireVariably()
+        .ifPresent(policy -> policy.put(cacheKey(jti, method, uri), granted, ttl));
+  }
+
+  private Mono<Void> applyDecision(
+      boolean granted, ServerWebExchange exchange, WebFilterChain chain) {
     if (granted) {
       return chain.filter(exchange);
     }
@@ -216,14 +237,7 @@ public class KeycloakPermissionFilter implements WebFilter {
     return exchange.getResponse().setComplete();
   }
 
-  private boolean matchesResource(CachedPermission permission, String uri) {
-    String rsname = permission.rsname();
-    if (rsname == null) {
-      return false;
-    }
-    String prefix = "/" + rsname;
-    return uri.equals(prefix) || uri.startsWith(prefix + "/");
+  private static String cacheKey(String jti, String method, String uri) {
+    return jti + "|" + method + "|" + uri;
   }
-
-  record CachedPermission(String rsname, Set<String> scopes) {}
 }

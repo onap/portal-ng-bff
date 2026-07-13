@@ -117,7 +117,10 @@ public abstract class BaseIntegrationTest {
                             .toString())));
 
     /*
-     * MockAuth for RBAC permission via keycloak - returns all permissions for the user
+     * MockAuth for the RBAC permission check via Keycloak. The KeycloakPermissionFilter delegates
+     * URI matching to Keycloak with response_mode=decision, so a granted request yields a single
+     * {"result":true} decision. Grant every request here so authenticated tests are not blocked by
+     * RBAC; tests that exercise RBAC itself override this stub.
      */
     WireMock.stubFor(
         WireMock.post(
@@ -127,11 +130,7 @@ public abstract class BaseIntegrationTest {
             .willReturn(
                 WireMock.aResponse()
                     .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
-                    .withBody(
-                        "[{\"rsname\":\"users\",\"scopes\":[\"GET\",\"POST\",\"PUT\",\"DELETE\"]},"
-                            + "{\"rsname\":\"roles\",\"scopes\":[\"GET\"]},"
-                            + "{\"rsname\":\"preferences\",\"scopes\":[\"GET\",\"PUT\",\"POST\"]},"
-                            + "{\"rsname\":\"actions\",\"scopes\":[\"GET\",\"POST\"]}]")));
+                    .withBody("{\"result\":true}")));
   }
 
   /**
