@@ -59,6 +59,41 @@ publishing {
             project.shadow.component(publication)
             groupId = 'org.onap'
             artifactId = 'portal-ng-bff'
+
+            // The shadow component() emits a POM with no third-party <dependencies> because it
+            // assumes everything is shaded into the fat jar. But shadowJar here bundles ONLY the
+            // openapi:* subprojects' classes (see the shadowJar block below); every OTHER runtime
+            // dependency (Caffeine, the Spring Boot starters, Jackson, Micrometer, MapStruct, the
+            // Zalando problem libs) is neither shaded in nor declared. Consumers of this thin jar
+            // therefore crash at startup with NoClassDefFoundError (e.g. Caffeine's Expiry, used by
+            // KeycloakPermissionFilter). Inject the non-bundled first-level runtime dependencies
+            // into the POM so consumers resolve them transitively. Derived from runtimeClasspath so
+            // the list can't drift from the actual dependencies; versions come from the Spring Boot
+            // BOM, hence the resolved-version lookup for dependencies declared without one.
+            pom.withXml {
+                def root = asNode()
+                def dependenciesNode =
+                    root.dependencies.isEmpty() ? root.appendNode('dependencies') : root.dependencies[0]
+
+                def resolvedVersions = [:]
+                configurations.runtimeClasspath.resolvedConfiguration.firstLevelModuleDependencies.each { rd ->
+                    resolvedVersions["${rd.moduleGroup}:${rd.moduleName}".toString()] = rd.moduleVersion
+                }
+
+                configurations.runtimeClasspath.allDependencies
+                    .findAll { !(it instanceof org.gradle.api.artifacts.ProjectDependency) }
+                    .findAll { it.group && it.name }
+                    .each { dep ->
+                        def version = dep.version ?: resolvedVersions["${dep.group}:${dep.name}".toString()]
+                        def node = dependenciesNode.appendNode('dependency')
+                        node.appendNode('groupId', dep.group)
+                        node.appendNode('artifactId', dep.name)
+                        if (version) {
+                            node.appendNode('version', version)
+                        }
+                        node.appendNode('scope', 'runtime')
+                    }
+            }
         }
     }
     repositories {
