@@ -21,45 +21,128 @@
 
 package org.onap.portalng.bff.exceptions;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.net.URI;
 import java.util.List;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
 import org.onap.portalng.bff.openapi.server.model.ConstraintViolationApiDto;
-import org.zalando.problem.AbstractThrowableProblem;
-import org.zalando.problem.Problem;
-import org.zalando.problem.Status;
-import org.zalando.problem.StatusType;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.http.ProblemDetail;
+import org.springframework.web.ErrorResponseException;
 
-/** The default bff exception */
-@Getter
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor
-@EqualsAndHashCode(callSuper = true)
-@ToString
-@JsonIgnoreProperties
-public class DownstreamApiProblemException extends AbstractThrowableProblem {
+/**
+ * The default bff exception.
+ *
+ * <p>Rendered as an {@code application/problem+json} response (RFC 7807 / 9457) via Spring's native
+ * {@link ProblemDetail}. The BFF-specific fields ({@code downstreamSystem}, {@code
+ * downstreamStatus}, {@code downstreamMessageId}, {@code violations}) are carried as ProblemDetail
+ * extension properties, which Spring's {@code ProblemDetailJacksonMixin} serializes flat at the top
+ * level of the body — matching the wire format that portal-ui depends on.
+ */
+public class DownstreamApiProblemException extends ErrorResponseException {
 
-  @Builder.Default private final URI type = Problem.DEFAULT_TYPE;
-  @Builder.Default private final String title = "Bad gateway error";
+  private static final HttpStatus DEFAULT_STATUS = HttpStatus.BAD_GATEWAY;
+  private static final String DEFAULT_TITLE = "Bad gateway error";
+  private static final String DEFAULT_DETAIL =
+      "Please find more detail under correlationId: 'TODO'";
 
-  @JsonIgnore @Builder.Default private final transient StatusType status = Status.BAD_GATEWAY;
+  private DownstreamApiProblemException(HttpStatusCode status, ProblemDetail body) {
+    super(status, body, null);
+  }
 
-  @Builder.Default
-  private final String detail = "Please find more detail under correlationId: 'TODO'";
+  public static Builder builder() {
+    return new Builder();
+  }
 
-  @Builder.Default private final String downstreamSystem = null;
-  @Builder.Default private final URI instance = null;
-  @Builder.Default private final Integer downstreamStatus = null;
-  @Builder.Default private final String downstreamMessageId = null;
+  /**
+   * Fluent builder preserving the original API. Defaults mirror the previous Zalando-based
+   * implementation: status defaults to {@code BAD_GATEWAY}. A field explicitly set to {@code null}
+   * (e.g. {@code detail(null)}) stays absent from the rendered body — distinct from leaving it
+   * unset.
+   */
+  public static final class Builder {
+    private HttpStatusCode status = DEFAULT_STATUS;
+    private String title = DEFAULT_TITLE;
+    private String detail = DEFAULT_DETAIL;
+    private String downstreamSystem;
+    private Integer downstreamStatus;
+    private String downstreamMessageId;
+    private List<ConstraintViolationApiDto> violations;
+    private URI type;
+    private URI instance;
 
-  @JsonIgnore @Builder.Default
-  private final transient List<ConstraintViolationApiDto> violations = null;
+    public Builder status(HttpStatusCode status) {
+      this.status = status;
+      return this;
+    }
+
+    public Builder title(String title) {
+      this.title = title;
+      return this;
+    }
+
+    public Builder detail(String detail) {
+      this.detail = detail;
+      return this;
+    }
+
+    public Builder downstreamSystem(String downstreamSystem) {
+      this.downstreamSystem = downstreamSystem;
+      return this;
+    }
+
+    public Builder downstreamStatus(Integer downstreamStatus) {
+      this.downstreamStatus = downstreamStatus;
+      return this;
+    }
+
+    public Builder downstreamMessageId(String downstreamMessageId) {
+      this.downstreamMessageId = downstreamMessageId;
+      return this;
+    }
+
+    public Builder violations(List<ConstraintViolationApiDto> violations) {
+      this.violations = violations;
+      return this;
+    }
+
+    public Builder type(URI type) {
+      this.type = type;
+      return this;
+    }
+
+    public Builder instance(URI instance) {
+      this.instance = instance;
+      return this;
+    }
+
+    public DownstreamApiProblemException build() {
+      final HttpStatusCode effectiveStatus = status != null ? status : DEFAULT_STATUS;
+      final ProblemDetail body = ProblemDetail.forStatus(effectiveStatus);
+      if (title != null) {
+        body.setTitle(title);
+      }
+      if (detail != null) {
+        body.setDetail(detail);
+      }
+      if (type != null) {
+        body.setType(type);
+      }
+      if (instance != null) {
+        body.setInstance(instance);
+      }
+      if (downstreamSystem != null) {
+        body.setProperty("downstreamSystem", downstreamSystem);
+      }
+      if (downstreamStatus != null) {
+        body.setProperty("downstreamStatus", downstreamStatus);
+      }
+      if (downstreamMessageId != null) {
+        body.setProperty("downstreamMessageId", downstreamMessageId);
+      }
+      if (violations != null) {
+        body.setProperty("violations", violations);
+      }
+      return new DownstreamApiProblemException(effectiveStatus, body);
+    }
+  }
 }

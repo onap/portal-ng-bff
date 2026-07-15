@@ -23,15 +23,15 @@ package org.onap.portalng.bff.config;
 
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.reactive.function.client.ClientRequest;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.ExchangeFunction;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.server.ServerWebExchange;
-import org.zalando.problem.Problem;
-import org.zalando.problem.Status;
 import reactor.core.publisher.Mono;
 
 @Component
@@ -85,6 +85,9 @@ public class IdTokenExchangeFilterFunction implements ExchangeFilterFunction {
   private static Mono<String> extractIdentityHeader(ServerWebExchange exchange) {
     return Mono.just(exchange)
         .map(exch -> exch.getRequest().getHeaders().getOrEmpty(X_AUTH_IDENTITY_HEADER).get(0))
-        .onErrorResume(ex -> Mono.error(Problem.valueOf(Status.FORBIDDEN, "ID token is missing")));
+        .onErrorResume(
+            ex ->
+                Mono.error(
+                    new ResponseStatusException(HttpStatus.FORBIDDEN, "ID token is missing")));
   }
 }

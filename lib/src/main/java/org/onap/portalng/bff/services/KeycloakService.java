@@ -40,7 +40,6 @@ import org.onap.portalng.bff.utils.Logger;
 import org.springframework.core.convert.support.ConfigurableConversionService;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.zalando.problem.Status;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
@@ -69,7 +68,7 @@ public class KeycloakService {
               if (!absentRoles.isEmpty()) {
                 return Mono.error(
                     DownstreamApiProblemException.builder()
-                        .status(Status.NOT_FOUND)
+                        .status(HttpStatus.NOT_FOUND)
                         .detail(
                             "Roles not found in the realm: %s"
                                 .formatted(absentRoles.stream().map(RoleApiDto::getName).toList()))

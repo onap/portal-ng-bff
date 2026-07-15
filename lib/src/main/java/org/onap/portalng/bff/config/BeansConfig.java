@@ -28,14 +28,17 @@ import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import java.net.URI;
 import java.time.Clock;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.onap.portalng.bff.exceptions.DownstreamApiProblemException;
+import org.onap.portalng.bff.openapi.server.model.ProblemApiDto;
 import org.onap.portalng.bff.utils.Logger;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.codec.ClientCodecConfigurer;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.http.codec.json.Jackson2JsonEncoder;
@@ -48,7 +51,6 @@ import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClient
 import org.springframework.web.reactive.function.client.ClientRequest;
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
-import org.zalando.problem.jackson.ProblemModule;
 import reactor.core.publisher.Mono;
 
 @Slf4j
@@ -107,10 +109,13 @@ public class BeansConfig {
                 .doOnNext(s -> log.error("Received error response from downstream: {}", s))
                 .flatMap(
                     downstreamExceptionBody -> {
+                      // DownstreamApiProblemException is no longer a plain deserializable POJO
+                      // (it is a Spring ErrorResponseException). Deserialize the downstream body
+                      // into the generated ProblemApiDto carrier and rebuild the exception from it.
                       try {
-                        return Mono.error(
-                            objectMapper.readValue(
-                                downstreamExceptionBody, DownstreamApiProblemException.class));
+                        final ProblemApiDto problem =
+                            objectMapper.readValue(downstreamExceptionBody, ProblemApiDto.class);
+                        return Mono.error(toException(problem));
                       } catch (JsonProcessingException e) {
                         return Mono.error(DownstreamApiProblemException.builder().build());
                       }
@@ -118,6 +123,38 @@ public class BeansConfig {
           }
           return Mono.just(clientResponse);
         });
+  }
+
+  private static DownstreamApiProblemException toException(ProblemApiDto problem) {
+    final DownstreamApiProblemException.Builder builder = DownstreamApiProblemException.builder();
+    if (problem.getStatus() != null) {
+      builder.status(HttpStatusCode.valueOf(problem.getStatus()));
+    }
+    if (problem.getTitle() != null) {
+      builder.title(problem.getTitle());
+    }
+    if (problem.getDetail() != null) {
+      builder.detail(problem.getDetail());
+    }
+    if (problem.getType() != null) {
+      builder.type(URI.create(problem.getType()));
+    }
+    if (problem.getInstance() != null) {
+      builder.instance(URI.create(problem.getInstance()));
+    }
+    if (problem.getDownstreamSystem() != null) {
+      builder.downstreamSystem(problem.getDownstreamSystem().getValue());
+    }
+    if (problem.getDownstreamStatus() != null) {
+      builder.downstreamStatus(problem.getDownstreamStatus());
+    }
+    if (problem.getDownstreamMessageId() != null) {
+      builder.downstreamMessageId(problem.getDownstreamMessageId());
+    }
+    if (problem.getViolations() != null) {
+      builder.violations(problem.getViolations());
+    }
+    return builder.build();
   }
 
   //
@@ -171,8 +208,12 @@ public class BeansConfig {
 
   @Bean
   public ObjectMapper objectMapper(Jackson2ObjectMapperBuilder builder) {
+    // Jackson2ObjectMapperBuilder.build() auto-registers Spring's ProblemDetailJacksonMixin, so
+    // ProblemDetail extension properties (downstreamSystem, downstreamStatus, ...) serialize flat
+    // at the top level of the body — the wire format portal-ui depends on. No Zalando ProblemModule
+    // is needed anymore.
     return builder
-        .modules(new ProblemModule(), new JavaTimeModule())
+        .modules(new JavaTimeModule())
         .build()
         .setSerializationInclusion(JsonInclude.Include.NON_NULL);
   }

@@ -32,11 +32,13 @@ import org.onap.portalng.bff.BaseIntegrationTest;
 import org.onap.portalng.bff.config.IdTokenExchangeFilterFunction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
 import org.springframework.web.reactive.function.client.ClientRequest;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.ExchangeFunction;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
@@ -83,6 +85,9 @@ class IdTokenExchangeFilterFunctionTest extends BaseIntegrationTest {
     final ExchangeFunction exchange = r -> Mono.just(mock(ClientResponse.class));
 
     assertThatThrownBy(() -> filterFunction.filter(request, exchange).block())
-        .hasMessage("Forbidden: ID token is missing");
+        .isInstanceOf(ResponseStatusException.class)
+        .hasMessageContaining("ID token is missing")
+        .extracting("statusCode")
+        .isEqualTo(HttpStatus.FORBIDDEN);
   }
 }

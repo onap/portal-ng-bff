@@ -24,9 +24,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
-    implementation "org.zalando:jackson-datatype-problem:$problemVersion"
     implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml'
-    implementation "org.zalando:problem-spring-webflux:$problemSpringVersion"
     implementation "org.mapstruct:mapstruct:$mapStructVersion"
     implementation "org.mapstruct.extensions.spring:mapstruct-spring-annotations:$mapStructExtensionsVersion"
     implementation "org.mapstruct.extensions.spring:mapstruct-spring-extensions:$mapStructExtensionsVersion"

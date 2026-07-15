@@ -23,6 +23,7 @@ package org.onap.portalng.bff.preferences;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.restassured.http.Header;
 import org.junit.jupiter.api.Test;
 import org.onap.portalng.bff.openapi.client_preferences.model.PreferencesPreferencesDto;
@@ -91,6 +92,60 @@ class CreatePreferencesIntegrationTest extends PreferencesMocks {
     assertThat(response.getDownstreamSystem())
         .isEqualTo(ProblemApiDto.DownstreamSystemEnum.PREFERENCES);
     assertThat(response.getDownstreamStatus()).isEqualTo(HttpStatus.BAD_REQUEST.value());
+  }
+
+  /**
+   * Characterization test pinning the exact `application/problem+json` wire format that portal-ui
+   * depends on. This guards the migration from the Zalando Problem library to Spring's native
+   * {@link org.springframework.http.ProblemDetail}: the standard RFC-7807/9457 fields and the
+   * BFF-specific extension fields ({@code downstreamSystem}, {@code downstreamStatus}) must all
+   * stay serialized flat at the top level of the JSON body — not nested under a {@code
+   * "properties"} wrapper, which is the failure mode of a naive ProblemDetail migration.
+   */
+  @Test
+  void thatErrorResponseKeepsProblemJsonWireFormat() throws Exception {
+    final var problemPreferencesDto = new ProblemPreferencesDto();
+    problemPreferencesDto.setStatus(HttpStatus.BAD_REQUEST.value());
+    problemPreferencesDto.setTitle(HttpStatus.BAD_REQUEST.toString());
+    problemPreferencesDto.setDetail("Some details");
+
+    final PreferencesPreferencesDto preferencesPreferencesDto =
+        new PreferencesPreferencesDto().properties(PREFERENCE_PROPERTIES_VALUE);
+    mockCreatePreferencesError(preferencesPreferencesDto, problemPreferencesDto);
+
+    final CreatePreferencesRequestApiDto responseBody =
+        new CreatePreferencesRequestApiDto().properties(PREFERENCE_PROPERTIES_VALUE);
+    final String rawBody =
+        requestSpecification()
+            .given()
+            .accept(MediaType.APPLICATION_PROBLEM_JSON_VALUE)
+            .contentType(MediaType.APPLICATION_JSON_VALUE)
+            .header(new Header("X-Request-Id", X_REQUEST_ID))
+            .body(responseBody)
+            .when()
+            .post("/preferences")
+            .then()
+            .statusCode(HttpStatus.BAD_GATEWAY.value())
+            .contentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE)
+            .extract()
+            .body()
+            .asString();
+
+    final JsonNode json = objectMapper.readTree(rawBody);
+
+    // Standard problem fields, all top-level.
+    assertThat(json.path("title").asText()).isEqualTo(HttpStatus.BAD_REQUEST.toString());
+    assertThat(json.path("status").isInt()).isTrue();
+    assertThat(json.path("status").asInt()).isEqualTo(HttpStatus.BAD_GATEWAY.value());
+    assertThat(json.path("detail").asText()).isEqualTo("Some details");
+
+    // BFF extension fields must be top-level too (portal-ui reads error.downstreamStatus).
+    assertThat(json.path("downstreamSystem").asText())
+        .isEqualTo(ProblemApiDto.DownstreamSystemEnum.PREFERENCES.getValue());
+    assertThat(json.path("downstreamStatus").asInt()).isEqualTo(HttpStatus.BAD_REQUEST.value());
+
+    // The ProblemDetail migration trap: extension fields must NOT be nested under "properties".
+    assertThat(json.has("properties")).isFalse();
   }
 
   @Test
