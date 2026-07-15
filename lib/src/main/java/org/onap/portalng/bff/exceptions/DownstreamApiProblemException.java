@@ -49,8 +49,56 @@ public class DownstreamApiProblemException extends ErrorResponseException {
     super(status, body, null);
   }
 
+  /**
+   * No-arg constructor building a default {@code BAD_GATEWAY} problem. Kept for consumers that
+   * throw a bare {@code new DownstreamApiProblemException()} and for subclasses (e.g. {@code
+   * SoCatalogDbAdapterProblemException}) that need an accessible super-constructor.
+   */
+  public DownstreamApiProblemException() {
+    this(DEFAULT_STATUS, defaultBody());
+  }
+
+  private static ProblemDetail defaultBody() {
+    final ProblemDetail body = ProblemDetail.forStatus(DEFAULT_STATUS);
+    body.setTitle(DEFAULT_TITLE);
+    body.setDetail(DEFAULT_DETAIL);
+    return body;
+  }
+
   public static Builder builder() {
     return new Builder();
+  }
+
+  // -- Read API -------------------------------------------------------------------------------
+  // Consumers (e.g. tnap portal-bff) branch on these fields inside onErrorResume handlers. They
+  // are read straight off the ProblemDetail body so the body stays the single source of truth and
+  // the values always match what is rendered on the wire.
+
+  /** Convenience accessor for {@code getBody().getDetail()}. */
+  public String getDetail() {
+    return getBody().getDetail();
+  }
+
+  public String getDownstreamSystem() {
+    return property("downstreamSystem", String.class);
+  }
+
+  public Integer getDownstreamStatus() {
+    return property("downstreamStatus", Integer.class);
+  }
+
+  public String getDownstreamMessageId() {
+    return property("downstreamMessageId", String.class);
+  }
+
+  @SuppressWarnings("unchecked")
+  public List<ConstraintViolationApiDto> getViolations() {
+    return property("violations", List.class);
+  }
+
+  private <T> T property(String name, Class<T> type) {
+    final var properties = getBody().getProperties();
+    return properties == null ? null : type.cast(properties.get(name));
   }
 
   /**

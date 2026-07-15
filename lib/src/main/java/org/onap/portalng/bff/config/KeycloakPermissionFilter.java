@@ -136,29 +136,29 @@ public class KeycloakPermissionFilter implements WebFilter {
                   (exp != null) ? Duration.between(Instant.now(), exp) : Duration.ofMinutes(5);
               if (ttl.isNegative() || ttl.isZero()) {
                 exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-                return exchange.getResponse().setComplete();
+                return exchange.getResponse().setComplete().then(Mono.empty());
               }
 
               if (jti != null) {
                 Boolean cached = decisionCache.getIfPresent(cacheKey(jti, method, uri));
                 if (cached != null) {
-                  return applyDecision(cached, exchange, chain);
+                  return Mono.just(cached);
                 }
               }
 
               return fetchDecision(accessToken, uri, method)
-                  .flatMap(
-                      granted -> {
-                        cacheDecision(jti, method, uri, granted, ttl);
-                        return applyDecision(granted, exchange, chain);
-                      });
+                  .doOnNext(granted -> cacheDecision(jti, method, uri, granted, ttl));
             })
+        // The 403 fallback must cover ONLY the permission decision (Keycloak call, token parsing),
+        // NOT the downstream request handling: errors from chain.filter() below (e.g. a
+        // ServerWebInputException that must render as 400) would otherwise be swallowed into a 403.
         .onErrorResume(
             ex -> {
               log.error("Permission check failed", ex);
               exchange.getResponse().setStatusCode(HttpStatus.FORBIDDEN);
-              return exchange.getResponse().setComplete();
-            });
+              return exchange.getResponse().setComplete().then(Mono.empty());
+            })
+        .flatMap(granted -> applyDecision(granted, exchange, chain));
   }
 
   /**

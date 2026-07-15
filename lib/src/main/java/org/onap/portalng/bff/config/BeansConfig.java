@@ -24,16 +24,18 @@ package org.onap.portalng.bff.config;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.net.URI;
 import java.time.Clock;
+import java.util.ArrayList;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.onap.portalng.bff.exceptions.DownstreamApiProblemException;
-import org.onap.portalng.bff.openapi.server.model.ProblemApiDto;
+import org.onap.portalng.bff.openapi.server.model.ConstraintViolationApiDto;
 import org.onap.portalng.bff.utils.Logger;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
@@ -108,51 +110,66 @@ public class BeansConfig {
                 .bodyToMono(String.class)
                 .doOnNext(s -> log.error("Received error response from downstream: {}", s))
                 .flatMap(
-                    downstreamExceptionBody -> {
-                      // DownstreamApiProblemException is no longer a plain deserializable POJO
-                      // (it is a Spring ErrorResponseException). Deserialize the downstream body
-                      // into the generated ProblemApiDto carrier and rebuild the exception from it.
-                      try {
-                        final ProblemApiDto problem =
-                            objectMapper.readValue(downstreamExceptionBody, ProblemApiDto.class);
-                        return Mono.error(toException(problem));
-                      } catch (JsonProcessingException e) {
-                        return Mono.error(DownstreamApiProblemException.builder().build());
-                      }
-                    });
+                    downstreamExceptionBody ->
+                        Mono.error(toException(downstreamExceptionBody, objectMapper)));
           }
           return Mono.just(clientResponse);
         });
   }
 
-  private static DownstreamApiProblemException toException(ProblemApiDto problem) {
+  /**
+   * Rebuilds a {@link DownstreamApiProblemException} from a downstream error body.
+   *
+   * <p>The body is parsed as a permissive {@link JsonNode} rather than the generated {@code
+   * ProblemApiDto}: that DTO's {@code downstreamSystem} is a closed enum ({@code
+   * KEYCLOAK/PREFERENCES/HISTORY}), so binding a consumer's value (e.g. a T-NAP {@code GEOCODING},
+   * {@code AAI}, {@code SO_CATALOG}) would throw and the whole error body — including {@code
+   * downstreamSystem} — would be lost. Reading {@code downstreamSystem} as free text keeps any
+   * value intact, matching the pre-migration behaviour where the exception deserialized straight
+   * from JSON.
+   */
+  private static DownstreamApiProblemException toException(
+      String downstreamExceptionBody, ObjectMapper objectMapper) {
+    final JsonNode node;
+    try {
+      node = objectMapper.readTree(downstreamExceptionBody);
+    } catch (JsonProcessingException e) {
+      return DownstreamApiProblemException.builder().build();
+    }
+
     final DownstreamApiProblemException.Builder builder = DownstreamApiProblemException.builder();
-    if (problem.getStatus() != null) {
-      builder.status(HttpStatusCode.valueOf(problem.getStatus()));
+    if (node.hasNonNull("status")) {
+      builder.status(HttpStatusCode.valueOf(node.get("status").asInt()));
     }
-    if (problem.getTitle() != null) {
-      builder.title(problem.getTitle());
+    if (node.hasNonNull("title")) {
+      builder.title(node.get("title").asText());
     }
-    if (problem.getDetail() != null) {
-      builder.detail(problem.getDetail());
+    if (node.hasNonNull("detail")) {
+      builder.detail(node.get("detail").asText());
     }
-    if (problem.getType() != null) {
-      builder.type(URI.create(problem.getType()));
+    if (node.hasNonNull("type")) {
+      builder.type(URI.create(node.get("type").asText()));
     }
-    if (problem.getInstance() != null) {
-      builder.instance(URI.create(problem.getInstance()));
+    if (node.hasNonNull("instance")) {
+      builder.instance(URI.create(node.get("instance").asText()));
     }
-    if (problem.getDownstreamSystem() != null) {
-      builder.downstreamSystem(problem.getDownstreamSystem().getValue());
+    if (node.hasNonNull("downstreamSystem")) {
+      builder.downstreamSystem(node.get("downstreamSystem").asText());
     }
-    if (problem.getDownstreamStatus() != null) {
-      builder.downstreamStatus(problem.getDownstreamStatus());
+    if (node.hasNonNull("downstreamStatus")) {
+      builder.downstreamStatus(node.get("downstreamStatus").asInt());
     }
-    if (problem.getDownstreamMessageId() != null) {
-      builder.downstreamMessageId(problem.getDownstreamMessageId());
+    if (node.hasNonNull("downstreamMessageId")) {
+      builder.downstreamMessageId(node.get("downstreamMessageId").asText());
     }
-    if (problem.getViolations() != null) {
-      builder.violations(problem.getViolations());
+    if (node.has("violations") && node.get("violations").isArray()) {
+      final List<ConstraintViolationApiDto> violations = new ArrayList<>();
+      for (JsonNode violation : node.get("violations")) {
+        violations.add(
+            new ConstraintViolationApiDto(
+                violation.path("field").asText(null), violation.path("message").asText(null)));
+      }
+      builder.violations(violations);
     }
     return builder.build();
   }
