@@ -14,13 +14,15 @@ management:
       exposure:
         include: "*"
   tracing:
-    enabled: true
+    enabled: ${TRACING_ENABLED:true}
     sampling:
       probability: 1.0 # sample every request
   otlp:
     tracing:
-      # OTLP over HTTP/protobuf (default collector port 4318)
-      endpoint: ${COLLECTOR_HOST}:${COLLECTOR_PORT}/v1/traces
+      # OTLP over HTTP/protobuf (default collector port 4318). Defaults are needed even
+      # when tracing is disabled: Boot resolves this placeholder while evaluating the
+      # exporter's @ConditionalOnProperty, so an unset COLLECTOR_HOST fails startup.
+      endpoint: ${COLLECTOR_HOST:http://localhost}:${COLLECTOR_PORT:4318}/v1/traces
 
 spring:
   application:
