@@ -17,9 +17,10 @@ management:
     enabled: true
     sampling:
       probability: 1.0 # sample every request
-  zipkin:
+  otlp:
     tracing:
-      endpoint: ${COLLECTOR_HOST}:${COLLECTOR_PORT}/api/v2/spans
+      # OTLP over HTTP/protobuf (default collector port 4318)
+      endpoint: ${COLLECTOR_HOST}:${COLLECTOR_PORT}/v1/traces
 
 spring:
   application:

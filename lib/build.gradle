@@ -31,7 +31,9 @@ dependencies {
 
     implementation 'io.micrometer:micrometer-tracing'
     implementation 'io.micrometer:micrometer-tracing-bridge-otel'
-    implementation 'io.opentelemetry:opentelemetry-exporter-zipkin'
+    // OTLP over HTTP/protobuf: Boot's OtlpAutoConfiguration is conditional on
+    // OtlpHttpSpanExporter, which this artifact provides.
+    implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
     implementation 'io.micrometer:micrometer-registry-prometheus'
 
     annotationProcessor "org.mapstruct:mapstruct-processor:$mapStructVersion"
