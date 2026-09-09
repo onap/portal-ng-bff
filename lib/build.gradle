@@ -2,7 +2,7 @@ plugins {
     id 'java'
     id 'org.springframework.boot'
     id 'io.spring.dependency-management'
-    id 'com.github.johnrengelman.shadow'
+    id 'com.gradleup.shadow'
     id 'maven-publish'                      // publish lib jar to artifact repository
     id 'com.diffplug.spotless'              // code formatting
     id 'com.github.spotbugs'                // bug linting that can be picked up by IDE
@@ -55,8 +55,11 @@ jar {
 
 publishing {
     publications {
-        shadow(MavenPublication) { publication ->
-            project.shadow.component(publication)
+        shadow(MavenPublication) {
+            // Shadow 9 removed ShadowExtension.component(); publish the shadow jar directly as the
+            // single (classifier-less) artifact, which keeps the published file set and the empty
+            // starting <dependencies> that the pom.withXml block below compensates for.
+            artifact tasks.shadowJar
             groupId = 'org.onap'
             artifactId = 'portal-ng-bff'
 
@@ -136,7 +139,25 @@ tasks.withType(JavaCompile) {
     dependsOn 'spotlessApply'
 }
 
+// The SpotBugs analyser's own classpath is subject to io.spring.dependency-management, which pins
+// commons-lang3 to the Boot BOM's 3.14.0. SpotBugs 4.9+ ships BCEL 6.12, which calls
+// SystemProperties.getJdkModulePath() — added in commons-lang3 3.18 — so the analyser dies with
+// NoSuchMethodError before reporting anything. Force it up on that configuration only; declaring a
+// `spotbugs` dependency instead would suppress the plugin's own defaultDependencies and leave the
+// analyser off its classpath entirely.
+configurations.spotbugs {
+    resolutionStrategy.eachDependency { details ->
+        if (details.requested.group == 'org.apache.commons'
+                && details.requested.name == 'commons-lang3') {
+            details.useVersion '3.19.0'
+        }
+    }
+}
+
 spotbugs {
+    // Pin the analyser: the SpotBugs Gradle plugin defaults to the newest SpotBugs release, and
+    // 4.10.4 fails this module. Bump deliberately, not by drift.
+    toolVersion = '4.9.8'
     ignoreFailures = false
     reportLevel = "high"
     excludeFilter = file("$rootProject.projectDir/spotbugs-exclude.xml")

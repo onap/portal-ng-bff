@@ -57,6 +57,8 @@ dependencies {
     testImplementation "org.springframework.cloud:spring-cloud-contract-wiremock:$wiremockVersion"
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'io.rest-assured:rest-assured'
+    // Gradle 9 no longer puts the JUnit Platform launcher on the test runtime classpath itself.
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 tasks.named('test') {
