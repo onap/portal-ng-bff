@@ -21,9 +21,9 @@
 
 package org.onap.portalng.bff;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
-import com.github.tomakehurst.wiremock.extension.responsetemplating.ResponseTemplateTransformer;
+import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.nimbusds.jose.jwk.JWKSet;
 import io.restassured.RestAssured;
 import io.restassured.filter.log.RequestLoggingFilter;
@@ -44,24 +44,39 @@ import org.onap.portalng.bff.config.IdTokenExchangeFilterFunction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.cloud.contract.wiremock.AutoConfigureWireMock;
-import org.springframework.cloud.contract.wiremock.WireMockConfigurationCustomizer;
-import org.springframework.context.annotation.Bean;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import tools.jackson.databind.ObjectMapper;
 
 /** Base class for all tests that has the common config including port, realm, logging and auth. */
-@AutoConfigureWireMock(port = 0)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public abstract class BaseIntegrationTest {
 
-  @TestConfiguration
-  public static class Config {
-    @Bean
-    WireMockConfigurationCustomizer optionsCustomizer() {
-      return options -> options.extensions(new ResponseTemplateTransformer(true));
-    }
+  /**
+   * spring-cloud-contract-wiremock 5.0.3 (the first Boot 4 compatible release) dropped both
+   * {@code @AutoConfigureWireMock} and {@code WireMockConfigurationCustomizer}, so the server is
+   * started here — once per test JVM — and its port published through {@link
+   * #wireMockProperties(DynamicPropertyRegistry)} for the {@code ${wiremock.server.port}}
+   * placeholders in the test {@code application.yml}. {@code globalTemplating(true)} replaces the
+   * removed {@code new ResponseTemplateTransformer(true)}.
+   */
+  private static final WireMockServer wireMockServer;
+
+  static {
+    wireMockServer =
+        new WireMockServer(
+            WireMockConfiguration.wireMockConfig().dynamicPort().globalTemplating(true));
+    wireMockServer.start();
+    // Point the static WireMock client at this server so the WireMock.stubFor(..)/reset() calls in
+    // mockAuth() and in every subclass keep working without a per-test client instance.
+    WireMock.configureFor(wireMockServer.port());
+  }
+
+  @DynamicPropertySource
+  static void wireMockProperties(DynamicPropertyRegistry registry) {
+    registry.add("wiremock.server.port", wireMockServer::port);
   }
 
   @LocalServerPort protected int port;

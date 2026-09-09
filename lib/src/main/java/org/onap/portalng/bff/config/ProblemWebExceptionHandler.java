@@ -21,8 +21,6 @@
 
 package org.onap.portalng.bff.config;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Comparator;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +38,8 @@ import org.springframework.web.bind.support.WebExchangeBindException;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebExceptionHandler;
 import reactor.core.publisher.Mono;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Renders exceptions that surface as an {@link ErrorResponse} — most importantly Spring's own
@@ -81,7 +81,7 @@ public class ProblemWebExceptionHandler implements WebExceptionHandler {
     final byte[] bytes;
     try {
       bytes = objectMapper.writeValueAsBytes(body);
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       log.error("Failed to serialize problem detail for {}", throwable.getClass().getName(), e);
       return Mono.error(throwable);
     }

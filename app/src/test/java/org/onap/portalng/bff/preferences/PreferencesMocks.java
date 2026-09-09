@@ -22,7 +22,6 @@
 package org.onap.portalng.bff.preferences;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.matching.EqualToPattern;
 import io.restassured.http.Header;
@@ -36,6 +35,8 @@ import org.onap.portalng.bff.openapi.server.model.CreatePreferencesRequestApiDto
 import org.onap.portalng.bff.openapi.server.model.PreferencesResponseApiDto;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 public class PreferencesMocks extends BaseIntegrationTest {
   protected static final String X_REQUEST_ID = "addf6005-3075-4c80-b7bc-2c70b7d42b57";
@@ -44,7 +45,10 @@ public class PreferencesMocks extends BaseIntegrationTest {
       "src/test/resources/preferences/preferencesProperties.json";
 
   protected static final ObjectMapper objectMapper =
-      new ObjectMapper().setSerializationInclusion(JsonInclude.Include.NON_NULL);
+      JsonMapper.builder()
+          .changeDefaultPropertyInclusion(
+              inclusion -> inclusion.withValueInclusion(JsonInclude.Include.NON_NULL))
+          .build();
 
   protected static <T> T getFixture(final String fileName, Class<T> type) throws IOException {
     return objectMapper.readValue(new File(fileName), type);
