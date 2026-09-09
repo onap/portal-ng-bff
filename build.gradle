@@ -1,3 +1,11 @@
+plugins {
+    // Spotless 8 + Gradle 9: the plugin is applied in both :lib and :app, and its
+    // SpotlessTaskService build service cannot be shared across two sibling project
+    // classloader scopes. Declaring it here (without applying it) puts it on the root
+    // scope so both subprojects resolve the same service class.
+    id 'com.diffplug.spotless' apply false
+}
+
 allprojects {
   repositories {
 	  mavenCentral()
