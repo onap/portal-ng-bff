@@ -23,7 +23,6 @@ package org.onap.portalng.bff.preferences;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import io.restassured.http.Header;
 import org.junit.jupiter.api.Test;
 import org.onap.portalng.bff.openapi.client_preferences.model.PreferencesPreferencesDto;
@@ -33,6 +32,7 @@ import org.onap.portalng.bff.openapi.server.model.PreferencesResponseApiDto;
 import org.onap.portalng.bff.openapi.server.model.ProblemApiDto;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import tools.jackson.databind.JsonNode;
 
 class CreatePreferencesIntegrationTest extends PreferencesMocks {
   private static final String PREFERENCE_PROPERTIES_VALUE =

@@ -23,7 +23,6 @@ package org.onap.portalng.bff.exceptions;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Validation;
@@ -44,6 +43,7 @@ import org.springframework.mock.web.server.MockServerWebExchange;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.server.ServerWebInputException;
 import reactor.test.StepVerifier;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Regression tests locking in the error-rendering contract that the Zalando Problem migration must

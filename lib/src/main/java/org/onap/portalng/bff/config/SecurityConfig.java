@@ -63,7 +63,7 @@ public class SecurityConfig {
                     .permitAll()
                     .anyExchange()
                     .authenticated())
-        .oauth2ResourceServer(ServerHttpSecurity.OAuth2ResourceServerSpec::jwt)
+        .oauth2ResourceServer(oauth2 -> oauth2.jwt(withDefaults()))
         .oauth2Client(withDefaults())
         .addFilterAfter(keycloakPermissionFilter, SecurityWebFiltersOrder.AUTHORIZATION)
         .build();

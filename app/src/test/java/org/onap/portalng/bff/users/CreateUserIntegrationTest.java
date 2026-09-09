@@ -23,7 +23,6 @@ package org.onap.portalng.bff.users;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import io.restassured.http.Header;
 import java.util.Collections;
@@ -41,6 +40,7 @@ import org.onap.portalng.bff.openapi.server.model.RoleListResponseApiDto;
 import org.onap.portalng.bff.openapi.server.model.UserResponseApiDto;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import tools.jackson.core.JacksonException;
 
 class CreateUserIntegrationTest extends BaseIntegrationTest {
 
@@ -266,7 +266,7 @@ class CreateUserIntegrationTest extends BaseIntegrationTest {
   }
 
   protected void mockAssignedRoles(String userID, List<RoleKeycloakDto> keycloakRoles)
-      throws JsonProcessingException {
+      throws JacksonException {
     WireMock.stubFor(
         WireMock.get(
                 WireMock.urlMatching(

@@ -21,7 +21,6 @@
 
 package org.onap.portalng.bff.actions;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.matching.EqualToPattern;
 import io.restassured.http.Header;
@@ -36,6 +35,7 @@ import org.onap.portalng.bff.openapi.server.model.CreateActionRequestApiDto;
 import org.onap.portalng.bff.openapi.server.model.ProblemApiDto;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import tools.jackson.core.JacksonException;
 
 public class ActionsMocks extends BaseIntegrationTest {
   protected static final String X_REQUEST_ID = "addf6005-3075-4c80-b7bc-2c70b7d42b00";
@@ -189,7 +189,7 @@ public class ActionsMocks extends BaseIntegrationTest {
 
   // Used for thatActionCanNotBeCreated
   protected void mockCreateActionsProblem(String userId, ProblemHistoryDto problemHistoryDto)
-      throws JsonProcessingException {
+      throws JacksonException {
     WireMock.stubFor(
         WireMock.post(WireMock.urlEqualTo("/v1/actions/" + userId))
             .withHeader("X-Request-Id", new EqualToPattern(X_REQUEST_ID))
@@ -202,8 +202,7 @@ public class ActionsMocks extends BaseIntegrationTest {
   }
   // Used for thatActionCanNotBeCreated
   protected ProblemApiDto createActionProblem(
-      CreateActionRequestApiDto createActionRequestApiDto, String userId)
-      throws JsonProcessingException {
+      CreateActionRequestApiDto createActionRequestApiDto, String userId) throws JacksonException {
     return requestSpecification()
         .given()
         .accept(MediaType.APPLICATION_JSON_VALUE)

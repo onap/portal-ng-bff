@@ -22,13 +22,6 @@
 package org.onap.portalng.bff.config;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.MapperFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.xml.XmlMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.net.URI;
 import java.time.Clock;
 import java.util.ArrayList;
@@ -37,14 +30,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.onap.portalng.bff.exceptions.DownstreamApiProblemException;
 import org.onap.portalng.bff.openapi.server.model.ConstraintViolationApiDto;
 import org.onap.portalng.bff.utils.Logger;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.jackson.autoconfigure.JsonMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.codec.ClientCodecConfigurer;
-import org.springframework.http.codec.json.Jackson2JsonDecoder;
-import org.springframework.http.codec.json.Jackson2JsonEncoder;
-import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
+import org.springframework.http.codec.json.JacksonJsonDecoder;
+import org.springframework.http.codec.json.JacksonJsonEncoder;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
@@ -54,6 +46,10 @@ import org.springframework.web.reactive.function.client.ClientRequest;
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import reactor.core.publisher.Mono;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 @Slf4j
 @Configuration
@@ -70,7 +66,7 @@ public class BeansConfig {
   public static final String X_REQUEST_ID = "X-Request-Id";
 
   private static final String CLIENT_REGISTRATION_ID = "keycloak";
-  private static final ObjectMapper objectMapper = new ObjectMapper();
+  private static final ObjectMapper objectMapper = JsonMapper.builder().build();
 
   private static final Authentication CLIENT_CREDENTIALS_AUTHENTICATION =
       new AnonymousAuthenticationToken(
@@ -133,7 +129,7 @@ public class BeansConfig {
     final JsonNode node;
     try {
       node = objectMapper.readTree(downstreamExceptionBody);
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       return DownstreamApiProblemException.builder().build();
     }
 
@@ -204,7 +200,7 @@ public class BeansConfig {
   }
 
   @Bean
-  ExchangeStrategies exchangeStrategies(@Qualifier("objectMapper") ObjectMapper objectMapper) {
+  ExchangeStrategies exchangeStrategies(JsonMapper jsonMapper) {
     return ExchangeStrategies.builder()
         .codecs(
             configurer -> {
@@ -212,8 +208,8 @@ public class BeansConfig {
                   configurer.defaultCodecs();
 
               defaultCodecs.maxInMemorySize(16 * 1024 * 1024); // 16MB
-              defaultCodecs.jackson2JsonEncoder(new Jackson2JsonEncoder(objectMapper));
-              defaultCodecs.jackson2JsonDecoder(new Jackson2JsonDecoder(objectMapper));
+              defaultCodecs.jacksonJsonEncoder(new JacksonJsonEncoder(jsonMapper));
+              defaultCodecs.jacksonJsonDecoder(new JacksonJsonDecoder(jsonMapper));
             })
         .build();
   }
@@ -223,23 +219,21 @@ public class BeansConfig {
     return Clock.systemUTC();
   }
 
+  /**
+   * Contributes to Boot's autoconfigured {@code JsonMapper} instead of replacing it with a mapper
+   * of our own. That mapper already carries Spring's {@code ProblemDetailJacksonMixin} (registered
+   * by {@code JacksonAutoConfiguration.JsonProblemDetailsConfiguration}), so ProblemDetail
+   * extension properties — {@code downstreamSystem}, {@code downstreamStatus}, … — keep serializing
+   * flat at the top level of the body, which is the wire format portal-ui depends on. Java-time
+   * support is built into Jackson 3, so no module registration is needed either. Declaring a second
+   * {@code ObjectMapper} bean here would not work: Boot's {@code JsonMapper} is {@code @Primary},
+   * so every unqualified {@code ObjectMapper} injection point would silently get that one instead
+   * of ours.
+   */
   @Bean
-  public ObjectMapper objectMapper(Jackson2ObjectMapperBuilder builder) {
-    // Jackson2ObjectMapperBuilder.build() auto-registers Spring's ProblemDetailJacksonMixin, so
-    // ProblemDetail extension properties (downstreamSystem, downstreamStatus, ...) serialize flat
-    // at the top level of the body — the wire format portal-ui depends on. No Zalando ProblemModule
-    // is needed anymore.
-    return builder
-        .modules(new JavaTimeModule())
-        .build()
-        .setSerializationInclusion(JsonInclude.Include.NON_NULL);
-  }
-
-  @Bean
-  public XmlMapper xmlMapper() {
-    return XmlMapper.builder()
-        .configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true)
-        .configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true)
-        .build();
+  JsonMapperBuilderCustomizer nonNullInclusionCustomizer() {
+    return builder ->
+        builder.changeDefaultPropertyInclusion(
+            inclusion -> inclusion.withValueInclusion(JsonInclude.Include.NON_NULL));
   }
 }

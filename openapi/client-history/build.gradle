@@ -19,6 +19,8 @@ openApiGenerate {
       dateLibrary         : "java8",
       serializationLibrary: "jackson",
       useJakartaEe        : "true",
+      useSpringBoot4      : "true",
+      useJackson3         : "true",
     ]
     typeMappings = [
             "File": "org.springframework.core.io.buffer.DataBuffer"

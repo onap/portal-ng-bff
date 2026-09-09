@@ -21,7 +21,6 @@
 
 package org.onap.portalng.bff.config.clients;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
@@ -40,21 +39,22 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
+import tools.jackson.databind.json.JsonMapper;
 
 @Slf4j
 @Configuration
 public class PreferencesConfig extends AbstractClientConfig<ProblemPreferencesDto> {
-  private final ObjectMapper objectMapper;
+  private final JsonMapper jsonMapper;
   private final BffConfig bffConfig;
   private final ExchangeFilterFunction oauth2ExchangeFilterFunction;
 
   public PreferencesConfig(
       @Qualifier(BeansConfig.OAUTH2_EXCHANGE_FILTER_FUNCTION)
           ExchangeFilterFunction oauth2ExchangeFilterFunction,
-      ObjectMapper objectMapper,
+      JsonMapper jsonMapper,
       BffConfig bffConfig) {
     super(ProblemPreferencesDto.class);
-    this.objectMapper = objectMapper;
+    this.jsonMapper = jsonMapper;
     this.bffConfig = bffConfig;
     this.oauth2ExchangeFilterFunction = oauth2ExchangeFilterFunction;
   }
@@ -69,8 +69,8 @@ public class PreferencesConfig extends AbstractClientConfig<ProblemPreferencesDt
     final ApiClient apiClient =
         new ApiClient(
             getWebClient(webClientBuilder, List.of(oauth2ExchangeFilterFunction)),
-            objectMapper,
-            objectMapper.getDateFormat());
+            jsonMapper,
+            ApiClient.createDefaultDateFormat());
 
     final String generatedBasePath = apiClient.getBasePath();
     String basePath = "";

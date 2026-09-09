@@ -21,7 +21,6 @@
 
 package org.onap.portalng.bff.config.clients;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.function.Function;
 import org.onap.portalng.bff.config.BeansConfig;
@@ -38,20 +37,21 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.client.reactive.ClientHttpConnector;
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
+import tools.jackson.databind.json.JsonMapper;
 
 @Configuration
 public class KeycloakConfig extends AbstractClientConfig<ErrorResponseKeycloakDto> {
-  private final ObjectMapper objectMapper;
+  private final JsonMapper jsonMapper;
   private final BffConfig bffConfig;
   private final ExchangeFilterFunction oauth2ExchangeFilterFunction;
 
   public KeycloakConfig(
       @Qualifier(BeansConfig.OAUTH2_EXCHANGE_FILTER_FUNCTION)
           ExchangeFilterFunction oauth2ExchangeFilterFunction,
-      ObjectMapper objectMapper,
+      JsonMapper jsonMapper,
       BffConfig bffConfig) {
     super(ErrorResponseKeycloakDto.class);
-    this.objectMapper = objectMapper;
+    this.jsonMapper = jsonMapper;
     this.bffConfig = bffConfig;
     this.oauth2ExchangeFilterFunction = oauth2ExchangeFilterFunction;
   }
@@ -66,8 +66,8 @@ public class KeycloakConfig extends AbstractClientConfig<ErrorResponseKeycloakDt
     final ApiClient apiClient =
         new ApiClient(
             getWebClient(webClientBuilder, List.of(oauth2ExchangeFilterFunction)),
-            objectMapper,
-            objectMapper.getDateFormat());
+            jsonMapper,
+            ApiClient.createDefaultDateFormat());
 
     // Extract service name and version from BasePath
     String urlBasePathPrefix =
