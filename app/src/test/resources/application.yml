@@ -26,6 +26,6 @@ bff:
   keycloak-url: http://localhost:${wiremock.server.port}
   keycloak-client-id: test
   endpoints:
-    unauthenticated: /api-docs.html, /api.yaml, /webjars/**, /actuator/**
+    unauthenticated: /api-docs.html, /api.yaml, /webjars/**, /actuator/health/**, /actuator/info, /actuator/prometheus
   rbac:
-    endpoints-excluded: /api-docs.html, /api.yaml, /webjars/**, /actuator/**
+    endpoints-excluded: /api-docs.html, /api.yaml, /webjars/**, /actuator/health/**, /actuator/info, /actuator/prometheus
