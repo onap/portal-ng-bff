@@ -28,9 +28,7 @@ import org.junit.jupiter.api.Test;
 import org.onap.portalng.bff.openapi.client_preferences.model.PreferencesPreferencesDto;
 import org.onap.portalng.bff.preferences.PreferencesMocks;
 import org.springframework.http.HttpStatus;
-import org.springframework.test.context.TestPropertySource;
 
-@TestPropertySource(properties = "management.endpoints.web.exposure.include=health,prometheus")
 class UntracedPathsIntegrationTest extends PreferencesMocks {
 
   @Test

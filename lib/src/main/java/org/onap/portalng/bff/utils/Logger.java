@@ -24,7 +24,6 @@ package org.onap.portalng.bff.utils;
 import java.net.URI;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatusCode;
 
 @Slf4j
 public class Logger {
@@ -37,10 +36,6 @@ public class Logger {
 
   public static void requestLog(String xRequestId, HttpMethod method, URI path) {
     log.info("bff - request - X-Request-Id {} {} {}", xRequestId, method, path);
-  }
-
-  public static void responseLog(String xRequestId, HttpStatusCode httpStatusCode) {
-    log.info("bff - response - X-Request-Id {} {}", xRequestId, httpStatusCode);
   }
 
   public static void errorLog(String xRequestId, String msg, String id, String app) {

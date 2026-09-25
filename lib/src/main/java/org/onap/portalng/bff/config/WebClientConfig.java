@@ -18,7 +18,7 @@ public class WebClientConfig {
     private final ExchangeStrategies exchangeStrategies;
     private final ExchangeFilterFunction idTokenExchangeFilterFunction;
     private final ExchangeFilterFunction errorHandlingExchangeFilterFunction;
-    private final ExchangeFilterFunction logResponseExchangeFilterFunction;
+    private final ExchangeFilterFunction logDownstreamCallExchangeFilterFunction;
 
     public WebClientBeanPostProcessor(
         ExchangeStrategies exchangeStrategies,
@@ -26,12 +26,12 @@ public class WebClientConfig {
             ExchangeFilterFunction idTokenExchangeFilterFunction,
         @Qualifier(BeansConfig.ERROR_HANDLING_EXCHANGE_FILTER_FUNCTION)
             ExchangeFilterFunction errorHandlingExchangeFilterFunction,
-        @Qualifier(BeansConfig.LOG_RESPONSE_EXCHANGE_FILTER_FUNCTION)
-            ExchangeFilterFunction logResponseExchangeFilterFunction) {
+        @Qualifier(BeansConfig.LOG_DOWNSTREAM_CALL_EXCHANGE_FILTER_FUNCTION)
+            ExchangeFilterFunction logDownstreamCallExchangeFilterFunction) {
       this.exchangeStrategies = exchangeStrategies;
       this.idTokenExchangeFilterFunction = idTokenExchangeFilterFunction;
       this.errorHandlingExchangeFilterFunction = errorHandlingExchangeFilterFunction;
-      this.logResponseExchangeFilterFunction = logResponseExchangeFilterFunction;
+      this.logDownstreamCallExchangeFilterFunction = logDownstreamCallExchangeFilterFunction;
     }
 
     @Override
@@ -48,7 +48,7 @@ public class WebClientConfig {
             .exchangeStrategies(exchangeStrategies)
             .filter(idTokenExchangeFilterFunction)
             .filter(errorHandlingExchangeFilterFunction)
-            .filter(logResponseExchangeFilterFunction);
+            .filter(logDownstreamCallExchangeFilterFunction);
       }
       return bean;
     }

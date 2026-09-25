@@ -30,6 +30,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
+import org.onap.portalng.bff.openapi.server.model.ProblemApiDto;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -76,7 +77,12 @@ public class KeycloakPermissionFilter implements WebFilter {
       ObjectMapper objectMapper,
       BffConfig bffConfig,
       @Value("${bff.rbac.endpoints-excluded}") String[] excludedPaths) {
-    this.webClient = webClientBuilder.build();
+    this.webClient =
+        webClientBuilder
+            .defaultRequest(
+                DownstreamCallLoggingFilter.forSystem(
+                    ProblemApiDto.DownstreamSystemEnum.KEYCLOAK.toString()))
+            .build();
     this.objectMapper = objectMapper;
     this.bffConfig = bffConfig;
     this.excludedPatterns = List.of(excludedPaths);
