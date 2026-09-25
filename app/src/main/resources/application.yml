@@ -13,6 +13,12 @@ management:
     web:
       exposure:
         include: "*"
+  observations:
+    enable:
+      # The Spring Security observations carry no request path, so the untraced-paths predicate in
+      # TracingConfig cannot drop them: re-enabling this puts orphaned security spans for every
+      # probe and scrape back into the traces.
+      spring.security: false
   tracing:
     enabled: ${TRACING_ENABLED:true}
     sampling:
@@ -55,6 +61,9 @@ bff:
   keycloak-client-id: ${KEYCLOAK_CLIENT_ID}
   endpoints:
     unauthenticated: /api-docs.html, /api.yaml, /webjars/**, /actuator/**
+
+  tracing:
+    untraced-paths-enabled: true
 
   rbac:
     endpoints-excluded: ${RBAC_EXCLUDED_ENDPOINTS:/api-docs.html, /api.yaml, /webjars/**, /actuator/**}
