@@ -71,3 +71,17 @@ To stop the preferences service, Keycloak and the databases run:
 ```sh
 development/stop.sh
 ```
+
+## Observability
+Traces are exported over OTLP/HTTP and can be configured with these environment variables:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `TRACING_ENABLED` | `true` | Whether spans are exported |
+| `TRACING_SAMPLING_PROBABILITY` | `1.0` | Share of requests that are sampled, between `0.0` and `1.0` |
+| `COLLECTOR_HOST` | `http://localhost` | Scheme and host of the OTLP collector |
+| `COLLECTOR_PORT` | `4318` | OTLP/HTTP port of the collector; spans are sent to `<COLLECTOR_HOST>:<COLLECTOR_PORT>/v1/traces` |
+
+Log lines carry the `traceId` and `spanId` of the request they were written for. Every call to a downstream system is logged when it starts, when its response arrives (status and duration) and when it fails.
+
+Besides the Spring Boot defaults (for example `http_server_requests` and `http_client_requests`), `/actuator/prometheus` exposes `portalng_bff_user_administration_total`, which counts user administration operations by `operation` (`create_user`, `update_user`, `delete_user`, `update_password`, `update_roles`) and `outcome` (`success`, `failure`).

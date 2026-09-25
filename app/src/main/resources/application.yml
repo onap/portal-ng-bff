@@ -6,7 +6,7 @@ server:
 
 logging:
   level:
-    org.springframework.web: TRACE
+    org.springframework.web: INFO
 
 management:
   endpoints:
@@ -20,19 +20,26 @@ management:
       # probe and scrape back into the traces.
       spring.security: false
   tracing:
-    enabled: ${TRACING_ENABLED:true}
+    export:
+      enabled: ${TRACING_ENABLED:true}
     sampling:
-      probability: 1.0 # sample every request
-  otlp:
+      probability: ${TRACING_SAMPLING_PROBABILITY:1.0}
+  opentelemetry:
     tracing:
-      # OTLP over HTTP/protobuf (default collector port 4318). Defaults are needed even
-      # when tracing is disabled: Boot resolves this placeholder while evaluating the
-      # exporter's @ConditionalOnProperty, so an unset COLLECTOR_HOST fails startup.
-      endpoint: ${COLLECTOR_HOST:http://localhost}:${COLLECTOR_PORT:4318}/v1/traces
+      export:
+        otlp:
+          # OTLP over HTTP/protobuf (default collector port 4318). Defaults are needed even
+          # when export is disabled: Boot resolves this placeholder while evaluating the
+          # exporter's @ConditionalOnProperty, so an unset COLLECTOR_HOST fails startup.
+          endpoint: ${COLLECTOR_HOST:http://localhost}:${COLLECTOR_PORT:4318}/v1/traces
 
 spring:
   application:
     name: ${APPLICATION_NAME:portal-ng-bff}
+  reactor:
+    # Restores the MDC (traceId, spanId) on whichever thread a reactive operator runs, so log
+    # lines written inside a WebFlux or WebClient chain carry the ids of the request's span.
+    context-propagation: auto
   security:
     oauth2:
       client:

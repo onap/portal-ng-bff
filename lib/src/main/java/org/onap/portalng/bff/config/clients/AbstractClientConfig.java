@@ -25,6 +25,7 @@ import java.time.Duration;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.onap.portalng.bff.config.DownstreamCallLoggingFilter;
 import org.onap.portalng.bff.exceptions.DownstreamApiProblemException;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.client.reactive.ClientHttpConnector;
@@ -56,6 +57,15 @@ public abstract class AbstractClientConfig<E> {
         });
   }
 
+  /**
+   * Names the downstream system in the logs of every call made through {@link
+   * #getWebClient(WebClient.Builder, List)}. Without an override the calls are logged with the
+   * target host.
+   */
+  protected String downstreamSystem() {
+    return null;
+  }
+
   protected abstract DownstreamApiProblemException mapException(
       E errorResponse, HttpStatusCode httpStatusCode);
 
@@ -80,8 +90,12 @@ public abstract class AbstractClientConfig<E> {
     if (filters != null) {
       filters.forEach(webClientBuilder::filter);
     }
+    if (downstreamSystem() != null) {
+      webClientBuilder.defaultRequest(DownstreamCallLoggingFilter.forSystem(downstreamSystem()));
+    }
     return webClientBuilder
         .filter(errorHandlingExchangeFilterFunction())
+        .filters(DownstreamCallLoggingFilter::moveInnermost)
         .clientConnector(getClientHttpConnector())
         .build();
   }

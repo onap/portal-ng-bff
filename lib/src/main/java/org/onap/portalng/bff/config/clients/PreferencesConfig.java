@@ -83,6 +83,11 @@ public class PreferencesConfig extends AbstractClientConfig<ProblemPreferencesDt
   }
 
   @Override
+  protected String downstreamSystem() {
+    return ProblemApiDto.DownstreamSystemEnum.PREFERENCES.toString();
+  }
+
+  @Override
   protected DownstreamApiProblemException mapException(
       ProblemPreferencesDto errorResponse, HttpStatusCode httpStatusCode) {
     return DownstreamApiProblemException.builder()
