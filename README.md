@@ -47,6 +47,11 @@ export SPRING_PROFILES_ACTIVE=local
 ./gradlew app:bootRun
 ```
 
+## Actuator
+Only the `health`, `info` and `prometheus` actuator endpoints are exposed. `/actuator/health/**` (including the `liveness` and `readiness` probes), `/actuator/info` and `/actuator/prometheus` can be called without a token; every other actuator path, including the `/actuator` discovery page, requires authentication.
+
+The paths that skip the Keycloak RBAC check can be overridden with the `RBAC_EXCLUDED_ENDPOINTS` environment variable (comma-separated). Its default is `/api-docs.html, /api.yaml, /webjars/**, /actuator/health/**, /actuator/info, /actuator/prometheus`; an override replaces the whole list.
+
 ## Development
 You can run the service locally for evaluation or development purposes using the provided `docker-compose.yml` file in the development folder. This will launch a Keycloak and a Postgres db in the background.
 
