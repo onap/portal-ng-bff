@@ -29,7 +29,6 @@ import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.onap.portalng.bff.exceptions.DownstreamApiProblemException;
 import org.onap.portalng.bff.openapi.server.model.ConstraintViolationApiDto;
-import org.onap.portalng.bff.utils.Logger;
 import org.springframework.boot.jackson.autoconfigure.JsonMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -59,10 +58,8 @@ public class BeansConfig {
   public static final String ID_TOKEN_EXCHANGE_FILTER_FUNCTION = "idTokenExchangeFilterFunction";
   public static final String ERROR_HANDLING_EXCHANGE_FILTER_FUNCTION =
       "errorHandlingExchangeFilterFunction";
-  public static final String LOG_REQUEST_EXCHANGE_FILTER_FUNCTION =
-      "logRequestExchangeFilterFunction";
-  public static final String LOG_RESPONSE_EXCHANGE_FILTER_FUNCTION =
-      "logResponseExchangeFilterFunction";
+  public static final String LOG_DOWNSTREAM_CALL_EXCHANGE_FILTER_FUNCTION =
+      "logDownstreamCallExchangeFilterFunction";
   public static final String X_REQUEST_ID = "X-Request-Id";
 
   private static final String CLIENT_REGISTRATION_ID = "keycloak";
@@ -170,33 +167,9 @@ public class BeansConfig {
     return builder.build();
   }
 
-  //
-  // Don't use this. Log will is written in the LoggerInterceptor
-  //
-  @Bean(name = LOG_REQUEST_EXCHANGE_FILTER_FUNCTION)
-  ExchangeFilterFunction logRequestExchangeFilterFunction() {
-    return ExchangeFilterFunction.ofRequestProcessor(
-        clientRequest -> {
-          List<String> xRequestIdList = clientRequest.headers().get(X_REQUEST_ID);
-          if (xRequestIdList != null && !xRequestIdList.isEmpty()) {
-            String xRequestId = xRequestIdList.get(0);
-            Logger.requestLog(xRequestId, clientRequest.method(), clientRequest.url());
-          }
-          return Mono.just(clientRequest);
-        });
-  }
-
-  @Bean(name = LOG_RESPONSE_EXCHANGE_FILTER_FUNCTION)
-  ExchangeFilterFunction logResponseExchangeFilterFunction() {
-    return ExchangeFilterFunction.ofResponseProcessor(
-        clientResponse -> {
-          String xRequestId = "not set";
-          List<String> xRequestIdList = clientResponse.headers().header(X_REQUEST_ID);
-          if (xRequestIdList != null && !xRequestIdList.isEmpty())
-            xRequestId = xRequestIdList.get(0);
-          Logger.responseLog(xRequestId, clientResponse.statusCode());
-          return Mono.just(clientResponse);
-        });
+  @Bean(name = LOG_DOWNSTREAM_CALL_EXCHANGE_FILTER_FUNCTION)
+  ExchangeFilterFunction logDownstreamCallExchangeFilterFunction() {
+    return new DownstreamCallLoggingFilter();
   }
 
   @Bean

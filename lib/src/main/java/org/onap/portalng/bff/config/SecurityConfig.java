@@ -23,7 +23,10 @@ package org.onap.portalng.bff.config;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
+import io.micrometer.observation.ObservationRegistry;
 import lombok.RequiredArgsConstructor;
+import org.onap.portalng.bff.openapi.server.model.ProblemApiDto;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -35,8 +38,11 @@ import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClient
 import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientProvider;
 import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientProviderBuilder;
 import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientService;
+import org.springframework.security.oauth2.client.endpoint.WebClientReactiveClientCredentialsTokenResponseClient;
 import org.springframework.security.oauth2.client.registration.ReactiveClientRegistrationRepository;
 import org.springframework.security.web.server.SecurityWebFilterChain;
+import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
+import org.springframework.web.reactive.function.client.WebClient;
 
 @Configuration
 @EnableWebFluxSecurity
@@ -72,10 +78,31 @@ public class SecurityConfig {
   @Bean
   ReactiveOAuth2AuthorizedClientManager reactiveOAuth2AuthorizedClientManager(
       ReactiveClientRegistrationRepository clientRegistrationRepository,
-      ReactiveOAuth2AuthorizedClientService authorizedClientService) {
+      ReactiveOAuth2AuthorizedClientService authorizedClientService,
+      ObservationRegistry observationRegistry,
+      @Qualifier(BeansConfig.LOG_DOWNSTREAM_CALL_EXCHANGE_FILTER_FUNCTION)
+          ExchangeFilterFunction logDownstreamCallExchangeFilterFunction) {
+
+    // Spring Security's default token client uses a bare WebClient that is neither observed nor
+    // logged. The injectable WebClient.Builder is no substitute: its BFF-wide filters would turn a
+    // token endpoint error into a DownstreamApiProblemException instead of an OAuth2 error.
+    final WebClientReactiveClientCredentialsTokenResponseClient tokenResponseClient =
+        new WebClientReactiveClientCredentialsTokenResponseClient();
+    tokenResponseClient.setWebClient(
+        WebClient.builder()
+            .observationRegistry(observationRegistry)
+            .filter(logDownstreamCallExchangeFilterFunction)
+            .defaultRequest(
+                DownstreamCallLoggingFilter.forSystem(
+                    ProblemApiDto.DownstreamSystemEnum.KEYCLOAK.toString()))
+            .build());
 
     final ReactiveOAuth2AuthorizedClientProvider authorizedClientProvider =
-        ReactiveOAuth2AuthorizedClientProviderBuilder.builder().clientCredentials().build();
+        ReactiveOAuth2AuthorizedClientProviderBuilder.builder()
+            .clientCredentials(
+                clientCredentials ->
+                    clientCredentials.accessTokenResponseClient(tokenResponseClient))
+            .build();
 
     final AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager authorizedClientManager =
         new AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager(
