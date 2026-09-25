@@ -82,6 +82,11 @@ public class HistoryConfig extends AbstractClientConfig<ProblemHistoryDto> {
   }
 
   @Override
+  protected String downstreamSystem() {
+    return ProblemApiDto.DownstreamSystemEnum.HISTORY.toString();
+  }
+
+  @Override
   protected DownstreamApiProblemException mapException(
       ProblemHistoryDto errorResponse, HttpStatusCode httpStatusCode) {
     return DownstreamApiProblemException.builder()

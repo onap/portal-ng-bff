@@ -77,6 +77,11 @@ public class KeycloakConfig extends AbstractClientConfig<ErrorResponseKeycloakDt
   }
 
   @Override
+  protected String downstreamSystem() {
+    return ProblemApiDto.DownstreamSystemEnum.KEYCLOAK.toString();
+  }
+
+  @Override
   protected DownstreamApiProblemException mapException(
       ErrorResponseKeycloakDto errorResponse, HttpStatusCode httpStatusCode) {
     String errorDetail =

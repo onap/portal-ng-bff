@@ -36,6 +36,7 @@ import org.onap.portalng.bff.mappers.UsersMapper;
 import org.onap.portalng.bff.openapi.client_keycloak.api.KeycloakApi;
 import org.onap.portalng.bff.openapi.client_keycloak.model.RequiredActionsKeycloakDto;
 import org.onap.portalng.bff.openapi.server.model.*;
+import org.onap.portalng.bff.services.UserAdministrationMetrics.Operation;
 import org.onap.portalng.bff.utils.Logger;
 import org.springframework.core.convert.support.ConfigurableConversionService;
 import org.springframework.http.HttpStatus;
@@ -53,6 +54,7 @@ public class KeycloakService {
   private final RolesMapper rolesMapper;
   private final UsersMapper usersMapper;
   private final CredentialMapper credentialMapper;
+  private final UserAdministrationMetrics userAdministrationMetrics;
 
   public Mono<UserResponseApiDto> createUser(CreateUserRequestApiDto request, String xRequestId) {
     log.debug("Create user in keycloak. request=`{}`", request);
@@ -78,7 +80,8 @@ public class KeycloakService {
               }
               return Mono.just(rolesToBeAssigned);
             })
-        .flatMap(roles -> createUserWithRoles(request, xRequestId, roles));
+        .flatMap(roles -> createUserWithRoles(request, xRequestId, roles))
+        .transform(userAdministrationMetrics.record(Operation.CREATE_USER));
   }
 
   private Mono<UserResponseApiDto> createUserWithRoles(
@@ -204,7 +207,8 @@ public class KeycloakService {
                   userId,
                   ProblemApiDto.DownstreamSystemEnum.KEYCLOAK.toString());
               return Mono.error(ex);
-            });
+            })
+        .transform(userAdministrationMetrics.record(Operation.UPDATE_USER));
   }
 
   public Mono<Void> updateUserPassword(String userId, UpdateUserPasswordRequestApiDto request) {
@@ -213,7 +217,9 @@ public class KeycloakService {
         userId,
         request.getTemporary());
 
-    return keycloakApi.resetUserPassword(userId, credentialMapper.convert(request));
+    return keycloakApi
+        .resetUserPassword(userId, credentialMapper.convert(request))
+        .transform(userAdministrationMetrics.record(Operation.UPDATE_PASSWORD));
   }
 
   public Mono<Void> deleteUser(String userId, String xRequestId) {
@@ -230,7 +236,8 @@ public class KeycloakService {
                   userId,
                   ProblemApiDto.DownstreamSystemEnum.KEYCLOAK.toString());
               return Mono.error(ex);
-            });
+            })
+        .transform(userAdministrationMetrics.record(Operation.DELETE_USER));
   }
 
   public Mono<String> assignRoles(String userId, List<RoleApiDto> roles) {
@@ -278,7 +285,8 @@ public class KeycloakService {
                   }
                   return assignRoles(userId, roles);
                 }))
-        .then(Mono.defer(() -> getAssignedRoles(userId, xRequestId)));
+        .then(Mono.defer(() -> getAssignedRoles(userId, xRequestId)))
+        .transform(userAdministrationMetrics.record(Operation.UPDATE_ROLES));
   }
 
   public Mono<Void> unassignRoles(String userId, List<RoleApiDto> roles) {

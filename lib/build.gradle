@@ -32,6 +32,9 @@ dependencies {
     implementation "org.mapstruct.extensions.spring:mapstruct-spring-annotations:$mapStructExtensionsVersion"
     implementation "org.mapstruct.extensions.spring:mapstruct-spring-extensions:$mapStructExtensionsVersion"
 
+    // Boot 4 moved the tracing auto-configuration out of actuator into this module; without it no
+    // Tracer or span exporter bean is created and the dependencies below do nothing.
+    implementation 'org.springframework.boot:spring-boot-micrometer-tracing-opentelemetry'
     implementation 'io.micrometer:micrometer-tracing'
     implementation 'io.micrometer:micrometer-tracing-bridge-otel'
     // OTLP over HTTP/protobuf: Boot's OtlpAutoConfiguration is conditional on
