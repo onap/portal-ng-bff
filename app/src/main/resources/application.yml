@@ -12,7 +12,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: "*"
+        include: health,info,prometheus
   observations:
     enable:
       # The Spring Security observations carry no request path, so the untraced-paths predicate in
@@ -60,10 +60,10 @@ bff:
   keycloak-url: ${KEYCLOAK_URL}
   keycloak-client-id: ${KEYCLOAK_CLIENT_ID}
   endpoints:
-    unauthenticated: /api-docs.html, /api.yaml, /webjars/**, /actuator/**
+    unauthenticated: /api-docs.html, /api.yaml, /webjars/**, /actuator/health/**, /actuator/info, /actuator/prometheus
 
   tracing:
     untraced-paths-enabled: true
 
   rbac:
-    endpoints-excluded: ${RBAC_EXCLUDED_ENDPOINTS:/api-docs.html, /api.yaml, /webjars/**, /actuator/**}
+    endpoints-excluded: ${RBAC_EXCLUDED_ENDPOINTS:/api-docs.html, /api.yaml, /webjars/**, /actuator/health/**, /actuator/info, /actuator/prometheus}

@@ -1,6 +1,8 @@
 management:
   tracing:
-    enabled: false
+    export:
+      enabled: false
+
 spring:
   security:
     oauth2:
@@ -11,10 +13,8 @@ spring:
             jwk-set-uri: http://localhost:${wiremock.server.port}/realms/ONAP/protocol/openid-connect/certs
         registration:
           keycloak:
-            provider: keycloak
             client-id: test
             client-secret: test
-            authorization-grant-type: client_credentials
       resourceserver:
         jwt:
           jwk-set-uri: http://localhost:${wiremock.server.port}/realms/ONAP/protocol/openid-connect/certs
@@ -25,7 +25,3 @@ bff:
   history-url: http://localhost:${wiremock.server.port}
   keycloak-url: http://localhost:${wiremock.server.port}
   keycloak-client-id: test
-  endpoints:
-    unauthenticated: /api-docs.html, /api.yaml, /webjars/**, /actuator/**
-  rbac:
-    endpoints-excluded: /api-docs.html, /api.yaml, /webjars/**, /actuator/**
