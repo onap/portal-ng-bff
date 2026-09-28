@@ -25,19 +25,27 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import java.util.Comparator;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 import org.onap.portalng.bff.exceptions.DownstreamApiProblemException;
 import org.onap.portalng.bff.openapi.server.model.ConstraintViolationApiDto;
+import org.springframework.core.NestedExceptionUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.bind.support.WebExchangeBindException;
 import org.springframework.web.reactive.result.method.annotation.ResponseEntityExceptionHandler;
 import org.springframework.web.server.ServerWebExchange;
+import org.springframework.web.server.ServerWebInputException;
 import reactor.core.publisher.Mono;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.TokenStreamLocation;
+import tools.jackson.databind.exc.UnrecognizedPropertyException;
 
 /**
  * Global exception handling for the BFF. Renders every error as an {@code application/problem+json}
@@ -52,6 +60,7 @@ import reactor.core.publisher.Mono;
  * #createResponseEntity} forces the {@code application/problem+json} content type on every rendered
  * problem body, which is the contract portal-ui relies on.
  */
+@Slf4j
 @RestControllerAdvice
 public class BffControllerAdvice extends ResponseEntityExceptionHandler {
 
@@ -84,12 +93,91 @@ public class BffControllerAdvice extends ResponseEntityExceptionHandler {
                     ConstraintViolationApiDto::getField,
                     Comparator.nullsLast(Comparator.naturalOrder())))
             .toList();
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        .contentType(MediaType.APPLICATION_PROBLEM_JSON)
+        .body(constraintViolationProblem(violations));
+  }
+
+  /**
+   * Request-body bean-validation failures render with the same {@code "Constraint Violation"} title
+   * and {@code violations} array as {@link #handleConstraintViolation}, so portal-ui sees one
+   * validation-error shape. {@code field} is the rejected field's name.
+   */
+  @Override
+  protected Mono<ResponseEntity<Object>> handleWebExchangeBindException(
+      WebExchangeBindException ex,
+      HttpHeaders headers,
+      HttpStatusCode status,
+      ServerWebExchange exchange) {
+    final List<ConstraintViolationApiDto> violations =
+        ex.getFieldErrors().stream()
+            // Sort by field for a deterministic order (getFieldErrors() order is not stable).
+            .sorted(Comparator.comparing(FieldError::getField))
+            .map(
+                error -> new ConstraintViolationApiDto(error.getField(), error.getDefaultMessage()))
+            .toList();
+    return handleExceptionInternal(
+        ex, constraintViolationProblem(violations), headers, status, exchange);
+  }
+
+  private static ProblemDetail constraintViolationProblem(
+      List<ConstraintViolationApiDto> violations) {
     final ProblemDetail body = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
     body.setTitle("Constraint Violation");
     body.setProperty("violations", violations);
-    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-        .contentType(MediaType.APPLICATION_PROBLEM_JSON)
-        .body(body);
+    return body;
+  }
+
+  /**
+   * Logs the cause of a rejected request input, which the rendered problem does not carry. For a
+   * Jackson decode error the client gets the JSON path or offset only: Jackson's own message names
+   * the target DTO class and echoes the offending value.
+   */
+  @Override
+  protected Mono<ResponseEntity<Object>> handleServerWebInputException(
+      ServerWebInputException ex,
+      HttpHeaders headers,
+      HttpStatusCode status,
+      ServerWebExchange exchange) {
+    final Throwable cause = NestedExceptionUtils.getMostSpecificCause(ex);
+    log.warn(
+        "Rejected request input for {} {}: {}",
+        exchange.getRequest().getMethod(),
+        exchange.getRequest().getPath(),
+        cause.toString());
+    if (cause instanceof JacksonException jacksonException) {
+      ex.getBody().setDetail(clientDetail(jacksonException));
+    }
+    return super.handleServerWebInputException(ex, headers, status, exchange);
+  }
+
+  private static String clientDetail(JacksonException ex) {
+    final String path = jsonPath(ex);
+    if (!path.isEmpty()) {
+      final String problem =
+          ex instanceof UnrecognizedPropertyException ? "Unrecognized property" : "Invalid value";
+      return problem + " at '" + path + "'";
+    }
+    final TokenStreamLocation location = ex.getLocation();
+    if (location != null && location.getByteOffset() >= 0) {
+      return "Malformed JSON request body at byte offset " + location.getByteOffset();
+    }
+    return "Malformed JSON request body";
+  }
+
+  private static String jsonPath(JacksonException ex) {
+    final StringBuilder path = new StringBuilder();
+    for (JacksonException.Reference reference : ex.getPath()) {
+      if (reference.getPropertyName() != null) {
+        if (!path.isEmpty()) {
+          path.append('.');
+        }
+        path.append(reference.getPropertyName());
+      } else if (reference.getIndex() >= 0) {
+        path.append('[').append(reference.getIndex()).append(']');
+      }
+    }
+    return path.toString();
   }
 
   private static String pathOf(ConstraintViolation<?> violation) {
@@ -115,15 +203,19 @@ public class BffControllerAdvice extends ResponseEntityExceptionHandler {
   /**
    * Ensure every problem response carries the {@code application/problem+json} content type,
    * regardless of which handler produced it (mirrors the behaviour of the previous Zalando {@code
-   * ProblemHandling} advice).
+   * ProblemHandling} advice). The headers are copied because for an {@code ErrorResponse} they are
+   * the exception's own read-only headers.
    */
   @Override
   protected Mono<ResponseEntity<Object>> createResponseEntity(
       Object body, HttpHeaders headers, HttpStatusCode statusCode, ServerWebExchange exchange) {
-    final HttpHeaders effectiveHeaders = headers != null ? headers : new HttpHeaders();
-    if (effectiveHeaders.getContentType() == null) {
-      effectiveHeaders.setContentType(MediaType.APPLICATION_PROBLEM_JSON);
+    final HttpHeaders writableHeaders = new HttpHeaders();
+    if (headers != null) {
+      writableHeaders.putAll(headers);
     }
-    return super.createResponseEntity(body, effectiveHeaders, statusCode, exchange);
+    if (writableHeaders.getContentType() == null) {
+      writableHeaders.setContentType(MediaType.APPLICATION_PROBLEM_JSON);
+    }
+    return super.createResponseEntity(body, writableHeaders, statusCode, exchange);
   }
 }
